@@ -57,4 +57,11 @@ final class OpenAIAssistant implements AIAssistant
     {
         return $this->client->createStream($this->threadId, $this->assistant);
     }
+
+    public function feed(string $filePath): static
+    {
+        $this->client->feed($filePath, $this->assistant);
+
+        return $this;
+    }
 }

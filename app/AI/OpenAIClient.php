@@ -8,6 +8,7 @@ use OpenAI\Laravel\Facades\OpenAI;
 use OpenAI\Responses\Threads\ThreadResponse;
 use OpenAI\Responses\Assistants\AssistantResponse;
 use OpenAI\Responses\Threads\Runs\ThreadRunResponse;
+use OpenAI\Responses\VectorStores\VectorStoreResponse;
 use OpenAI\Responses\Threads\Messages\ThreadMessageResponse;
 use OpenAI\Responses\Threads\Messages\ThreadMessageListResponse;
 
@@ -69,5 +70,20 @@ final class OpenAIClient implements AIClient
         return OpenAI::threads()->runs()->createStreamed($threadId, [
             'assistant_id' => $assistant->id,
         ]);
+    }
+
+    public function feed(string $file, VectorStoreResponse $vectorStore): void
+    {
+        $file = OpenAI::files()->upload([
+            'file' => fopen($file, 'rb'),
+            'purpose' => 'assistants',
+        ]);
+
+        OpenAI::vectorStores()->files()->create(
+            vectorStoreId: $vectorStore->id,
+            parameters: [
+                'file_id' => $file->id,
+            ],
+        );
     }
 }

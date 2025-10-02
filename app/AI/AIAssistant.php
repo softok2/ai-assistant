@@ -15,4 +15,6 @@ interface AIAssistant
     public function write(string $message): static;
 
     public function send(): ThreadMessageListResponse;
+
+    public function feed(string $file): static;
 }
