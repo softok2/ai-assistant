@@ -1,1 +1,67 @@
+name: ai_assistant-stage_deployment
+on:
+  push:
+    branches:
+      - stage
+jobs:
+  AI_Assistant_Stage_Platform_Deployment:
+    runs-on: [self-hosted,ai-assistant-ionos]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.event.ref == 'refs/heads/stage')
+    steps:
+    - name: Clean Migrations
+      run: |
+        rm database/migrations/* -f
+      working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Move Source to Document Root
+      run: |
+        rsync -ar $GITHUB_WORKSPACE/ ${{ secrets.AI_ASSISTANT_STAGE_DIR }} --exclude=".env" --exclude=".git" 
 
+    - name: Install Composer dependencies
+      run: |
+        scl enable php83 "composer install --no-interaction"
+      working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
+
+    - name: Setup Node dependencies
+      run: |
+        yarn
+        yarn build
+      working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}    
+ 
+    - name: Setup Laravel mandatory commands
+      run: |
+        scl enable php83 "php artisan storage:link"
+        scl enable php83 "php artisan optimize"
+      working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
+    - name: Setup Laravel mandatory DB Migrate and seed commands
+      run: |
+        scl enable php83 "php artisan migrate:fresh --seed"
+      working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
+    - name: Fixing permissions on directories for apache
+      run: |
+        chown -R apache:apache bootstrap/cache
+        chown -R apache:apache storage 
+        chown -R apache:apache app
+        chown -R apache:apache public        
+      working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
+    - name: Send Telegram message
+      if: ${{ always() }}
+      env:
+         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+         REPOSITORY: ${{ github.repository }}
+         BRANCH: ${{ github.ref }}
+         USER: ${{ github.actor }}
+         COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+         STATUS: ${{ job.status }}
+      run: |
+          EMOJI=":-)"
+          [[ "$STATUS" == "failure" ]] && EMOJI=":-(" 
+          MESSAGE="<b>SoftOk2 Development Stack Action:</b>%0AJob: <b>'${{ github.job }}'</b> %0AStatus: <b>${STATUS} ${EMOJI}</b>"
+          MESSAGE+="%0A<i>Repository:</i> ${REPOSITORY}"
+          MESSAGE+="%0A<i>Branch:</i> ${BRANCH}"
+          MESSAGE+="%0A<i>User:</i> ${USER}"
+          MESSAGE+="%0A<i>Commit Message:</i> ${COMMIT_MESSAGE}"
+              curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+               -d "chat_id=${TELEGRAM_CHAT_ID}" -d "text=${MESSAGE}&parse_mode=HTML"
