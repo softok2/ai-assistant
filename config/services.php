@@ -36,5 +36,13 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY', 'sk-1234567890abcdef1234567890abcdef1234567890'),
+        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1/'),
+        'model' => env('OPENAI_MODEL', 'gpt-3.5-turbo'),
+        'temperature' => env('OPENAI_TEMPERATURE', 0.7),
+        'organization' => env('OPENAI_ORGANIZATION', 'org-1234567890'),
+        'assistant_id' => env('OPENAI_ASSISTANT_ID', 'assistant-1234567890abcdef1234567890abcdef'),
+    ],
 
 ];

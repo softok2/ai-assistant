@@ -1,0 +1,28 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\AI;
+
+use OpenAI\Responses\Threads\ThreadResponse;
+use OpenAI\Responses\Assistants\AssistantResponse;
+use OpenAI\Responses\Threads\Runs\ThreadRunResponse;
+use OpenAI\Responses\Threads\Messages\ThreadMessageResponse;
+use OpenAI\Responses\Threads\Messages\ThreadMessageListResponse;
+
+interface AIClient
+{
+    public function retrieveAssistant(string $assistantId): AssistantResponse;
+
+    public function createThread(array $parameters): ThreadResponse;
+
+    public function retrieveThread(string $threadId): ThreadResponse;
+
+    public function createMessage(string $threadId, string $message): ThreadMessageResponse;
+
+    public function messages(string $threadId): ThreadMessageListResponse;
+
+    public function run(string $threadId, AssistantResponse $assistant): ThreadMessageListResponse;
+
+    public function runStatus(ThreadRunResponse $run): bool;
+}
