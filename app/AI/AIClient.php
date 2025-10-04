@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\AI;
 
+use OpenAI\Responses\Files\CreateResponse;
+use OpenAI\Responses\Files\DeleteResponse;
 use OpenAI\Responses\Threads\ThreadResponse;
 use OpenAI\Responses\Assistants\AssistantResponse;
 use OpenAI\Responses\Threads\Runs\ThreadRunResponse;
+use OpenAI\Responses\VectorStores\Files\VectorStoreFileDeleteResponse;
+use OpenAI\Responses\VectorStores\Files\VectorStoreFileResponse;
 use OpenAI\Responses\VectorStores\VectorStoreResponse;
 use OpenAI\Responses\Threads\Messages\ThreadMessageResponse;
 use OpenAI\Responses\Threads\Messages\ThreadMessageListResponse;
@@ -27,5 +31,9 @@ interface AIClient
 
     public function runStatus(ThreadRunResponse $run): bool;
 
-    public function feed(string $file, VectorStoreResponse $vectorStore): void;
+    public function feed(string $file, VectorStoreResponse $vectorStore): CreateResponse;
+
+    public function retrieveVectorStore(string $vectorId): VectorStoreResponse;
+
+    public function removeFile(string $fileId, VectorStoreResponse $vectorStore): DeleteResponse;
 }

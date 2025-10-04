@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\AI;
 
 use OpenAI\Laravel\Facades\OpenAI;
+use OpenAI\Responses\Files\CreateResponse;
+use OpenAI\Responses\Files\DeleteResponse;
 use OpenAI\Responses\Threads\ThreadResponse;
 use OpenAI\Responses\Assistants\AssistantResponse;
 use OpenAI\Responses\Threads\Runs\ThreadRunResponse;
@@ -72,7 +74,7 @@ final class OpenAIClient implements AIClient
         ]);
     }
 
-    public function feed(string $file, VectorStoreResponse $vectorStore): void
+    public function feed(string $file, VectorStoreResponse $vectorStore): CreateResponse
     {
         $file = OpenAI::files()->upload([
             'file' => fopen($file, 'rb'),
@@ -85,5 +87,22 @@ final class OpenAIClient implements AIClient
                 'file_id' => $file->id,
             ],
         );
+
+        return $file;
+    }
+
+    public function retrieveVectorStore(string $vectorId): VectorStoreResponse
+    {
+        return OpenAI::vectorStores()->retrieve($vectorId);
+    }
+
+    public function removeFile(string $fileId, VectorStoreResponse $vectorStore): DeleteResponse
+    {
+        OpenAI::vectorStores()->files()->delete(
+            vectorStoreId: $vectorStore->id,
+            fileId: $fileId
+        );
+
+        return OpenAI::files()->delete($fileId);
     }
 }

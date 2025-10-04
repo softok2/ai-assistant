@@ -43,6 +43,7 @@ return [
         'temperature' => env('OPENAI_TEMPERATURE', 0.7),
         'organization' => env('OPENAI_ORGANIZATION', 'org-1234567890'),
         'assistant_id' => env('OPENAI_ASSISTANT_ID', 'assistant-1234567890abcdef1234567890abcdef'),
+        'vector_store_id' => env('OPENAI_VECTOR_STORE_ID', 'vector-1234567890abcdef1234567890abcdef'),
     ],
 
 ];

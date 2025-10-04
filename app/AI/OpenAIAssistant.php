@@ -4,22 +4,28 @@ declare(strict_types=1);
 
 namespace App\AI;
 
+use OpenAI\Responses\Files\CreateResponse;
+use OpenAI\Responses\Files\DeleteResponse;
 use OpenAI\Responses\Assistants\AssistantResponse;
+use OpenAI\Responses\VectorStores\VectorStoreResponse;
 use OpenAI\Responses\Threads\Messages\ThreadMessageListResponse;
 
 final class OpenAIAssistant implements AIAssistant
 {
     private AssistantResponse $assistant;
 
+    private VectorStoreResponse $vectorStore;
+
     private string $threadId;
 
     private AIClient $client;
 
-    public function __construct(string $assistantId, ?AiClient $client = null)
+    public function __construct(string $assistantId, string $vectorStoreId, ?AiClient $client = null)
     {
         $this->client = $client ?: new OpenAIClient;
 
         $this->assistant = $this->client->retrieveAssistant($assistantId);
+        $this->vectorStore = $this->client->retrieveVectorStore($vectorStoreId);
     }
 
     public function createThread(array $parameters = []): static
@@ -58,10 +64,13 @@ final class OpenAIAssistant implements AIAssistant
         return $this->client->createStream($this->threadId, $this->assistant);
     }
 
-    public function feed(string $filePath): static
+    public function feed(string $file): CreateResponse
     {
-        $this->client->feed($filePath, $this->assistant);
+        return $this->client->feed($file, $this->vectorStore);
+    }
 
-        return $this;
+    public function deleteFile(string $fileId): DeleteResponse
+    {
+        return $this->client->removeFile($fileId, $this->vectorStore);
     }
 }
