@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\Media;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChatController;
@@ -30,7 +32,11 @@ Route::get('test', function (){
                 ->withBasicAuth(config('services.softok2mds.username'), config('services.softok2mds.password'))
                 ->get(config('services.softok2mds.base_url') . $path . '.md');
 
-            dd($response->body());
+
+            DB::transaction(function () use ($response, $path) {
+                $media = Media::fromPentaho($path.'-'.time().'.md', $response->body());
+                Media::markAsExpired($media->refresh());
+            });
 
         }
     }
