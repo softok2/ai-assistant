@@ -12,10 +12,11 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Http\Client\ConnectionException;
 
-final class ImportDocsFromPentaho
+final class ImportDocsFromPentaho implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -25,38 +26,33 @@ final class ImportDocsFromPentaho
      */
     public function handle(): void
     {
-        $fileNames = [
-            'golf-output',
-        ];
+        $projects = config('services.softok2mds.projects', []);
+        $fileNames = config('services.softok2mds.files', []);
 
-        DB::beginTransaction();
-
-        try {
+        foreach ($projects as $project) {
             foreach ($fileNames as $fileName) {
+                $path = $project.'/'.$fileName;
                 $response = Http::retry(3, 100)
-                    ->withBasicAuth('mds_ccm', 'Ccm.c0m$')
-                    ->get('https://ai-mds.softok2.com/ccm/'.$fileName.'.md');
+                    ->withBasicAuth(config('services.softok2mds.username'), config('services.softok2mds.password'))
+                    ->get(config('services.softok2mds.base_url').$path.'.md');
 
                 if ($response->failed()) {
-                    Log::error('Failed to fetch document: '.$response->status(), $response->json() ?? []);
+                    Log::error("Failed to fetch document $path from Pentaho: HTTP {$response->status()}");
 
-                    return;
+                    continue;
                 }
 
-                $media = Media::fromPentaho($fileName.'-'.time().'.md', $response->body());
-                Media::markAsExpired($media->refresh());
-
-                DB::commit();
+                DB::transaction(function () use ($response, $path) {
+                    $media = Media::fromPentaho($path.'-'.time().'.md', $response->body());
+                    Media::markAsExpired($media->refresh());
+                });
             }
-
-        } catch (Throwable $e) {
-            dd($e->getMessage());
-            DB::rollBack();
-            report($e);
-            Log::error('ConnectionException: '.$e->getMessage());
-
-            return;
         }
+    }
 
+    /** * Handle a job failure. */
+    public function failed(?Throwable $exception): void
+    {
+        Log::error('Failed to fetch document: '.$exception->getMessage(), $exception->getTrace() ?? []);
     }
 }

@@ -46,4 +46,12 @@ return [
         'vector_store_id' => env('OPENAI_VECTOR_STORE_ID', 'vector-1234567890abcdef1234567890abcdef'),
     ],
 
+    'softok2mds' => [
+        'base_url' => env('SOFTOK2MDS_BASE_URL', 'https://softok2mds.example.com/api/'),
+        'username' => env('SOFTOK2MDS_USERNAME', 'your-username'),
+        'password' => env('SOFTOK2MDS_PASSWORD', 'your-password'),
+        'projects' => ['ccm'],
+        'files' => ['golf-output'],
+    ],
+
 ];

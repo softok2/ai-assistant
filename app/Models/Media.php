@@ -32,7 +32,7 @@ final class Media extends Model
     {
         self::query()
             ->whereKeyNot($media->id)
-            ->where('status', MediaStatus::IN_PROGRESS->value)
+            ->where('status', MediaStatus::COMPLETED->value)
             ->where('group', $media->group)
             ->whereNull('expired_at')
             ->update(['expired_at' => now()]);
@@ -48,14 +48,15 @@ final class Media extends Model
         $filePath = Storage::path('docs/'.$this->name);
 
         try {
+            $this->status = MediaStatus::IN_PROGRESS;
             $fileCreateResponse = $assistant->feed($filePath);
 
             $this->assistant_media_id = $fileCreateResponse->id;
-            $this->status = MediaStatus::IN_PROGRESS;
+            $this->status = MediaStatus::COMPLETED;
             $this->bytes = $fileCreateResponse->bytes;
             $this->synced_at = now();
         } catch (Exception $e) {
-            Log::error('Media upload failed: '.$e->getMessage());
+            Log::error("Media upload to OpenAI failed for {$this->name}: ".$e->getMessage(), $e->getTrace() ?? []);
             $this->status = MediaStatus::FAILED;
         } finally {
             $this->save();
@@ -83,9 +84,8 @@ final class Media extends Model
 
             DB::commit();
         } catch (Exception $e) {
-            dd($e->getMessage());
             DB::rollBack();
-            Log::error('Media deletion from OpenAI failed: '.$e->getMessage());
+            Log::error("Media removal failed for {$this->name}: ".$e->getMessage(), $e->getTrace() ?? []);
         }
 
         return $this;

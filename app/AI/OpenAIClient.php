@@ -88,6 +88,11 @@ final class OpenAIClient implements AIClient
             ],
         );
 
+        // Wait for the file to be processed and indexed in the vector store
+        while ($this->checkFileStatus($vectorStore->id, $file->id)) {
+            sleep(1);
+        }
+
         return $file;
     }
 
@@ -104,5 +109,15 @@ final class OpenAIClient implements AIClient
         );
 
         return OpenAI::files()->delete($fileId);
+    }
+
+    private function checkFileStatus(string $vectorStoreId, string $fieldId): bool
+    {
+        $vectorStoreFileResponse = OpenAI::vectorStores()->files()->retrieve(
+            vectorStoreId: $vectorStoreId,
+            fileId: $fieldId
+        );
+
+        return $vectorStoreFileResponse->status !== 'completed';
     }
 }
