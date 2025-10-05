@@ -40,10 +40,10 @@ jobs:
       working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
     - name: Fixing permissions on directories for apache
       run: |
-        chown -R apache:apache bootstrap/cache
-        chown -R apache:apache storage 
-        chown -R apache:apache app
-        chown -R apache:apache public        
+        chown -R nginx:nginx bootstrap/cache
+        chown -R nginx:nginx storage 
+        chown -R nginx:nginx app
+        chown -R nginx:nginx public        
       working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
     - name: Send Telegram message
       if: ${{ always() }}
