@@ -19,5 +19,12 @@ Route::post('/chat/stream/{chat}', ChatStreamController::class)
     ->name('chat.stream')
     ->middleware(['auth', 'verified']);
 
+Route::get('test', function (){
+    $projects = config('services.softok2mds.projects', []);
+    $fileNames = config('services.softok2mds.files', []);
+
+    return response()->json(['projects' => $projects, 'files' => $fileNames]);
+});
+
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
