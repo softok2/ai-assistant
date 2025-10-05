@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChatStreamController;
@@ -22,6 +23,17 @@ Route::post('/chat/stream/{chat}', ChatStreamController::class)
 Route::get('test', function (){
     $projects = config('services.softok2mds.projects', []);
     $fileNames = config('services.softok2mds.files', []);
+    foreach ($projects as $project) {
+        foreach ($fileNames as $fileName) {
+            $path = $project . '/' . $fileName;
+            $response = Http::retry(3, 100)
+                ->withBasicAuth(config('services.softok2mds.username'), config('services.softok2mds.password'))
+                ->get(config('services.softok2mds.base_url') . $path . '.md');
+
+            dd($response);
+
+        }
+    }
 
     return response()->json(['projects' => $projects, 'files' => $fileNames]);
 });
