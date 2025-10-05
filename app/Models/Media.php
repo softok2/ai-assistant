@@ -40,14 +40,14 @@ final class Media extends Model
 
     public function upload(): self
     {
-        $assistant = new OpenAIAssistant(
-            assistantId: config('services.openai.assistant_id'),
-            vectorStoreId: config('services.openai.vector_store_id'),
-        );
-
-        $filePath = Storage::path('docs/'.$this->name);
-
         try {
+            $assistant = new OpenAIAssistant(
+                assistantId: config('services.openai.assistant_id'),
+                vectorStoreId: config('services.openai.vector_store_id'),
+            );
+
+            $filePath = Storage::path('docs/'.$this->name);
+
             $this->status = MediaStatus::IN_PROGRESS;
             $fileCreateResponse = $assistant->feed($filePath);
 
@@ -70,15 +70,16 @@ final class Media extends Model
      */
     public function remove(): self
     {
-        $assistant = new OpenAIAssistant(
-            assistantId: config('services.openai.assistant_id'),
-            vectorStoreId: config('services.openai.vector_store_id'),
-        );
 
         DB::beginTransaction();
 
         try {
+            $assistant = new OpenAIAssistant(
+                assistantId: config('services.openai.assistant_id'),
+                vectorStoreId: config('services.openai.vector_store_id'),
+            );
             $assistant->deleteFile($this->assistant_media_id);
+
             Storage::delete('docs/'.$this->name);
             $this->delete();
 
