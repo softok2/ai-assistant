@@ -30,7 +30,7 @@ Route::get('test', function (){
                 ->withBasicAuth(config('services.softok2mds.username'), config('services.softok2mds.password'))
                 ->get(config('services.softok2mds.base_url') . $path . '.md');
 
-            dd($response);
+            dd($response->body());
 
         }
     }
