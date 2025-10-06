@@ -54,4 +54,9 @@ return [
         'files' => ['golf-output'],
     ],
 
+    'telegram-bot-api' => [
+        'token' => env('TELEGRAM_BOT_TOKEN', 'YOUR BOT TOKEN HERE'),
+        'chat_id' => env('TELEGRAM_CHAT_ID', 'YOUR CHAT ID HERE'),
+    ],
+
 ];
