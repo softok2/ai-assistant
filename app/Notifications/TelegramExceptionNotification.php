@@ -7,17 +7,19 @@ namespace App\Notifications;
 use Throwable;
 use JsonException;
 use Illuminate\Bus\Queueable;
+use App\Dtos\TelegramExceptionDto;
 use Illuminate\Support\Facades\Log;
+use App\Exceptions\TelegramException;
 use Laravel\Telescope\Storage\EntryModel;
 use Illuminate\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use NotificationChannels\Telegram\TelegramMessage;
 
-final class TelegramExceptionNotification extends Notification implements ShouldQueue
+final class TelegramExceptionNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(private readonly Throwable $exception) {}
+    public function __construct(private readonly TelegramExceptionDto $exceptionDto) {}
 
     public function via($notifiable): array
     {
@@ -29,31 +31,29 @@ final class TelegramExceptionNotification extends Notification implements Should
      */
     public function toTelegram(): TelegramMessage
     {
-        $exception = $this->exception;
+        $exceptionDto = $this->exceptionDto;
 
         $content = sprintf(
             "🚨 *%s Exception Alert*\n\n"."*Message:* `%s`\n".
             "*File:* `%s`\n"."*Line:* `%d`\n"."*Date:* %s\n\n",
             config('app.name'),
-            str_replace('`', '', $exception->getMessage()),
-            $exception->getFile(),
-            $exception->getLine(),
+            str_replace('`', '', $exceptionDto->getMessage()),
+            $exceptionDto->getFile(),
+            $exceptionDto->getLine(),
             now()->toDateTimeString(),
         );
 
-        $uuid = $this->log($content, $exception->getTrace());
-
-        $button = app()->isLocal() ? 'button' : 'buttonWithWebApp';
+        $uuid = $this->log($content, $exceptionDto->getTrace());
 
         return TelegramMessage::create()
             ->content($content)
             ->options(['parse_mode' => 'Markdown'])
-            ->{$button}('View stack trace', url('/telescope/logs/'.$uuid));
+            ->buttonWithWebApp('View stack trace', url('/telescope/logs/'.$uuid));
     }
 
-    private function log($content, array $trace = []): ?string
+    private function log($content, string $trace): ?string
     {
-        Log::error($content, $trace);
+        Log::error($content, ['trace' => $trace]);
 
         return EntryModel::latest('created_at')->value('uuid');
     }
