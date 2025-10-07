@@ -15,8 +15,9 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 
-final class ImportDocsFromPentaho implements ShouldQueue
+final class ImportDocsFromPentaho implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 

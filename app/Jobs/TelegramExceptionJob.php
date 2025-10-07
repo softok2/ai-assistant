@@ -2,39 +2,34 @@
 
 declare(strict_types=1);
 
-namespace App\Services;
+namespace App\Jobs;
 
 use Throwable;
+use Illuminate\Bus\Queueable;
+use App\Dtos\TelegramExceptionDto;
 use Illuminate\Support\Facades\Log;
-use App\Exceptions\TelegramException;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\TelegramExceptionNotification;
 
-final readonly class TelegramExceptionService
+final class TelegramExceptionJob implements ShouldQueue
 {
-    public function __construct(private Throwable $exception) {}
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public static function make(Throwable $exception): self
-    {
-        return new self($exception);
-    }
+    public function __construct(private readonly TelegramExceptionDto $exceptionDto) {}
 
-    /**
-     * @throws TelegramException
-     */
-    public function send(): self
+    public function handle(): void
     {
         try {
             Notification::route('telegram', config('services.telegram-bot-api.chat_id'))
                 ->notify(new TelegramExceptionNotification(
-                    $this->exception
+                    $this->exceptionDto,
                 ));
         } catch (Throwable $exception) {
             Log::error('Failed to send Telegram exception notification: '.$exception->getMessage(), $exception->getTrace());
-
-            throw new TelegramException();
         }
-
-        return $this;
     }
 }

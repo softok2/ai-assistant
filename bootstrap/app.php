@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Exceptions\TelegramException;
+use App\Dtos\TelegramExceptionDto;
+use App\Jobs\TelegramExceptionJob;
 use Illuminate\Foundation\Application;
 use App\Http\Middleware\HandleAppearance;
-use App\Services\TelegramExceptionService;
 use Illuminate\Console\Scheduling\Schedule;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -33,11 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('assistant-files:sync')->everyTwoHours();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->dontReportWhen(function (Throwable $e) {
-            return $e instanceof TelegramException;
-        })
-            ->dontReportDuplicates()
+        $exceptions->dontReportDuplicates()
             ->report(function (Throwable $e) {
-                TelegramExceptionService::make($e)->send();
+                if (app()->isProduction()) {
+                    TelegramExceptionJob::dispatch(TelegramExceptionDto::fromThrowable($e));
+                }
             });
     })->create();
