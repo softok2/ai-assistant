@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Dtos\TelegramExceptionDto;
-use App\Jobs\TelegramExceptionJob;
 use Illuminate\Foundation\Application;
 use App\Http\Middleware\HandleAppearance;
 use Illuminate\Console\Scheduling\Schedule;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Softok2\TelegramNotification\Facades\TelegramNotification;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -36,7 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->dontReportDuplicates()
             ->report(function (Throwable $e) {
                 if (app()->isProduction()) {
-                    TelegramExceptionJob::dispatch(TelegramExceptionDto::fromThrowable($e));
+                    TelegramNotification::sendException($e);
                 }
             });
     })->create();
