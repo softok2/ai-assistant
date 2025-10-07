@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use Throwable;
 use JsonException;
 use Illuminate\Bus\Queueable;
 use App\Dtos\TelegramExceptionDto;
 use Illuminate\Support\Facades\Log;
-use App\Exceptions\TelegramException;
 use Laravel\Telescope\Storage\EntryModel;
 use Illuminate\Notifications\Notification;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use NotificationChannels\Telegram\TelegramMessage;
 
 final class TelegramExceptionNotification extends Notification
@@ -48,7 +45,7 @@ final class TelegramExceptionNotification extends Notification
         return TelegramMessage::create()
             ->content($content)
             ->options(['parse_mode' => 'Markdown'])
-            ->buttonWithWebApp('View stack trace', url('/telescope/logs/'.$uuid));
+            ->button('View stack trace', url('/telescope/logs/'.$uuid));
     }
 
     private function log($content, string $trace): ?string
