@@ -4,28 +4,33 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Log;
-use Exception;
 use Throwable;
 use App\Enums\MediaStatus;
 use App\AI\OpenAIAssistant;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 
-final class Media extends Model
+final class File extends Model
 {
     protected $guarded = ['id'];
 
     public static function fromPentaho(string $fileName, $content): self
     {
-        Storage::put('docs/'.$fileName, $content);
-
-        return self::create([
+        $file = self::firstOrCreate([
             'name' => $fileName,
+            'group' => Str::of($fileName)->basename('.md')->before('-'),
         ]);
+
+        if ($file->wasRecentlyCreated) {
+            Storage::put('docs/'.$fileName, $content);
+        }
+
+        return $file;
     }
 
     public static function markAsExpired(self $media): void
@@ -55,7 +60,7 @@ final class Media extends Model
             $this->status = MediaStatus::COMPLETED;
             $this->bytes = $fileCreateResponse->bytes;
             $this->synced_at = now();
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             Log::error("Media upload to OpenAI failed for {$this->name}: ".$e->getMessage(), $e->getTrace() ?? []);
             $this->status = MediaStatus::FAILED;
         } finally {
@@ -84,7 +89,7 @@ final class Media extends Model
             $this->delete();
 
             DB::commit();
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             DB::rollBack();
             Log::error("Media removal failed for {$this->name}: ".$e->getMessage(), $e->getTrace() ?? []);
         }

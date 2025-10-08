@@ -11,10 +11,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('media', function (Blueprint $table) {
+        Schema::create('files', function (Blueprint $table) {
             $table->id();
-            $table->enum('type', ['file', 'image', 'video', 'audio'])->default('file');
-            $table->string('group', 100)->default('golf')->comment('Media group');
+            $table->string('project', 100)->default('ccm')->comment('Project name');
+            $table->string('group', 100)->default('golf')->comment('Module name');
             $table->string('assistant_media_id')->nullable()->comment('Assistant media ID');
             $table->string('status', 100)->default(MediaStatus::PENDING->value);
             $table->string('name')->comment('Original media name');
@@ -29,6 +29,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('media');
+        Schema::dropIfExists('files');
     }
 };

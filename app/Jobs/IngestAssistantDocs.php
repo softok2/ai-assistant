@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Models\Media;
+use App\Models\File;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 
 final class IngestAssistantDocs implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
@@ -19,6 +18,6 @@ final class IngestAssistantDocs implements ShouldBeUniqueUntilProcessing, Should
 
     public function handle(): void
     {
-        Media::pending()->lazy()->each->upload();
+        File::pending()->lazy()->each->upload();
     }
 }

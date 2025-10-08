@@ -79,6 +79,12 @@
         "format": [
             "./vendor/bin/pint --ansi",
             "./vendor/bin/rector --ansi"
+        ],
+        "use-local": [
+            "@php scripts/use-local.php"
+        ],
+        "use-remote": [
+            "@php scripts/use-remote.php"
         ]
     },
     "extra": {
@@ -96,5 +102,6 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "repositories": []
 }

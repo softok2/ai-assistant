@@ -50,8 +50,8 @@ return [
         'base_url' => env('SOFTOK2MDS_BASE_URL', 'https://softok2mds.example.com/api/'),
         'username' => env('SOFTOK2MDS_USERNAME', 'your-username'),
         'password' => env('SOFTOK2MDS_PASSWORD', 'your-password'),
-        'projects' => ['ccm'],
-        'files' => ['golf-output'],
+        'projects' => explode(',', env('SOFTOK2MDS_PROJECTS', 'ccm')),
+        'files' => explode(',', env('SOFTOK2MDS_FILES', 'golf-output')),
     ],
 
     'telegram-bot-api' => [
