@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1801add0b65051a6082d1c2cc0f31884",
+    "content-hash": "5d553fbeed74e13b32f1dd9a4f5821eb",
     "packages": [
         {
             "name": "brick/math",
@@ -4123,16 +4123,16 @@
         },
         {
             "name": "softok2/telegram-notifications",
-            "version": "1.0.0",
+            "version": "1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/softok2/telegram-notifications.git",
-                "reference": "ad6dbd5849414786e5b2ce12b10dd6f86db1f8e5"
+                "reference": "94f835a5c8edb4f4d1860c7d1c8ac7ffa8a52297"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/softok2/telegram-notifications/zipball/ad6dbd5849414786e5b2ce12b10dd6f86db1f8e5",
-                "reference": "ad6dbd5849414786e5b2ce12b10dd6f86db1f8e5",
+                "url": "https://api.github.com/repos/softok2/telegram-notifications/zipball/94f835a5c8edb4f4d1860c7d1c8ac7ffa8a52297",
+                "reference": "94f835a5c8edb4f4d1860c7d1c8ac7ffa8a52297",
                 "shasum": ""
             },
             "require": {
@@ -4187,7 +4187,7 @@
             ],
             "support": {
                 "issues": "https://github.com/softok2/telegram-notifications/issues",
-                "source": "https://github.com/softok2/telegram-notifications/tree/1.0.0"
+                "source": "https://github.com/softok2/telegram-notifications/tree/1.0.1"
             },
             "funding": [
                 {
@@ -4195,7 +4195,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-10-07T17:01:15+00:00"
+            "time": "2025-10-08T16:24:01+00:00"
         },
         {
             "name": "spatie/laravel-package-tools",
