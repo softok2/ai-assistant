@@ -38,6 +38,10 @@ jobs:
       run: |
         scl enable php83 "php artisan migrate:fresh --seed"
       working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
+    - name: Clearing mds repo
+      run: |
+        rm -Rf ./storage/app/private/docs/ccm
+      working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
     - name: Fixing permissions on directories for apache
       run: |
         chown -R nginx:nginx bootstrap/cache
