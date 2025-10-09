@@ -29,7 +29,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('telescope:prune')->daily();
-        $schedule->command('assistant-files:sync')->everyTwoHours();
+        $schedule->command('assistant-files:sync')
+            ->everyTwoHours()
+            ->between('08:00', '22:00');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontReportDuplicates()
