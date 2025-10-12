@@ -30,7 +30,7 @@ defineProps<{
     </SidebarContent>
 
     <SidebarFooter>
-      <NavUser />
+<!--      <NavUser />-->
     </SidebarFooter>
   </Sidebar>
   <slot />

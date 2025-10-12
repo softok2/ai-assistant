@@ -53,10 +53,4 @@ return [
         'projects' => explode(',', env('SOFTOK2MDS_PROJECTS', 'ccm')),
         'files' => explode(',', env('SOFTOK2MDS_FILES', 'golf-output')),
     ],
-
-    'telegram-bot-api' => [
-        'token' => env('TELEGRAM_BOT_TOKEN', 'YOUR BOT TOKEN HERE'),
-        'chat_id' => env('TELEGRAM_CHAT_ID', 'YOUR CHAT ID HERE'),
-    ],
-
 ];

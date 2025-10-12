@@ -16,13 +16,14 @@ final class DatabaseSeeder extends Seeder
     public function run(): void
     {
         User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'name' => 'Super Admin',
+            'email' => 'admin@ai.com',
             'password' => Hash::make('password'),
         ]);
 
         $this->call([
             ChatSeeder::class,
+            RoleSeeder::class,
         ]);
     }
 }

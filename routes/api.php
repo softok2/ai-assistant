@@ -1,8 +1,11 @@
 <?php
 
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::get('/roles', function (Request $request) {
+    return response()->json([
+        'roles' => Role::latest()->pluck('name', 'id')->all()
+    ]);
+});

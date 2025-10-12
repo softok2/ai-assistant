@@ -5,15 +5,16 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChatStreamController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 Route::get('/', function () {
     return to_route('chats.index');
-})->name('home');
+})->middleware('auth.external')->name('home');
 
 Route::resource('chat', ChatController::class)
     ->names('chats')
     ->except(['create', 'edit'])
-    ->middlewareFor(['store', 'update', 'destroy'], ['auth', 'verified']);
+    ->middleware(['auth', 'verified']);
 
 Route::post('/chat/stream/{chat}', ChatStreamController::class)
     ->name('chat.stream')
@@ -21,8 +22,3 @@ Route::post('/chat/stream/{chat}', ChatStreamController::class)
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
-
-Route::get('telegram', function () {
-    $notifications = [];
-    $notifications[1];
-});

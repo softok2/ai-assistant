@@ -30,8 +30,8 @@ const { isGuest } = useAuth()
     </div>
     <div v-if="page.url.startsWith('/chat') && !isGuest" class="items-center gap-2 hidden md:flex">
       <ChatAction />
-      <ModelSelector />
-      <VisibilitySelector />
+<!--      <ModelSelector />
+      <VisibilitySelector />-->
     </div>
   </header>
 </template>

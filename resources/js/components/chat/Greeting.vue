@@ -2,8 +2,9 @@
 import { computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 
-const { isGuest } = useAuth()
+const { isGuest, user } = useAuth()
 
+const title = computed(() => isGuest.value ? 'Hello there!.' : `Welcome back, ${user.value?.name ?? 'User'}!`)
 const subtitle = computed(() => isGuest.value ? 'Please login to continue.' : 'How can I help you today?')
 </script>
 
@@ -16,7 +17,7 @@ const subtitle = computed(() => isGuest.value ? 'Please login to continue.' : 'H
       enter-to-class="opacity-1 translate-y-0"
     >
       <div class="text-2xl font-semibold">
-        Hello there!
+          {{ title }}
       </div>
     </Transition>
 

@@ -39,13 +39,6 @@ const mainMenuItems = [
     icon: 'lucide:message-circle-plus',
     href: route('chats.index'),
   },
-  {
-    label: 'GitHub Repo',
-    icon: 'lucide:github',
-    href: 'https://github.com/pushpak1300/ai-chat',
-    target: '_blank',
-    external: true,
-  },
 ]
 
 const chatHistoryGroups = computed(() => [
@@ -106,15 +99,7 @@ function isActiveChat(chatId: number) {
       </SidebarMenu>
     </SidebarGroup>
 
-    <div v-if="isGuest && !hasAnyHistory" class="px-4 py-2 text-sm text-muted-foreground">
-      Please login to see your chat history
-    </div>
-
     <div v-if="hasAnyHistory" role="navigation" aria-label="Chat History Navigation">
-      <SidebarGroupLabel v-if="isGuest">
-        To view chat history please login
-      </SidebarGroupLabel>
-
       <SidebarGroup
         v-for="group in chatHistoryGroups"
         :key="group.key"
