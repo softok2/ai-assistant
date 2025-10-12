@@ -23,6 +23,8 @@ final class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
+        abort(403, 'Register is disabled.');
+
         return Inertia::render('auth/Register');
     }
 

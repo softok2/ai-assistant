@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
+use App\Dtos\ExternalLinkPayloadDto;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Notifications\DatabaseNotificationCollection;
 
 /**
@@ -55,6 +58,24 @@ final class User extends Authenticatable
         'remember_token',
     ];
 
+    public static function fromExternalLink(
+        ExternalLinkPayloadDto $payload
+    ): ?self {
+        $user = self::updateOrCreate(
+            [
+                'club_name' => $payload->getClub(),
+                'club_token' => $payload->getToken(),
+            ],
+            [
+                'name' => $payload->getUserName(),
+            ]
+        );
+
+        $user->roles()->sync([$payload->getRoleId()]);
+
+        return $user;
+    }
+
     /**
      * Get the user that the OAuth connection belongs to.
      *
@@ -63,6 +84,26 @@ final class User extends Authenticatable
     public function chats(): HasMany
     {
         return $this->hasMany(Chat::class);
+    }
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    protected static function boot(): void
+    {
+        self::creating(function (self $model): void {
+            if ($model->club_name !== null && $model->club_token !== null) {
+                $model->email = "{$model->club_token}@{$model->club_name}.local";
+                $model->password = Str::password();
+            }
+
+            $model->email_verified_at = now();
+            $model->remember_token = Str::random(10);
+        });
+
+        parent::boot();
     }
 
     /**

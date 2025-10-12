@@ -36,10 +36,12 @@ function deleteChat(chatId?: string) {
   <AlertDialog v-if="chatId">
     <AlertDialogTrigger as-child>
       <Button
-        variant="ghost"
-        class="h-8 w-8 hover:text-destructive"
+        class="text-destructive"
+        size="sm"
+        variant="secondary"
       >
         <Icon icon="lucide:trash-2" class="h-4 w-4" />
+        Eliminar
       </Button>
     </AlertDialogTrigger>
     <AlertDialogContent>

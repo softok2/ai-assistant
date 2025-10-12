@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\AuthenticateExternalUser;
 use Illuminate\Foundation\Application;
 use App\Http\Middleware\HandleAppearance;
 use Illuminate\Console\Scheduling\Schedule;
@@ -20,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+
+        $middleware->alias([
+            'auth.external' => AuthenticateExternalUser::class,
+        ]);
 
         $middleware->web(append: [
             HandleAppearance::class,
