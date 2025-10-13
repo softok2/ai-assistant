@@ -17,10 +17,6 @@ final class AuthenticateExternalUser
 {
     public function handle(Request $request, Closure $next)
     {
-        if (auth()->check()) {
-            return $next($request);
-        }
-
         try {
             $request->validate([
                 'club' => ['required', new Enum(ClubName::class)],
@@ -47,9 +43,9 @@ final class AuthenticateExternalUser
             payload: ExternalLinkPayloadDto::fromRequest($request->all())
         );
 
-        auth()->login($user);
+       auth()->login($user);
 
-        return $next($request);
+       return $next($request);
     }
 
     private function isValidExternalLink(ClubName $club, string $userName, string $token): bool
