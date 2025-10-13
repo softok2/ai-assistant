@@ -4,8 +4,8 @@ import { useAuth } from '@/composables/useAuth'
 
 const { isGuest, user } = useAuth()
 
-const title = computed(() => isGuest.value ? 'Hello there!.' : `Welcome back, ${user.value?.name ?? 'User'}!`)
-const subtitle = computed(() => isGuest.value ? 'Please login to continue.' : 'How can I help you today?')
+const title = computed(() => isGuest.value ? 'Hola.' : `¡Bienvenido, ${user.value?.name ?? 'User'}!`)
+const subtitle = computed(() => isGuest.value ? 'Por favor inicie sesión.' : '¿En que puedo ayudarte hoy?')
 </script>
 
 <template>

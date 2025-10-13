@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\AI;
 
 use OpenAI\Laravel\Facades\OpenAI;
+use OpenAI\Responses\StreamResponse;
 use OpenAI\Responses\Files\CreateResponse;
 use OpenAI\Responses\Files\DeleteResponse;
 use OpenAI\Responses\Threads\ThreadResponse;
@@ -67,10 +68,11 @@ final class OpenAIClient implements AIClient
         return $run->status !== 'completed';
     }
 
-    public function createStream(string $threadId, AssistantResponse $assistant)
+    public function createStream(string $threadId, AssistantResponse $assistant, array $messages = []): StreamResponse
     {
         return OpenAI::threads()->runs()->createStreamed($threadId, [
             'assistant_id' => $assistant->id,
+            'additional_messages' => $messages,
         ]);
     }
 

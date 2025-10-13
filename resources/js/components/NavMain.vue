@@ -35,7 +35,7 @@ const { isGuest } = useAuth()
 
 const mainMenuItems = [
   {
-    label: 'New Chat',
+    label: 'Nuevo Chat',
     icon: 'lucide:message-circle-plus',
     href: route('chats.index'),
   },
@@ -44,27 +44,27 @@ const mainMenuItems = [
 const chatHistoryGroups = computed(() => [
   {
     key: 'today',
-    label: 'Today',
+    label: 'Hoy',
     items: groupedChatHistory?.value.today,
   },
   {
     key: 'yesterday',
-    label: 'Yesterday',
+    label: 'Ayer',
     items: groupedChatHistory?.value.yesterday,
   },
   {
     key: 'lastSevenDays',
-    label: 'Last 7 Days',
+    label: 'Últimos 7 Días',
     items: groupedChatHistory?.value.lastSevenDays,
   },
   {
     key: 'lastThirtyDays',
-    label: 'Last 30 Days',
+    label: 'Últimos 30 Días',
     items: groupedChatHistory?.value.lastThirtyDays,
   },
   {
     key: 'older',
-    label: 'Older',
+    label: 'Antiguos',
     items: groupedChatHistory?.value.older,
   },
 ].filter(group => group.items.length > 0))
@@ -144,13 +144,13 @@ function isActiveChat(chatId: number) {
       >
         <template #fallback>
           <SidebarGroupLabel class="mt-2" role="status" aria-live="polite">
-            <div>Loading more chats...</div>
+            <div>Cargar mas chats...</div>
           </SidebarGroupLabel>
         </template>
       </WhenVisible>
 
       <SidebarGroupLabel class="mt-2 text-muted-foreground" role="status">
-        <span>You have reached the end of your chat history.</span>
+        <span> Has llegado al final de tu historial de chat.</span>
       </SidebarGroupLabel>
     </div>
   </div>

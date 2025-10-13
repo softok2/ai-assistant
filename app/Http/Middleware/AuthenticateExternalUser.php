@@ -54,7 +54,7 @@ final class AuthenticateExternalUser
 
     private function isValidExternalLink(ClubName $club, string $userName, string $token): bool
     {
-        $computedSignature = hash_hmac('sha256', "$club->value|$userName", config('app.club_signature_secrets.ccm'));
+        $computedSignature = hash_hmac('sha256', "$club->value|$userName", config('app.club_signature_secrets.'.$club->value, ''));
 
         return hash_equals($computedSignature, $token);
     }
