@@ -7,23 +7,19 @@ namespace App\Http\Controllers;
 use Generator;
 use Throwable;
 use App\Models\Chat;
-use Prism\Prism\Prism;
 use App\Models\Message;
-use App\Enums\ModelName;
+use App\AI\OpenAIAssistant;
 use Prism\Prism\Enums\ChunkType;
 use Illuminate\Support\Facades\Log;
 use App\Http\Requests\ChatStreamRequest;
 use Illuminate\Support\Facades\Response;
-use Prism\Prism\ValueObjects\Messages\UserMessage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Prism\Prism\ValueObjects\Messages\AssistantMessage;
 
 final class ChatStreamController extends Controller
 {
     public function __invoke(ChatStreamRequest $request, Chat $chat): StreamedResponse
     {
         $userMessage = $request->string('message')->trim()->value();
-        $model = $request->enum('model', ModelName::class, ModelName::GPT_4_1_NANO);
 
         $chat->messages()->create([
             'role' => 'user',
@@ -35,42 +31,54 @@ final class ChatStreamController extends Controller
 
         $messages = $this->buildConversationHistory($chat);
 
-        return Response::stream(function () use ($chat, $messages, $model): Generator {
+        $assistant = new OpenAIAssistant(config('services.openai.assistant_id'));
+
+        return Response::stream(function () use ($chat, $assistant, $userMessage, $messages): Generator {
             $parts = [];
 
             try {
-                $response = Prism::text()
-                    ->withSystemPrompt(view('prompts.system'))
-                    ->using($model->getProvider(), $model->value)
+
+                $response = $assistant
+                    ->createThread()
                     ->withMessages($messages)
-                    ->asStream();
+                    ->write($userMessage)
+                    ->stream();
 
                 foreach ($response as $chunk) {
-                    $chunkData = [
-                        'chunkType' => $chunk->chunkType->value,
-                        'content' => $chunk->text,
-                    ];
+                    if ($chunk->event === 'thread.message.delta') {
+                        $chunkMessage = $chunk->response->delta?->content[0]['text']['value'] ?? '';
 
-                    if (! isset($parts[$chunk->chunkType->value])) {
-                        $parts[$chunk->chunkType->value] = '';
+                        $chunkData = [
+                            'chunkType' => ChunkType::Text->value,
+                            'content' => $chunkMessage,
+                        ];
+
+                        if (! isset($parts[ChunkType::Text->value])) {
+                            $parts[ChunkType::Text->value] = '';
+                        }
+
+                        $parts[ChunkType::Text->value] .= $chunkMessage;
+
+                        yield json_encode($chunkData)."\n";
                     }
 
-                    $parts[$chunk->chunkType->value] .= $chunk->text;
+                    if ($chunk->event === 'thread.message.completed') {
+                        // Save message to database or perform other actions
 
-                    yield json_encode($chunkData)."\n";
-                }
-
-                if ($parts !== []) {
-                    $chat->messages()->create([
-                        'role' => 'assistant',
-                        'parts' => $parts,
-                        'attachments' => '[]',
-                    ]);
-                    $chat->touch();
+                        if ($parts !== []) {
+                            $chat->messages()->create([
+                                'role' => 'assistant',
+                                'parts' => $parts,
+                                'attachments' => '[]',
+                            ]);
+                            $chat->touch();
+                        }
+                    }
                 }
 
             } catch (Throwable $throwable) {
                 Log::error("Chat stream error for chat {$chat->id}: ".$throwable->getMessage());
+
                 yield json_encode([
                     'chunkType' => 'error',
                     'content' => 'Stream failed',
@@ -84,9 +92,15 @@ final class ChatStreamController extends Controller
         return $chat->messages()
             ->orderBy('created_at')
             ->get()
-            ->map(fn (Message $message): UserMessage|AssistantMessage => match ($message->role) {
-                'user' => new UserMessage(content: $message->parts['text'] ?? ''),
-                'assistant' => new AssistantMessage(content: $message->parts['text'] ?? ''),
+            ->map(fn (Message $message): array => match ($message->role) {
+                'user' => [
+                    'content' => $message->parts['text'] ?? '',
+                    'role' => 'user',
+                ],
+                'assistant' => [
+                    'content' => $message->parts['text'] ?? '',
+                    'role' => 'assistant',
+                ],
             })
             ->toArray();
     }

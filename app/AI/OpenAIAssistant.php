@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\AI;
 
+use OpenAI\Responses\StreamResponse;
 use OpenAI\Responses\Files\CreateResponse;
 use OpenAI\Responses\Files\DeleteResponse;
 use OpenAI\Responses\Assistants\AssistantResponse;
@@ -14,18 +15,20 @@ final class OpenAIAssistant implements AIAssistant
 {
     private AssistantResponse $assistant;
 
-    private VectorStoreResponse $vectorStore;
+    private ?VectorStoreResponse $vectorStore;
 
     private string $threadId;
 
     private AIClient $client;
 
-    public function __construct(string $assistantId, string $vectorStoreId, ?AiClient $client = null)
+    private array $messages = [];
+
+    public function __construct(string $assistantId, ?string $vectorStoreId = null, ?AiClient $client = null)
     {
         $this->client = $client ?: new OpenAIClient;
 
         $this->assistant = $this->client->retrieveAssistant($assistantId);
-        $this->vectorStore = $this->client->retrieveVectorStore($vectorStoreId);
+        $this->vectorStore = $vectorStoreId ? $this->client->retrieveVectorStore($vectorStoreId) : null;
     }
 
     public function createThread(array $parameters = []): static
@@ -59,9 +62,20 @@ final class OpenAIAssistant implements AIAssistant
         );
     }
 
-    public function stream()
+    public function withMessages(array $messages): static
     {
-        return $this->client->createStream($this->threadId, $this->assistant);
+        $this->messages = $messages;
+
+        return $this;
+    }
+
+    public function stream(): StreamResponse
+    {
+        return $this->client->createStream(
+            threadId: $this->threadId,
+            assistant: $this->assistant,
+            messages: $this->messages
+        );
     }
 
     public function feed(string $file): CreateResponse
