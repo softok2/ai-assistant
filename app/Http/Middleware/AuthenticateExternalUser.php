@@ -43,9 +43,9 @@ final class AuthenticateExternalUser
             payload: ExternalLinkPayloadDto::fromRequest($request->all())
         );
 
-       auth()->login($user);
+        auth()->login($user);
 
-       return $next($request);
+        return $next($request);
     }
 
     private function isValidExternalLink(ClubName $club, string $userName, string $token): bool

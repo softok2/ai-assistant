@@ -14,6 +14,8 @@ enum ClubName: string
 
     case HERRADURA = 'herradura';
 
+    case SALTILLO = 'saltillo';
+
     public function getName(): string
     {
         return match ($this) {
@@ -21,6 +23,7 @@ enum ClubName: string
             self::VALLEALTO => 'Club Valle Alto',
             self::TERRALTA => 'Club Terralta',
             self::HERRADURA => 'Club La Herradura',
+            self::SALTILLO => 'Club Campestre Saltillo',
         };
     }
 }
