@@ -46,8 +46,6 @@ jobs:
       run: |
         chown -R nginx:nginx bootstrap/cache
         chown -R nginx:nginx storage 
-        chown -R nginx:nginx app
-        chown -R nginx:nginx public        
       working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
     - name: Send Telegram message
       if: ${{ always() }}
