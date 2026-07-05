@@ -10,6 +10,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import SearchChatsDialog from './SearchChatsDialog.vue'
 
 const props = defineProps<{
@@ -88,63 +94,85 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     class="flex h-full shrink-0 flex-col border-r border-border bg-background transition-[width] duration-200"
     :class="collapsed ? 'w-14' : 'w-72'"
   >
-    <!-- Header: collapse toggle -->
-    <div class="flex items-center p-2" :class="collapsed ? 'justify-center' : 'justify-end'">
-      <button
-        type="button"
-        class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        :aria-label="collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'"
-        @click="collapsed = !collapsed"
-      >
-        <PanelLeft class="size-4.5" />
-      </button>
-    </div>
+    <TooltipProvider :delay-duration="200">
+      <!-- Header: collapse toggle -->
+      <div class="flex items-center p-2" :class="collapsed ? 'justify-center' : 'justify-end'">
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <button
+              type="button"
+              class="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              :aria-label="collapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'"
+              @click="collapsed = !collapsed"
+            >
+              <PanelLeft class="size-4.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">{{ collapsed ? 'Expandir' : 'Colapsar' }}</TooltipContent>
+        </Tooltip>
+      </div>
 
-    <!-- Primary nav (ChatGPT style) -->
-    <nav class="space-y-0.5 px-2">
-      <Link
-        :href="route('chats.index')"
-        class="flex items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
-        :class="collapsed ? 'justify-center px-0' : 'px-3'"
-        :title="collapsed ? 'Nuevo chat' : undefined"
-      >
-        <SquarePen class="size-4.5 shrink-0 text-muted-foreground" />
-        <span v-if="!collapsed">Nuevo chat</span>
-      </Link>
+      <!-- Primary nav (ChatGPT style) -->
+      <nav class="space-y-0.5 px-2">
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Link
+              :href="route('chats.index')"
+              class="flex items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              :class="collapsed ? 'justify-center px-0' : 'px-3'"
+            >
+              <SquarePen class="size-4.5 shrink-0 text-muted-foreground" />
+              <span v-if="!collapsed">Nuevo chat</span>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent v-if="collapsed" side="right">Nuevo chat</TooltipContent>
+        </Tooltip>
 
-      <button
-        type="button"
-        class="flex w-full items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
-        :class="collapsed ? 'justify-center px-0' : 'px-3'"
-        :title="collapsed ? 'Buscar chats' : undefined"
-        @click="searchOpen = true"
-      >
-        <Search class="size-4.5 shrink-0 text-muted-foreground" />
-        <span v-if="!collapsed" class="flex-1 text-left">Buscar chats</span>
-        <kbd v-if="!collapsed" class="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">⌘K</kbd>
-      </button>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <button
+              type="button"
+              class="flex w-full items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              :class="collapsed ? 'justify-center px-0' : 'px-3'"
+              @click="searchOpen = true"
+            >
+              <Search class="size-4.5 shrink-0 text-muted-foreground" />
+              <span v-if="!collapsed" class="flex-1 text-left">Buscar chats</span>
+              <kbd v-if="!collapsed" class="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">⌘K</kbd>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent v-if="collapsed" side="right">Buscar chats</TooltipContent>
+        </Tooltip>
 
-      <Link
-        :href="route('library')"
-        class="flex items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
-        :class="collapsed ? 'justify-center px-0' : 'px-3'"
-        :title="collapsed ? 'Biblioteca' : undefined"
-      >
-        <BookMarked class="size-4.5 shrink-0 text-muted-foreground" />
-        <span v-if="!collapsed">Biblioteca</span>
-      </Link>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Link
+              :href="route('library')"
+              class="flex items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              :class="collapsed ? 'justify-center px-0' : 'px-3'"
+            >
+              <BookMarked class="size-4.5 shrink-0 text-muted-foreground" />
+              <span v-if="!collapsed">Biblioteca</span>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent v-if="collapsed" side="right">Biblioteca</TooltipContent>
+        </Tooltip>
 
-      <Link
-        v-if="isAdmin"
-        :href="route('reports.settings.edit')"
-        class="flex items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
-        :class="collapsed ? 'justify-center px-0' : 'px-3'"
-        :title="collapsed ? 'Reportes' : undefined"
-      >
-        <FileText class="size-4.5 shrink-0 text-muted-foreground" />
-        <span v-if="!collapsed">Reportes</span>
-      </Link>
-    </nav>
+        <Tooltip v-if="isAdmin">
+          <TooltipTrigger as-child>
+            <Link
+              :href="route('reports.settings.edit')"
+              class="flex items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              :class="collapsed ? 'justify-center px-0' : 'px-3'"
+            >
+              <FileText class="size-4.5 shrink-0 text-muted-foreground" />
+              <span v-if="!collapsed">Reportes</span>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent v-if="collapsed" side="right">Reportes</TooltipContent>
+        </Tooltip>
+      </nav>
+    </TooltipProvider>
 
     <!-- History -->
     <div v-if="!collapsed" class="mt-4 flex-1 space-y-5 overflow-y-auto px-2 pb-3">
