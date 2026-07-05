@@ -1,12 +1,7 @@
 <script setup lang="ts">
-import type { BreadcrumbItemType, SharedData } from '@/types'
-import { usePage } from '@inertiajs/vue3'
+import type { BreadcrumbItemType } from '@/types'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
-import ChatAction from '@/components/chat/ChatAction.vue'
-import ModelSelector from '@/components/chat/ModelSelector.vue'
-import VisibilitySelector from '@/components/chat/VisibilitySelector.vue'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import { useAuth } from '@/composables/useAuth'
 
 withDefaults(defineProps<{
   breadcrumbs?: BreadcrumbItemType[]
@@ -14,8 +9,6 @@ withDefaults(defineProps<{
   breadcrumbs: () => [],
 })
 
-const page = usePage<SharedData>()
-const { isGuest } = useAuth()
 </script>
 
 <template>
@@ -27,11 +20,6 @@ const { isGuest } = useAuth()
       <template v-if="breadcrumbs && breadcrumbs.length > 0">
         <Breadcrumbs :breadcrumbs="breadcrumbs" />
       </template>
-    </div>
-    <div v-if="page.url.startsWith('/chat') && !isGuest" class="items-center gap-2 hidden md:flex">
-      <ChatAction />
-<!--      <ModelSelector />
-      <VisibilitySelector />-->
     </div>
   </header>
 </template>

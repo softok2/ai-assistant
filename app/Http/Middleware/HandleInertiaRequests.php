@@ -44,6 +44,8 @@ final class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => $request->user(),
+                'is_admin' => (bool) $request->user()?->isAdmin(),
+                'club' => $request->user()?->getAttributes()['club_name'] ?? null,
             ],
             'ziggy' => [
                 ...(new Ziggy)->toArray(),

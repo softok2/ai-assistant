@@ -1,86 +1,57 @@
 <script setup lang="ts">
-import type { BreadcrumbItemType, ChatHistory, Model, SharedData } from '@/types'
+import type { ChatHistory, Model, SharedData } from '@/types'
 import { Head, router, usePage } from '@inertiajs/vue3'
-import { useStorage } from '@vueuse/core'
-import { ref } from 'vue'
-import ChatContainer from '@/components/chat/ChatContainer.vue'
-import { provideChatInput } from '@/composables/useChatInput'
-import { provideVisibility } from '@/composables/useVisibility'
-import { MODEL_KEY } from '@/constants/models'
-import AppLayout from '@/layouts/AppLayout.vue'
-import { Visibility } from '@/types/enum'
+import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
+import ChatGreeting from '@/components/assistant/ChatGreeting.vue'
+import ChatInput from '@/components/assistant/ChatInput.vue'
 
-const props = defineProps<{
-  chatHistory?: ChatHistory
-  availableModels: Model[]
+defineProps<{
+  chatHistory?: ChatHistory | null
 }>()
 
-const page = usePage<SharedData>()
-const isGuest = !page.props.auth.user
+const sharedProps = usePage<SharedData>().props
+const userName = sharedProps.auth?.user?.name ?? null
+const models = (sharedProps.availableModels ?? []) as Model[]
 
-const breadcrumbs: BreadcrumbItemType[] = [
-  {
-    title: 'Chat',
-    href: route('chats.index'),
-  },
+const suggestions = [
+  'Dame un resumen ejecutivo del día',
+  'KPIs de Golf de esta semana',
+  'Ocupación de restaurantes',
+  '¿Qué experiencias siguen abiertas?',
 ]
 
-interface ChatCreateParams {
-  message: string
-  model: string
-  visibility: Visibility
-}
-
-const { input } = provideChatInput()
-const initialVisibilityType = ref<Visibility>(Visibility.PRIVATE)
-const selectedModel = useStorage<Model>(MODEL_KEY, props.availableModels[0])
-
-provideVisibility(Visibility.PRIVATE, initialVisibilityType)
-
-function sendInitialMessage(userMessage: string): void {
-  if (isGuest) {
-    return
-  }
-
-  const params: ChatCreateParams = {
-    message: userMessage,
-    model: selectedModel.value.id,
-    visibility: initialVisibilityType.value,
-  }
-
-  router.post(route('chats.store'), params as Record<string, any>)
-}
-
-function handleSubmit(): void {
-  if (isGuest) {
-    return
-  }
-
-  const trimmedInput = input.value.trim()
-  if (trimmedInput) {
-    sendInitialMessage(trimmedInput)
-  }
-}
-
-function append(message: string): void {
-  if (isGuest) {
-    return
-  }
-
-  input.value = message
-  sendInitialMessage(message)
+function startChat(message: string, model: string | null = null, attachments: any[] = []): void {
+  router.post(route('chats.store'), {
+    message,
+    model,
+    visibility: 'private',
+    attachments,
+  })
 }
 </script>
 
 <template>
-  <Head title="Chat" />
-  <AppLayout :breadcrumbs="breadcrumbs" :chat-history="chatHistory">
-    <div class="h-[calc(100vh-4rem)] bg-background">
-      <ChatContainer
-        :is-readonly="isGuest"
-        @handle-submit="handleSubmit"
-        @append="append"
-      />
+  <Head title="Asistente" />
+
+  <AssistantLayout :chat-history="chatHistory">
+    <div class="flex flex-1 flex-col items-center justify-center px-4">
+      <div class="w-full max-w-3xl space-y-8">
+        <ChatGreeting :name="userName" />
+
+        <ChatInput :models="models" @submit="startChat" />
+
+        <div class="flex flex-wrap justify-center gap-2">
+          <button
+            v-for="suggestion in suggestions"
+            :key="suggestion"
+            type="button"
+            class="rounded-full border border-border bg-card px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+            @click="startChat(suggestion)"
+          >
+            {{ suggestion }}
+          </button>
+        </div>
+      </div>
     </div>
-  </AppLayout>
+  </AssistantLayout>
 </template>

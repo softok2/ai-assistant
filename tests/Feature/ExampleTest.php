@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-it('returns a successful response', function (): void {
+it('rejects the entry point without a signed link', function (): void {
     $response = $this->get('/');
 
-    $response->assertStatus(302);
+    $response->assertStatus(400);
 });

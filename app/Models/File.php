@@ -6,7 +6,8 @@ namespace App\Models;
 
 use Throwable;
 use App\Enums\MediaStatus;
-use App\AI\OpenAIAssistant;
+use Laravel\Ai\Files\Document;
+use Laravel\Ai\Stores;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -46,19 +47,18 @@ final class File extends Model
     public function upload(): self
     {
         try {
-            $assistant = new OpenAIAssistant(
-                assistantId: config('services.openai.assistant_id'),
-                vectorStoreId: config('services.openai.vector_store_id'),
-            );
-
-            $filePath = Storage::path('docs/'.$this->name);
+            $store = Stores::get(config('services.openai.vector_store_id'));
 
             $this->status = MediaStatus::IN_PROGRESS;
-            $fileCreateResponse = $assistant->feed($filePath);
 
-            $this->assistant_media_id = $fileCreateResponse->id;
+            $document = $store->add(
+                Document::fromStorage('docs/'.$this->name),
+                metadata: ['group' => $this->group],
+            );
+
+            $this->assistant_media_id = $document->fileId ?? $document->id;
             $this->status = MediaStatus::COMPLETED;
-            $this->bytes = $fileCreateResponse->bytes;
+            $this->bytes = Storage::size('docs/'.$this->name);
             $this->synced_at = now();
         } catch (Throwable $e) {
             Log::error("Media upload to OpenAI failed for {$this->name}: ".$e->getMessage(), $e->getTrace() ?? []);
@@ -79,11 +79,8 @@ final class File extends Model
         DB::beginTransaction();
 
         try {
-            $assistant = new OpenAIAssistant(
-                assistantId: config('services.openai.assistant_id'),
-                vectorStoreId: config('services.openai.vector_store_id'),
-            );
-            $assistant->deleteFile($this->assistant_media_id);
+            Stores::get(config('services.openai.vector_store_id'))
+                ->remove($this->assistant_media_id, deleteFile: true);
 
             Storage::delete('docs/'.$this->name);
             $this->delete();

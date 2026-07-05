@@ -1,138 +1,119 @@
 <script setup lang="ts">
-import type { BreadcrumbItemType, Chat, ChatHistory, MessageChunks, Model } from '@/types'
-import { Head, router } from '@inertiajs/vue3'
-import { useStorage } from '@vueuse/core'
-import { computed, nextTick, onMounted, provide, ref, watch } from 'vue'
-import ChatContainer from '@/components/chat/ChatContainer.vue'
-import { provideChatInput } from '@/composables/useChatInput'
-import { useChatMessages } from '@/composables/useChatMessages'
-import { useMessageStream } from '@/composables/useMessageStream'
-import { provideVisibility } from '@/composables/useVisibility'
-import { MODEL_KEY } from '@/constants/models'
-import AppLayout from '@/layouts/AppLayout.vue'
-import { ChunkType, Visibility } from '@/types/enum'
+import type { Chat, ChatHistory, Message, Model, SharedData } from '@/types'
+import { Head, usePage } from '@inertiajs/vue3'
+import { computed, onMounted, ref } from 'vue'
+import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
+import ChatInput from '@/components/assistant/ChatInput.vue'
+import ChatMessageList from '@/components/assistant/ChatMessageList.vue'
+import { useAssistantStream } from '@/composables/useAssistantStream'
+import { Role } from '@/types/enum'
 
 const props = defineProps<{
-  chatHistory?: ChatHistory
   chat: Chat
-  availableModels: Model[]
+  chatHistory?: ChatHistory | null
+  pendingMessage?: string | null
+  pendingAttachments?: Array<{ path: string, name: string, mime: string }> | null
+  canWrite?: boolean
 }>()
 
-const pageTitle = computed<string>(() => props.chat?.title || 'Chat')
-const initialVisibility = computed<Visibility>(() => props.chat?.visibility || Visibility.PRIVATE)
+const sharedProps = usePage<SharedData>().props
+const models = (sharedProps.availableModels ?? []) as Model[]
 
-const breadcrumbs: BreadcrumbItemType[] = [
-  {
-    title: 'Chat',
-    href: route('chats.index'),
-  },
-]
+const messages = ref<Message[]>([...(props.chat.messages ?? [])])
 
-const { input, clearInput } = provideChatInput()
-const initialVisibilityType = ref<Visibility>(initialVisibility.value)
-const selectedModel = useStorage<Model>(MODEL_KEY, props.availableModels[0])
-const chatContainerRef = ref<InstanceType<typeof ChatContainer>>()
+const suggestions = ref<string[]>([])
 
-const { visibility } = provideVisibility(initialVisibility.value, initialVisibilityType)
-const {
-  messages,
-  addTextMessage,
-  scrollToBottom,
-  getLastMessage,
-  isLastMessageFromUser,
-} = useChatMessages(props.chat, chatContainerRef)
+const { send, cancel, isFetching, isStreaming } = useAssistantStream(props.chat.id, messages, fetchSuggestions)
 
-const { isFetching, isStreaming, send, cancel, id } = useMessageStream(props.chat.id, messages, clearInput)
+const busy = computed(() => isFetching.value || isStreaming.value)
 
-provide('chatId', props.chat.id)
-
-function updateChatVisibility(newVisibility: Visibility): void {
-  router.patch(
-    route('chats.update', { chat: props.chat.id }),
-    { visibility: newVisibility },
-    {
-      preserveState: true,
-      preserveScroll: true,
-      async: true,
-      only: [],
-    },
-  )
+function xsrfToken(): string {
+  const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/)
+  return match ? decodeURIComponent(match[1]) : ''
 }
 
-watch(visibility, (newVisibility, oldVisibility) => {
-  if (oldVisibility !== undefined && newVisibility !== oldVisibility) {
-    updateChatVisibility(newVisibility)
-  }
-}, { immediate: false })
-
-function sendMessage(messageContent: MessageChunks): void {
-  addTextMessage(messageContent[ChunkType.TEXT] || '')
-
-  send({
-    message: messageContent[ChunkType.TEXT] || '',
-    model: selectedModel.value.id,
-  })
-}
-
-async function handleSubmit(): Promise<void> {
-  const trimmedInput = input.value.trim()
-
-  if (!trimmedInput || isFetching.value || isStreaming.value || !props.chat.id) {
+async function fetchSuggestions(): Promise<void> {
+  if (!props.canWrite)
     return
+
+  try {
+    const response = await fetch(route('chat.suggestions', { chat: props.chat.id }), {
+      method: 'POST',
+      headers: { 'X-XSRF-TOKEN': xsrfToken(), 'Accept': 'application/json' },
+    })
+    if (response.ok)
+      suggestions.value = (await response.json()).suggestions ?? []
   }
-
-  clearInput()
-
-  await nextTick(() => {
-    addTextMessage(trimmedInput)
-  })
-
-  send({
-    message: trimmedInput,
-    model: selectedModel.value.id,
-  })
+  catch {
+    suggestions.value = []
+  }
 }
 
-function stop(): void {
-  if (isStreaming.value || isFetching.value) {
-    cancel()
-  }
+function sendMessage(message: string, model: string | null = null, attachments: Array<{ path: string, name: string, mime: string }> = []): void {
+  if (busy.value)
+    return
+
+  suggestions.value = []
+  messages.value.push({ role: Role.USER, parts: { text: message }, attachments })
+  send({ message, model, attachments })
+}
+
+function editMessage(messageId: string, text: string): void {
+  if (busy.value)
+    return
+
+  suggestions.value = []
+  const index = messages.value.findIndex(message => message.id === messageId)
+  if (index !== -1)
+    messages.value.splice(index)
+
+  messages.value.push({ role: Role.USER, parts: { text }, attachments: [] })
+  send({ message: text, edit_message_id: messageId })
+}
+
+function regenerate(): void {
+  if (busy.value)
+    return
+
+  suggestions.value = []
+  const last = messages.value[messages.value.length - 1]
+  if (last?.role === Role.ASSISTANT)
+    messages.value.pop()
+
+  send({ regenerate: true })
 }
 
 onMounted(() => {
-  if (input.value.trim()) {
-    sendMessage({ [ChunkType.TEXT]: input.value.trim() })
-    clearInput()
-    return
+  if (props.pendingMessage) {
+    sendMessage(props.pendingMessage, null, props.pendingAttachments ?? [])
   }
-
-  const lastMessage = getLastMessage()
-  if (lastMessage && isLastMessageFromUser()) {
-    sendMessage(lastMessage.parts)
-    clearInput()
-  }
-
-  nextTick(() => {
-    if (messages.value.length > 0) {
-      scrollToBottom()
-    }
-  })
 })
 </script>
 
 <template>
-  <Head :title="pageTitle" />
-  <AppLayout :breadcrumbs="breadcrumbs" :chat-history="chatHistory">
-    <div class="h-[calc(100vh-4rem)] bg-background">
-      <ChatContainer
-        ref="chatContainerRef"
-        :chat-id="props.chat.id"
-        :messages="messages"
-        :stream-id="id"
-        :is-readonly="false"
-        @stop="stop"
-        @handle-submit="handleSubmit"
-      />
+  <Head :title="chat.title" />
+
+  <AssistantLayout :chat-history="chatHistory" :active-chat-id="chat.id">
+    <ChatMessageList
+      :messages="messages"
+      :chat-id="chat.id"
+      :thinking="isFetching && !isStreaming"
+      :streaming="isStreaming"
+      :busy="busy"
+      :can-write="canWrite"
+      :suggestions="suggestions"
+      @regenerate="regenerate"
+      @edit="editMessage"
+      @suggestion="text => sendMessage(text)"
+    />
+
+    <div v-if="canWrite" class="px-4 pb-4 md:px-8">
+      <div class="mx-auto w-full max-w-3xl">
+        <ChatInput :models="models" :busy="busy" @submit="sendMessage" @stop="cancel" />
+      </div>
     </div>
-  </AppLayout>
+    <div v-else class="px-4 pb-4 text-center text-xs text-muted-foreground">
+      Vista de solo lectura — este chat fue compartido contigo.
+    </div>
+  </AssistantLayout>
 </template>

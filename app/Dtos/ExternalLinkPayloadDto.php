@@ -8,9 +8,9 @@ final class ExternalLinkPayloadDto
 {
     public function __construct(
         private readonly string $club,
+        private readonly string $externalId,
         private readonly string $userName,
-        private readonly int $roleId,
-        private readonly string $token
+        private readonly string $role,
     ) {}
 
     public function getClub(): string
@@ -18,28 +18,28 @@ final class ExternalLinkPayloadDto
         return $this->club;
     }
 
+    public function getExternalId(): string
+    {
+        return $this->externalId;
+    }
+
     public function getUserName(): string
     {
         return $this->userName;
     }
 
-    public function getRoleId(): int
+    public function getRole(): string
     {
-        return $this->roleId;
-    }
-
-    public function getToken(): string
-    {
-        return $this->token;
+        return $this->role;
     }
 
     public static function fromRequest(array $data): self
     {
         return new self(
             club: $data['club'],
+            externalId: (string) $data['user_id'],
             userName: $data['user_name'],
-            roleId: (int) $data['role_id'],
-            token: $data['token']
+            role: $data['role'],
         );
     }
 }

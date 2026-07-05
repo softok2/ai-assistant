@@ -126,8 +126,19 @@ return [
     ],
 
     'club_signature_secrets' => [
-        'ccm' => env('CCM_SIGNATURE_SECRET', 'your-ccm-signature'),
-        'saltillo' => env('SALTILLO_SIGNATURE_SECRET', 'your-saltillo-signature'),
+        'ccm' => env('CCM_SIGNATURE_SECRET'),
+        'saltillo' => env('SALTILLO_SIGNATURE_SECRET'),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Frame ancestors
+    |--------------------------------------------------------------------------
+    |
+    | Space-separated origins allowed to embed this app in an iframe
+    | (the club admin panels). Sent as a CSP frame-ancestors directive.
+    */
+
+    'frame_ancestors' => env('FRAME_ANCESTORS', ''),
 
 ];

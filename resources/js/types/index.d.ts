@@ -79,12 +79,18 @@ export interface Chunk {
 
 export type MessageChunks = Record<ChunkType, string>
 
+export interface MessageAttachment {
+  path: string
+  name: string
+  mime: string
+}
+
 export interface Message {
   id?: string
   chat_id?: string
   role: Role
   parts: MessageChunks
-  attachments?: string[]
+  attachments?: MessageAttachment[] | string[] | string
   is_upvoted?: boolean
   created_at?: string
   updated_at?: string

@@ -64,14 +64,20 @@ final class User extends Authenticatable
         $user = self::updateOrCreate(
             [
                 'club_name' => $payload->getClub(),
-                'club_token' => $payload->getToken(),
+                'external_id' => $payload->getExternalId(),
             ],
             [
                 'name' => $payload->getUserName(),
+                'email' => $payload->getClub().'-'.$payload->getExternalId().'@external.local',
+                'password' => Str::random(40),
             ]
         );
 
-        $user->roles()->sync([$payload->getRoleId()]);
+        $role = Role::where('name', $payload->getRole())->first();
+
+        if ($role !== null) {
+            $user->roles()->sync([$role->id]);
+        }
 
         return $user;
     }
@@ -84,6 +90,11 @@ final class User extends Authenticatable
     public function chats(): HasMany
     {
         return $this->hasMany(Chat::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->roles()->where('name', 'admin')->exists();
     }
 
     public function roles(): BelongsToMany

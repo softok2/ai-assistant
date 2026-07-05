@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Middleware\AuthenticateExternalUser;
+use App\Http\Middleware\FrameAncestors;
 use Illuminate\Foundation\Application;
 use App\Http\Middleware\HandleAppearance;
 use Illuminate\Console\Scheduling\Schedule;
@@ -24,6 +25,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'auth.external' => AuthenticateExternalUser::class,
+            'admin' => App\Http\Middleware\EnsureUserIsAdmin::class,
+        ]);
+
+        $middleware->web(append: [
+            FrameAncestors::class,
         ]);
 
         $middleware->web(append: [
@@ -37,6 +43,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('assistant-files:sync')
             ->everyTwoHours()
             ->between('08:00', '22:00');
+
+        // Evaluate report schedules hourly; the command decides which clubs are due.
+        $schedule->command('reports:send-due')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontReportDuplicates()

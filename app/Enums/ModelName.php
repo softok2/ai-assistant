@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
-use Prism\Prism\Enums\Provider;
-
 enum ModelName: string
 {
     // case GEMINI_2_0_FLASH_LITE = 'gemini-2.0-flash-lite';
@@ -43,13 +41,9 @@ enum ModelName: string
         };
     }
 
-    public function getProvider(): Provider
+    public function getProvider(): string
     {
-        return match ($this) {
-            self::GPT_4O_MINI => Provider::OpenAI,
-            self::GPT_4_1_NANO => Provider::OpenAI,
-            self::O4_MINI => Provider::OpenAI,
-        };
+        return 'openai';
     }
 
     /**
@@ -61,7 +55,7 @@ enum ModelName: string
             'id' => $this->value,
             'name' => $this->getName(),
             'description' => $this->getDescription(),
-            'provider' => $this->getProvider()->value,
+            'provider' => $this->getProvider(),
         ];
     }
 }

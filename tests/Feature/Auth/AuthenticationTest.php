@@ -7,12 +7,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('login screen can be rendered', function (): void {
-    $response = $this->get('/login');
-
-    $response->assertStatus(200);
-});
-
 test('users can authenticate using the login screen', function (): void {
     $user = User::factory()->create();
 

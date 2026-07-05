@@ -61,16 +61,10 @@ describe('ChatController', function (): void {
                 );
         });
 
-        it('allows unauthenticated users to view index page with no chat history', function (): void {
+        it('redirects unauthenticated users away from the index page', function (): void {
             $this->post(route('logout'));
 
-            $response = $this->get(route('chats.index'));
-
-            $response->assertOk()
-                ->assertInertia(
-                    fn ($page) => $page
-                        ->where('chatHistory', null)
-                );
+            $this->get(route('chats.index'))->assertRedirect();
         });
     });
 
@@ -97,7 +91,7 @@ describe('ChatController', function (): void {
         it('validates required fields', function (): void {
             $response = $this->post(route('chats.store'), []);
 
-            $response->assertSessionHasErrors(['message', 'visibility', 'model']);
+            $response->assertSessionHasErrors(['message', 'visibility']);
         });
 
         it('validates visibility enum values', function (): void {

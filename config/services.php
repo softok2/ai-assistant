@@ -37,13 +37,12 @@ return [
         ],
     ],
     'openai' => [
-        'api_key' => env('OPENAI_API_KEY', 'sk-1234567890abcdef1234567890abcdef1234567890'),
-        'base_url' => env('OPENAI_BASE_URL', 'https://api.openai.com/v1/'),
-        'model' => env('OPENAI_MODEL', 'gpt-3.5-turbo'),
-        'temperature' => env('OPENAI_TEMPERATURE', 0.7),
-        'organization' => env('OPENAI_ORGANIZATION', 'org-1234567890'),
-        'assistant_id' => env('OPENAI_ASSISTANT_ID', 'assistant-1234567890abcdef1234567890abcdef'),
-        'vector_store_id' => env('OPENAI_VECTOR_STORE_ID', 'vector-1234567890abcdef1234567890abcdef'),
+        'model' => env('OPENAI_MODEL', 'gpt-4.1-mini'),
+        'vector_store_id' => env('OPENAI_VECTOR_STORE_ID'),
+    ],
+
+    'browsershot' => [
+        'chrome_path' => env('BROWSERSHOT_CHROME_PATH'),
     ],
 
     'softok2mds' => [

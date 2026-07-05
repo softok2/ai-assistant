@@ -30,3 +30,5 @@ frankenphp-worker.php
 
 **/.DS_Store
 laradumps.yaml
+
+/resources/js/ziggy.js
