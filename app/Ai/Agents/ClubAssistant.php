@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 namespace App\Ai\Agents;
 
-use App\Models\Message as ChatMessage;
-use Illuminate\Support\Collection;
-use Laravel\Ai\Attributes\Provider;
-use Laravel\Ai\Contracts\Agent;
-use Laravel\Ai\Contracts\Conversational;
-use Laravel\Ai\Contracts\HasTools;
+use App\Models\User;
+use App\Enums\ClubName;
+use App\Enums\RoleName;
 use Laravel\Ai\Enums\Lab;
-use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Promptable;
-use Laravel\Ai\Providers\Tools\FileSearch;
+use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Messages\Message;
+use Illuminate\Support\Collection;
+use Laravel\Ai\Contracts\HasTools;
+use Laravel\Ai\Attributes\Provider;
+use App\Models\Message as ChatMessage;
+use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Providers\Tools\WebSearch;
+use Laravel\Ai\Providers\Tools\FileSearch;
 
 #[Provider(Lab::OpenAI)]
 final class ClubAssistant implements Agent, Conversational, HasTools
@@ -24,8 +27,26 @@ final class ClubAssistant implements Agent, Conversational, HasTools
     /**
      * @param  Collection<int, ChatMessage>|null  $history  prior chat messages, oldest first
      */
-    public function __construct(protected ?Collection $history = null)
+    public function __construct(
+        protected ?Collection $history = null,
+        protected ?ClubName $club = null,
+        protected ?RoleName $role = null,
+        protected ?string $userName = null,
+    ) {}
+
+    /**
+     * Arma el asistente con el club, el rol y el nombre de quien pregunta.
+     *
+     * @param  Collection<int, ChatMessage>|null  $history
+     */
+    public static function forUser(?User $user, ?Collection $history = null): self
     {
+        return new self(
+            history: $history,
+            club: $user?->clubName(),
+            role: $user?->primaryRole(),
+            userName: $user?->name,
+        );
     }
 
     /**
@@ -33,7 +54,15 @@ final class ClubAssistant implements Agent, Conversational, HasTools
      */
     public function instructions(): string
     {
-        return file_get_contents(resource_path('prompts/club_assistant.md'));
+        $prompt = file_get_contents(resource_path('prompts/club_assistant.md'));
+
+        $prompt = str_replace(
+            ['{{club}}', '{{role}}'],
+            [$this->clubLabel(), $this->roleLabel()],
+            $prompt
+        );
+
+        return $prompt."\n\n".$this->contextBlock();
     }
 
     /**
@@ -66,5 +95,54 @@ final class ClubAssistant implements Agent, Conversational, HasTools
             new FileSearch(stores: [config('services.openai.vector_store_id')]),
             new WebSearch,
         ];
+    }
+
+    /**
+     * Quién pregunta, desde qué club y qué áreas le tocan. Va al final del
+     * prompt para que pese más que el formato.
+     */
+    private function contextBlock(): string
+    {
+        $lines = [
+            'Contexto de esta conversación:',
+            '',
+            'Club: '.$this->clubLabel().'.',
+            'Rol de quien pregunta: '.$this->roleLabel().'.',
+            'Áreas que atiende ese rol: '.$this->areasLabel().'.',
+        ];
+
+        if ($this->userName !== null && trim($this->userName) !== '') {
+            $lines[] = 'Nombre de quien pregunta: '.trim($this->userName).'.';
+        }
+
+        $lines[] = '';
+        $lines[] = 'Habla en segunda persona a '.$this->addressee()
+            .'; prioriza las áreas de su rol; si la pregunta sale de ellas responde igual pero dilo.';
+
+        return implode("\n", $lines);
+    }
+
+    private function clubLabel(): string
+    {
+        return $this->club?->label() ?? 'el club';
+    }
+
+    private function roleLabel(): string
+    {
+        return $this->role?->label() ?? 'la dirección del club';
+    }
+
+    private function areasLabel(): string
+    {
+        $areas = $this->role?->areas() ?? [];
+
+        return $areas === [] ? 'todas las áreas del club' : implode(', ', $areas);
+    }
+
+    private function addressee(): string
+    {
+        return $this->userName !== null && trim($this->userName) !== ''
+            ? trim($this->userName)
+            : 'quien pregunta';
     }
 }

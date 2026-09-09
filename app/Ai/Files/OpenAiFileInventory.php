@@ -29,7 +29,7 @@ final class OpenAiFileInventory
     }
 
     /**
-     * @return Collection<int, array{id: string, created_at: int, status: string}>
+     * @return Collection<int, array{id: string, created_at: int, status: string, environment: ?string}>
      */
     public function storeFiles(): Collection
     {
@@ -40,6 +40,7 @@ final class OpenAiFileInventory
                 'id' => $file['id'],
                 'created_at' => (int) ($file['created_at'] ?? 0),
                 'status' => (string) ($file['status'] ?? ''),
+                'environment' => isset($file['attributes']['environment']) ? (string) $file['attributes']['environment'] : null,
             ]);
     }
 

@@ -3,6 +3,7 @@ import type { Chat, ChatHistory, Message, Model, SharedData } from '@/types'
 import { Head, usePage } from '@inertiajs/vue3'
 import { computed, onMounted, ref } from 'vue'
 import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
+import ChatHeader from '@/components/assistant/ChatHeader.vue'
 import ChatInput from '@/components/assistant/ChatInput.vue'
 import ChatMessageList from '@/components/assistant/ChatMessageList.vue'
 import { useAssistantStream } from '@/composables/useAssistantStream'
@@ -14,6 +15,7 @@ const props = defineProps<{
   pendingMessage?: string | null
   pendingAttachments?: Array<{ path: string, name: string, mime: string }> | null
   canWrite?: boolean
+  dataFreshness?: string | null
 }>()
 
 const sharedProps = usePage<SharedData>().props
@@ -94,6 +96,10 @@ onMounted(() => {
   <Head :title="chat.title" />
 
   <AssistantLayout :chat-history="chatHistory" :active-chat-id="chat.id">
+    <template #header>
+      <ChatHeader :chat="chat" :data-freshness="dataFreshness" :can-write="canWrite" />
+    </template>
+
     <ChatMessageList
       :messages="messages"
       :chat-id="chat.id"
@@ -113,7 +119,7 @@ onMounted(() => {
       </div>
     </div>
     <div v-else class="px-4 pb-4 text-center text-xs text-muted-foreground">
-      Vista de solo lectura — este chat fue compartido contigo.
+      Vista de solo lectura. Este chat fue compartido contigo.
     </div>
   </AssistantLayout>
 </template>

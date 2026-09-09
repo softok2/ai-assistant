@@ -7,29 +7,47 @@ namespace App\Http\Controllers;
 use App\Models\Chat;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Dtos\UpdateChatData;
+use App\Dtos\LibrarySnapshot;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use App\Queries\LibrarySnapshotQuery;
 use Illuminate\Http\RedirectResponse;
+use App\Actions\Chats\UpdateChatAction;
 use App\Http\Requests\StoreChatRequest;
+use App\Actions\Chats\SearchChatsAction;
 use App\Http\Requests\UpdateChatRequest;
+use App\Http\Requests\SearchChatsRequest;
+use App\Actions\Chats\ResolveChatStartersAction;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 final class ChatController extends Controller
 {
-    public function __construct()
+    private ?LibrarySnapshot $snapshot = null;
+
+    public function __construct(private readonly LibrarySnapshotQuery $library)
     {
         $this->authorizeResource(Chat::class, 'chat');
     }
 
-    public function index(): Response
+    public function index(ResolveChatStartersAction $starters): Response
     {
-        $chatHistory = null;
-
-        if (Auth::check()) {
-            $chatHistory = Auth::user()->chats()->orderBy('updated_at', 'desc')->paginate(25);
-        }
-
         return Inertia::render('Chat/Index', [
-            'chatHistory' => Inertia::deepMerge($chatHistory),
+            'chatHistory' => Inertia::deepMerge($this->history()),
+            'dataFreshness' => fn (): ?string => $this->snapshot()->freshness(),
+            'library' => fn (): array => $this->libraryProp($this->snapshot()),
+            // Proponer las preguntas cuesta una llamada al modelo: la pantalla
+            // se pinta primero y las sugerencias llegan después.
+            'starters' => Inertia::defer(function () use ($starters): array {
+                $user = Auth::user();
+
+                return $starters->execute(
+                    $user?->clubName(),
+                    $user?->primaryRole(),
+                    $this->library->execute(withDocuments: true),
+                );
+            }),
         ]);
     }
 
@@ -51,53 +69,40 @@ final class ChatController extends Controller
     {
         Gate::authorize('view', $chat);
 
-        $chatHistory = null;
-
-        if (Auth::check()) {
-            $chatHistory = Auth::user()->chats()->orderBy('updated_at', 'desc')->paginate(25);
-        }
-
         return Inertia::render('Chat/Show', [
             'chat' => fn () => $chat->load('messages'),
-            'chatHistory' => Inertia::deepMerge($chatHistory),
+            'chatHistory' => Inertia::deepMerge($this->history()),
+            'dataFreshness' => fn (): ?string => $this->snapshot()->freshness(),
+            'library' => fn (): array => $this->libraryProp($this->snapshot()),
             'pendingMessage' => session('pending_message'),
             'pendingAttachments' => session('pending_attachments', []),
             'canWrite' => Auth::id() === $chat->user_id,
         ]);
     }
 
-    public function update(Chat $chat, UpdateChatRequest $request): RedirectResponse
+    /**
+     * Buscador del diálogo de chats. Devuelve JSON porque el diálogo consulta
+     * mientras el usuario escribe, sin recargar la página.
+     */
+    public function search(SearchChatsRequest $request, SearchChatsAction $action): JsonResponse
+    {
+        return response()->json(
+            $action->execute($request->user(), $request->validated()['q'] ?? null)
+        );
+    }
+
+    /**
+     * Fijar, renombrar o compartir se piden desde la barra lateral de
+     * cualquier pantalla, así que la respuesta vuelve a donde estaba el
+     * usuario. Redirigir al chat editado abría el chat equivocado.
+     */
+    public function update(Chat $chat, UpdateChatRequest $request, UpdateChatAction $action): RedirectResponse
     {
         Gate::authorize('update', $chat);
 
-        $validated = $request->validated();
+        $action->execute($chat, UpdateChatData::fromRequest($request));
 
-        if (isset($validated['message_id'])) {
-            $messageId = $validated['message_id'];
-
-            $message = $chat->messages()->find($messageId);
-
-            if ($message && isset($validated['is_upvoted'])) {
-                $upvoteValue = (bool) $validated['is_upvoted'];
-                $message->update(['is_upvoted' => $upvoteValue]);
-            }
-        }
-
-        $updates = [];
-
-        if (isset($validated['title'])) {
-            $updates['title'] = $validated['title'];
-        }
-
-        if (isset($validated['visibility'])) {
-            $updates['visibility'] = $validated['visibility'];
-        }
-
-        if ($updates !== []) {
-            $chat->update($updates);
-        }
-
-        return to_route('chats.show', ['chat' => $chat]);
+        return back();
     }
 
     public function destroy(Chat $chat): RedirectResponse
@@ -108,5 +113,40 @@ final class ChatController extends Controller
         $chat->delete();
 
         return to_route('chats.index');
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, Chat>|null
+     */
+    private function history(): ?LengthAwarePaginator
+    {
+        if (! Auth::check()) {
+            return null;
+        }
+
+        return Auth::user()->chats()
+            ->orderByDesc('pinned_at')
+            ->orderByDesc('updated_at')
+            ->paginate(25);
+    }
+
+    /**
+     * Una sola consulta agregada por petición, y solo si la respuesta incluye
+     * alguna de las dos props que la usan.
+     */
+    private function snapshot(): LibrarySnapshot
+    {
+        return $this->snapshot ??= $this->library->execute();
+    }
+
+    /**
+     * @return array{count: int, synced_at: ?string}
+     */
+    private function libraryProp(LibrarySnapshot $library): array
+    {
+        return [
+            'count' => $library->documentCount,
+            'synced_at' => $library->freshness(),
+        ];
     }
 }

@@ -6,12 +6,14 @@ namespace App\Providers;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use App\Reports\MessagePdfRenderer;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
+use App\Reports\Contracts\RendersMessageAsPdf;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -20,7 +22,7 @@ final class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(RendersMessageAsPdf::class, MessagePdfRenderer::class);
     }
 
     /**

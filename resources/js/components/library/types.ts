@@ -21,6 +21,10 @@ export interface ReconciliationReport {
   store_files: number
   account_files: number
   referenced: number
+  /** Archivos del store que pertenecen a otro entorno; nunca se tocan. */
+  foreign: number
+  /** Archivos del store subidos antes de que se etiquetara el entorno. */
+  untagged: number
   orphans: ReconciliationItem[]
   duplicates: ReconciliationItem[]
   loose: ReconciliationItem[]

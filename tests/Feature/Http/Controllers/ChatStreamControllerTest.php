@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-use App\Ai\Agents\ClubAssistant;
 use App\Models\Chat;
+use App\Models\Role;
 use App\Models\User;
+use App\Ai\Agents\ClubAssistant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -109,5 +110,49 @@ describe('regenerate', function (): void {
 
         $this->post(route('chat.stream', $this->chat), ['regenerate' => true])
             ->assertStatus(422);
+    });
+});
+
+describe('contexto y partes del mensaje', function (): void {
+    beforeEach(function (): void {
+        $this->user = User::factory()->create(['name' => 'Ana Gómez', 'club_name' => 'vallealto']);
+        $this->user->roles()->attach(Role::firstOrCreate(['name' => 'golf_manager']));
+        $this->actingAs($this->user);
+        $this->chat = Chat::factory()->for($this->user)->create();
+    });
+
+    it('builds the assistant with the club, role and name of the signed-in user', function (): void {
+        $instructions = ClubAssistant::forUser($this->user)->instructions();
+
+        expect($instructions)->toContain('Club Valle Alto')
+            ->and($instructions)->toContain('Gerencia de golf')
+            ->and($instructions)->toContain('Ana Gómez');
+    });
+
+    it('persists a kpi block exactly as the model wrote it', function (): void {
+        $answer = "Buena semana en golf.\n\n```kpi\n{\"items\":[{\"label\":\"Reservas\",\"value\":\"842\","
+            ."\"delta\":\"+6% vs. semana anterior\",\"tone\":\"good\"}]}\n```\n\n#### Qué haría\n\n1. Nada.";
+
+        ClubAssistant::fake([$answer]);
+
+        $this->post(route('chat.stream', $this->chat), ['message' => 'KPIs de golf'])
+            ->assertOk()
+            ->streamedContent();
+
+        expect($this->chat->messages()->where('role', 'assistant')->first()->parts['text'])->toBe($answer);
+    });
+
+    it('leaves activity and sources out when the stream carried no tool events', function (): void {
+        ClubAssistant::fake(['Respuesta sin herramientas']);
+
+        $this->post(route('chat.stream', $this->chat), ['message' => 'Hola'])
+            ->assertOk()
+            ->streamedContent();
+
+        $parts = $this->chat->messages()->where('role', 'assistant')->first()->parts;
+
+        expect($parts)->toHaveKey('text')
+            ->and($parts)->not->toHaveKey('activity')
+            ->and($parts)->not->toHaveKey('sources');
     });
 });

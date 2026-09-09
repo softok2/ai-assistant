@@ -16,6 +16,21 @@ enum ClubName: string
 
     case SALTILLO = 'saltillo';
 
+    /**
+     * Nombre del club tal como debe aparecer en la interfaz y en el contexto
+     * del agente.
+     */
+    public function label(): string
+    {
+        return match ($this) {
+            self::CCM => 'Club Campestre Monterrey',
+            self::VALLEALTO => 'Club Valle Alto',
+            self::TERRALTA => 'Club Terralta',
+            self::HERRADURA => 'Club La Herradura',
+            self::SALTILLO => 'Club Campestre Saltillo',
+        };
+    }
+
     public function getName(): string
     {
         return match ($this) {

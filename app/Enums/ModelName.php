@@ -35,9 +35,9 @@ enum ModelName: string
     public function getDescription(): string
     {
         return match ($this) {
-            self::GPT_4O_MINI => 'Cheapest model, best for smarter tasks',
-            self::GPT_4_1_NANO => 'Cheapest model, best for simpler tasks',
-            self::O4_MINI => 'Reasoning model, best for complex tasks',
+            self::GPT_4O_MINI => 'Equilibrado, para consultas del día a día',
+            self::GPT_4_1_NANO => 'El más económico, para preguntas simples',
+            self::O4_MINI => 'Razona paso a paso, para análisis complejos',
         };
     }
 

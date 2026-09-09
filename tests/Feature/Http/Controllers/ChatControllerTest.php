@@ -199,7 +199,8 @@ describe('ChatController', function (): void {
         it('updates chat title', function (): void {
             $data = ['title' => 'Updated Title'];
 
-            $response = $this->patch(route('chats.update', $this->chat), $data);
+            $response = $this->from(route('chats.show', $this->chat))
+                ->patch(route('chats.update', $this->chat), $data);
 
             $this->chat->refresh();
             expect($this->chat->title)->toBe('Updated Title');
@@ -209,7 +210,8 @@ describe('ChatController', function (): void {
         it('updates chat visibility', function (): void {
             $data = ['visibility' => 'public'];
 
-            $response = $this->patch(route('chats.update', $this->chat), $data);
+            $response = $this->from(route('chats.show', $this->chat))
+                ->patch(route('chats.update', $this->chat), $data);
 
             $this->chat->refresh();
             expect($this->chat->visibility)->toBe('public');
@@ -229,7 +231,8 @@ describe('ChatController', function (): void {
                 'is_upvoted' => true,
             ];
 
-            $response = $this->patch(route('chats.update', $this->chat), $data);
+            $response = $this->from(route('chats.show', $this->chat))
+                ->patch(route('chats.update', $this->chat), $data);
 
             $message->refresh();
             expect($message->is_upvoted)->toBeTrue();
@@ -315,9 +318,10 @@ describe('ChatController', function (): void {
         });
 
         it('allows updating own chats', function (): void {
-            $response = $this->patch(route('chats.update', $this->ownedChat), [
-                'title' => 'Updated Title',
-            ]);
+            $response = $this->from(route('chats.show', $this->ownedChat))
+                ->patch(route('chats.update', $this->ownedChat), [
+                    'title' => 'Updated Title',
+                ]);
 
             $response->assertRedirect(route('chats.show', $this->ownedChat));
 

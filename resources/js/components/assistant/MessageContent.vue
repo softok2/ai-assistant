@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { ChartSpec } from './ChartBlock.vue'
+import type { KpiSpec } from './KpiTiles.vue'
 import { computed } from 'vue'
 import ChartBlock from './ChartBlock.vue'
+import KpiTiles from './KpiTiles.vue'
 import MarkdownRenderer from './MarkdownRenderer.vue'
 
 const props = defineProps<{
@@ -12,7 +14,13 @@ const props = defineProps<{
 type Segment
   = | { kind: 'text', text: string }
     | { kind: 'chart', spec: ChartSpec }
+    | { kind: 'kpi', spec: KpiSpec }
     | { kind: 'pending-chart' }
+    | { kind: 'pending-kpi' }
+
+function isKpiSpec(value: unknown): value is KpiSpec {
+  return !!value && typeof value === 'object' && Array.isArray((value as any).items)
+}
 
 function isChartSpec(value: unknown): value is ChartSpec {
   return !!value && typeof value === 'object'
@@ -58,23 +66,30 @@ function splitBareJsonCharts(text: string): Segment[] {
 }
 
 /**
- * Splits assistant output into markdown and ```chart blocks. While streaming,
- * an unterminated chart block renders as a placeholder instead of raw JSON.
+ * Splits assistant output into markdown, ```chart and ```kpi blocks. While
+ * streaming, an unterminated block renders as a placeholder instead of raw
+ * JSON.
  */
 const segments = computed<Segment[]>(() => {
   const content = props.content ?? ''
   const result: Segment[] = []
-  const pattern = /```chart\s*\n([\s\S]*?)```/g
+  const pattern = /```(chart|kpi)[^\S\n]*\n([\s\S]*?)```/g
   let cursor = 0
   let match: RegExpExecArray | null
 
-  // eslint-disable-next-line no-cond-assign
   while ((match = pattern.exec(content)) !== null) {
     if (match.index > cursor)
       result.push(...splitBareJsonCharts(content.slice(cursor, match.index)))
 
     try {
-      result.push({ kind: 'chart', spec: JSON.parse(match[1]) })
+      const spec = JSON.parse(match[2])
+
+      if (match[1] === 'kpi' && isKpiSpec(spec))
+        result.push({ kind: 'kpi', spec })
+      else if (match[1] === 'chart' && isChartSpec(spec))
+        result.push({ kind: 'chart', spec })
+      else
+        result.push({ kind: 'text', text: match[0] })
     }
     catch {
       result.push({ kind: 'text', text: match[0] })
@@ -85,10 +100,13 @@ const segments = computed<Segment[]>(() => {
 
   let tail = content.slice(cursor)
 
-  const openBlock = tail.lastIndexOf('```chart')
+  const openChart = tail.lastIndexOf('```chart')
+  const openKpi = tail.lastIndexOf('```kpi')
+  const openBlock = Math.max(openChart, openKpi)
+
   if (openBlock !== -1 && props.streaming) {
     result.push(...splitBareJsonCharts(tail.slice(0, openBlock)))
-    result.push({ kind: 'pending-chart' })
+    result.push({ kind: openKpi > openChart ? 'pending-kpi' : 'pending-chart' })
     tail = ''
   }
 
@@ -104,8 +122,15 @@ const segments = computed<Segment[]>(() => {
     <template v-for="(segment, i) in segments" :key="i">
       <MarkdownRenderer v-if="segment.kind === 'text'" :content="segment.text" />
       <ChartBlock v-else-if="segment.kind === 'chart'" :spec="segment.spec" />
+      <KpiTiles v-else-if="segment.kind === 'kpi'" :spec="segment.spec" />
+      <div
+        v-else-if="segment.kind === 'pending-kpi'"
+        class="my-3 flex h-20 items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground"
+      >
+        Preparando cifras…
+      </div>
       <div v-else class="my-3 flex h-40 items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground">
-        Generando gráfica...
+        Generando gráfica…
       </div>
     </template>
   </div>

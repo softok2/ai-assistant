@@ -95,7 +95,7 @@ function purgeExpired(): void {
 <template>
   <Head title="Biblioteca" />
 
-  <AssistantLayout :chat-history="chatHistory">
+  <AssistantLayout :chat-history="chatHistory" title="Biblioteca">
     <div class="flex-1 overflow-y-auto">
       <div class="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

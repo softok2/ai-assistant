@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Ai\Agents\ClubAssistant;
-use App\Jobs\GenerateChatTitle;
 use App\Models\Chat;
-use App\Http\Requests\ChatStreamRequest;
+use Laravel\Ai\Files\Image;
+use Laravel\Ai\Files\Document;
+use App\Jobs\GenerateChatTitle;
+use App\Ai\Agents\ClubAssistant;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
-use Laravel\Ai\Files\Document;
-use Laravel\Ai\Files\Image;
-use Laravel\Ai\Responses\StreamableAgentResponse;
+use App\Http\Requests\ChatStreamRequest;
 use Laravel\Ai\Responses\StreamedAgentResponse;
+use Laravel\Ai\Responses\StreamableAgentResponse;
+use App\Actions\Chats\ResolveStreamInsightsAction;
 
 final class ChatStreamController extends Controller
 {
+    public function __construct(private readonly ResolveStreamInsightsAction $insights) {}
+
     public function __invoke(ChatStreamRequest $request, Chat $chat): StreamableAgentResponse
     {
         Gate::authorize('update', $chat);
@@ -30,7 +33,7 @@ final class ChatStreamController extends Controller
             default => $this->prepareNewMessage($chat, $validated, $request->user()->id),
         };
 
-        return ClubAssistant::make(history: $history)
+        return ClubAssistant::forUser($request->user(), $history)
             ->stream($userMessage, attachments: $this->toAiFiles($attachments), model: $validated['model'] ?? null)
             ->then(function (StreamedAgentResponse $response) use ($chat): void {
                 if (trim($response->text) === '') {
@@ -39,7 +42,10 @@ final class ChatStreamController extends Controller
 
                 $chat->messages()->create([
                     'role' => 'assistant',
-                    'parts' => ['text' => $response->text],
+                    'parts' => [
+                        'text' => $response->text,
+                        ...$this->insights->execute($response->events)->toParts(),
+                    ],
                     'attachments' => [],
                 ]);
 

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Check, Copy, Ellipsis, Loader2, RefreshCw, Share, ThumbsDown, ThumbsUp, Volume2, VolumeX } from 'lucide-vue-next'
+import axios from 'axios'
+import { Check, Copy, Download, Ellipsis, Loader2, RefreshCw, Share, ThumbsDown, ThumbsUp, Volume2, VolumeX } from 'lucide-vue-next'
 import { ref } from 'vue'
+import { toast } from 'vue-sonner'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +34,7 @@ const emit = defineEmits<{
 
 const copied = ref(false)
 const shared = ref(false)
+const exporting = ref(false)
 
 const { playing, loading: speechLoading, toggle: toggleSpeech } = useReadAloud()
 
@@ -46,12 +49,52 @@ function onShare(): void {
   shared.value = true
   setTimeout(() => (shared.value = false), 1500)
 }
+
+/**
+ * El PDF se pide por POST, así que hay que descargarlo desde el blob de la
+ * respuesta en vez de navegar a la ruta.
+ */
+async function exportPdf(): Promise<void> {
+  if (!props.messageId || exporting.value)
+    return
+
+  exporting.value = true
+
+  try {
+    const response = await axios.post(
+      route('chat.messages.pdf', { message: props.messageId }),
+      {},
+      { responseType: 'blob' },
+    )
+
+    const url = URL.createObjectURL(response.data as Blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filenameFrom(response.headers['content-disposition'])
+    link.click()
+
+    // Revocar en el mismo turno cancela la descarga en algunos navegadores.
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+  catch {
+    toast.error('No se pudo generar el PDF.')
+  }
+  finally {
+    exporting.value = false
+  }
+}
+
+function filenameFrom(disposition: unknown): string {
+  const match = typeof disposition === 'string' ? disposition.match(/filename="?([^"]+)"?/) : null
+
+  return match ? match[1] : 'respuesta.pdf'
+}
 </script>
 
 <template>
   <TooltipProvider :delay-duration="300">
     <div
-      class="mt-2 flex items-center gap-0.5 transition-opacity"
+      class="mt-2 flex items-center gap-0.5 transition-opacity focus-within:opacity-100"
       :class="visible ? 'opacity-100' : 'opacity-0 group-hover/msg:opacity-100'"
     >
       <Tooltip>
@@ -131,6 +174,11 @@ function onShare(): void {
             <VolumeX v-else-if="playing" class="size-4" />
             <Volume2 v-else class="size-4" />
             {{ playing || speechLoading ? 'Detener lectura' : 'Leer en voz alta' }}
+          </DropdownMenuItem>
+          <DropdownMenuItem :disabled="exporting" @click="exportPdf">
+            <Loader2 v-if="exporting" class="size-4 animate-spin" />
+            <Download v-else class="size-4" />
+            {{ exporting ? 'Generando PDF…' : 'Exportar PDF' }}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

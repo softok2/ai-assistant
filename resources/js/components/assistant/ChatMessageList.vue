@@ -95,7 +95,7 @@ function isStreamingMessage(index: number): boolean {
             <span class="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
             <span class="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
           </span>
-          Pensando...
+          Pensando…
         </div>
       </div>
     </div>

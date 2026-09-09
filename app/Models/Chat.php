@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int $user_id
  * @property string $title
  * @property string $visibility
+ * @property Carbon|null $pinned_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Collection<int, Message> $messages
@@ -47,6 +48,11 @@ final class Chat extends Model
     /** @var array<non-empty-string> */
     protected $guarded = [];
 
+    public function isPinned(): bool
+    {
+        return $this->pinned_at !== null;
+    }
+
     /**
      * Get the user that the OAuth connection belongs to.
      *
@@ -65,5 +71,15 @@ final class Chat extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'pinned_at' => 'datetime',
+        ];
     }
 }

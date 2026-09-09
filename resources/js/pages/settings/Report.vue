@@ -73,7 +73,7 @@ function sendTest(): void {
 <template>
   <Head title="Configuración de reportes" />
 
-  <AssistantLayout :chat-history="chatHistory">
+  <AssistantLayout :chat-history="chatHistory" title="Reportes">
     <div class="flex-1 overflow-y-auto">
       <div class="mx-auto w-full max-w-2xl px-4 py-8 md:px-6">
         <div class="mb-6 flex items-center gap-3">

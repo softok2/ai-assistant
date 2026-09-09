@@ -7,6 +7,7 @@ import { Toaster } from 'vue-sonner'
 import { ZiggyVue } from 'ziggy-js'
 import { initializeTheme } from './composables/useAppearance'
 import '../css/app.css'
+import '../css/highlight-theme.css'
 
 // Extend ImportMeta interface for Vite...
 declare module 'vite/client' {

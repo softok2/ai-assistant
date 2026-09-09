@@ -26,8 +26,9 @@ final class UpdateChatRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => 'nullable|string|max:255',
+            'title' => 'nullable|string|min:1|max:120',
             'visibility' => 'nullable|string|in:public,private',
+            'pinned' => 'nullable|boolean',
             'message_id' => 'nullable|exists:messages,id',
             'message' => 'nullable|string|max:255',
             'is_upvoted' => 'nullable|boolean',

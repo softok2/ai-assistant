@@ -5,6 +5,7 @@ import axios from 'axios'
 import { CircleCheck } from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -13,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatBytes, formatTimestamp, shortId } from './format'
 
@@ -24,6 +26,8 @@ const report = ref<ReconciliationReport | null>(null)
 const loading = ref(false)
 const failed = ref(false)
 const applying = ref(false)
+/** El checkbox de reka puede valer 'indeterminate'; aquí solo interesa true. */
+const includeUntagged = ref<boolean | 'indeterminate'>(false)
 
 const sections = computed(() => {
   const current = report.value
@@ -42,7 +46,9 @@ async function load(): Promise<void> {
   loading.value = true
   failed.value = false
   try {
-    const { data } = await axios.get<ReconciliationReport>(route('library.reconcile.report'))
+    const { data } = await axios.get<ReconciliationReport>(route('library.reconcile.report'), {
+      params: includeUntagged.value === true ? { include_untagged: 1 } : {},
+    })
     report.value = data
   }
   catch {
@@ -59,9 +65,14 @@ watch(() => props.open, (open) => {
     void load()
 })
 
+watch(includeUntagged, () => {
+  if (props.open)
+    void load()
+})
+
 function apply(): void {
   applying.value = true
-  router.post(route('library.reconcile.apply'), {}, {
+  router.post(route('library.reconcile.apply'), { include_untagged: includeUntagged.value === true }, {
     preserveScroll: true,
     onFinish: () => {
       applying.value = false
@@ -95,9 +106,14 @@ function apply(): void {
       </div>
 
       <template v-else-if="report">
-        <p class="text-xs text-muted-foreground">
-          Store: {{ report.store_files }} · Cuenta: {{ report.account_files }} · Referenciados: {{ report.referenced }}
-        </p>
+        <div class="space-y-1">
+          <p class="text-xs text-muted-foreground">
+            Store: {{ report.store_files }} · Cuenta: {{ report.account_files }} · Referenciados: {{ report.referenced }}
+          </p>
+          <p class="text-xs text-muted-foreground">
+            De otros entornos (ignorados): {{ report.foreign }} · Sin etiqueta: {{ report.untagged }}
+          </p>
+        </div>
 
         <div v-if="total === 0" class="flex flex-col items-center gap-2 py-6 text-center">
           <CircleCheck class="size-6 text-muted-foreground" />
@@ -122,6 +138,23 @@ function apply(): void {
           </section>
         </div>
       </template>
+
+      <div v-if="!failed" class="grid gap-1.5 rounded-lg border border-border p-3">
+        <div class="flex items-start gap-2">
+          <Checkbox
+            id="reconcile-include-untagged"
+            v-model="includeUntagged"
+            :disabled="loading || applying"
+            class="mt-0.5"
+          />
+          <Label for="reconcile-include-untagged" class="text-xs leading-snug font-normal">
+            Incluir archivos sin etiqueta de entorno y sueltos en la cuenta
+          </Label>
+        </div>
+        <p class="text-xs text-muted-foreground">
+          Los subidos antes de esta versión no tienen etiqueta. Actívalo solo desde el entorno dueño de la cuenta.
+        </p>
+      </div>
 
       <DialogFooter>
         <Button variant="ghost" @click="emit('update:open', false)">Cerrar</Button>

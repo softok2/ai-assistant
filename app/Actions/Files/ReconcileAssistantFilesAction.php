@@ -17,16 +17,30 @@ use Illuminate\Http\Client\RequestException;
  * archivos del store sin fila (huérfanos), nombres repetidos en el store
  * (se conserva el referenciado o, si ninguno lo está, el más nuevo) y
  * archivos de la cuenta que no están en el store ni referenciados.
+ *
+ * Varios entornos (local, stage, prod) pueden compartir la misma cuenta y el
+ * mismo vector store, cada uno con su propia tabla `files`. Por eso cada
+ * subida etiqueta el archivo con su entorno y aquí SOLO se tocan los del
+ * entorno actual: los de otro entorno se ignoran siempre, y los sin etiqueta
+ * (subidos antes de esta versión) y los sueltos de la cuenta, que no se pueden
+ * atribuir, solo entran cuando se pide explícitamente `$includeUntagged`.
  */
 final class ReconcileAssistantFilesAction
 {
     public function __construct(private readonly OpenAiFileInventory $inventory) {}
 
-    public function report(): ReconciliationReport
+    public function report(bool $includeUntagged = false): ReconciliationReport
     {
         $referenced = File::query()->whereNotNull('assistant_media_id')->pluck('assistant_media_id')->flip();
         $account = $this->inventory->accountFiles()->keyBy('id');
-        $store = $this->inventory->storeFiles()->keyBy('id');
+        $allStoreFiles = $this->inventory->storeFiles()->keyBy('id');
+        $environment = app()->environment();
+
+        $foreign = $allStoreFiles->filter(fn (array $file) => $file['environment'] !== null && $file['environment'] !== $environment);
+        $untagged = $allStoreFiles->filter(fn (array $file) => $file['environment'] === null);
+
+        $store = $allStoreFiles
+            ->reject(fn (array $file, string $id) => $foreign->has($id) || $referenced->has($id) === false && ! $includeUntagged && $untagged->has($id));
 
         $describe = fn (string $id, string $reason): array => [
             'id' => $id,
@@ -53,14 +67,18 @@ final class ReconcileAssistantFilesAction
             ->reject(fn (string $id) => $orphans->contains('id', $id))
             ->map(fn (string $id) => $describe($id, 'duplicate'));
 
-        $loose = $account->keys()
-            ->reject(fn (string $id) => $store->has($id) || $referenced->has($id))
-            ->map(fn (string $id) => $describe($id, 'loose'));
+        $loose = $includeUntagged
+            ? $account->keys()
+                ->reject(fn (string $id) => $allStoreFiles->has($id) || $referenced->has($id))
+                ->map(fn (string $id) => $describe($id, 'loose'))
+            : collect();
 
         return new ReconciliationReport(
-            storeFiles: $store->count(),
+            storeFiles: $allStoreFiles->count(),
             accountFiles: $account->count(),
             referenced: $referenced->count(),
+            foreign: $foreign->count(),
+            untagged: $untagged->count(),
             orphans: $orphans->values(),
             duplicates: $duplicates->values(),
             loose: $loose->values(),

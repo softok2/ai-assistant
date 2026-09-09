@@ -76,7 +76,7 @@ final class File extends Model
 
             $document = $store->add(
                 Document::fromStorage('docs/'.$this->name),
-                metadata: ['group' => $this->group],
+                metadata: ['group' => $this->group, 'environment' => app()->environment()],
             );
 
             $this->assistant_media_id = $document->fileId ?? $document->id;

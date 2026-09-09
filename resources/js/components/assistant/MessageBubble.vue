@@ -3,8 +3,10 @@ import type { Message } from '@/types'
 import { router } from '@inertiajs/vue3'
 import { Check, Copy, FileText, Pencil } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
+import ActivityTrail from './ActivityTrail.vue'
 import MessageActions from './MessageActions.vue'
 import MessageContent from './MessageContent.vue'
+import SourceChips from './SourceChips.vue'
 
 const props = defineProps<{
   message: Message
@@ -152,10 +154,14 @@ function vote(isUpvoted: boolean): void {
 
   <!-- Assistant: plain text, no bubble (ChatGPT style) -->
   <div v-else class="group/msg w-full">
+    <ActivityTrail :activity="message.parts.activity" />
+
     <div class="text-[15px] leading-relaxed">
       <MessageContent :content="message.parts.text" :streaming="streaming" />
       <span v-if="streaming" class="ml-0.5 inline-block size-3 animate-pulse rounded-full bg-foreground align-baseline" aria-hidden="true" />
     </div>
+
+    <SourceChips v-if="!streaming" :sources="message.parts.sources" />
 
     <MessageActions
       v-if="!streaming"

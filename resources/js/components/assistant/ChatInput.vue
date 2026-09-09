@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import type { Model } from '@/types'
 import type { ChatAttachment } from '@/composables/useChatUploads'
+import type { Model } from '@/types'
 import { useStorage } from '@vueuse/core'
-import { ArrowUp, ChevronDown, FileText, Globe, Loader2, Mic, Paperclip, Plus, Square, X } from 'lucide-vue-next'
+import { ArrowUp, ChevronDown, Cpu, FileText, Loader2, Mic, Paperclip, Plus, Square, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Textarea } from '@/components/ui/textarea'
@@ -88,7 +90,7 @@ defineExpose({
           class="size-10 rounded-md object-cover"
         >
         <span v-else class="flex size-10 items-center justify-center rounded-md bg-muted">
-          <FileText class="size-5 text-muted-foreground" />
+          <FileText class="size-5 text-muted-foreground" :stroke-width="1.5" />
         </span>
         <span class="max-w-36 truncate text-xs">{{ attachment.name }}</span>
         <button
@@ -97,77 +99,122 @@ defineExpose({
           aria-label="Quitar adjunto"
           @click="remove(attachment.path)"
         >
-          <X class="size-3" />
+          <X class="size-3" :stroke-width="1.5" />
         </button>
       </div>
       <div v-if="uploading" class="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-        <Loader2 class="size-3.5 animate-spin" />
-        Subiendo...
+        <Loader2 class="size-3.5 animate-spin" :stroke-width="1.5" />
+        Subiendo…
       </div>
     </div>
 
-    <Textarea
-      v-model="input"
-      placeholder="Pregunta lo que quieras..."
-      class="min-h-16 resize-none border-0 bg-transparent px-4 pt-4 shadow-none focus-visible:ring-0"
-      rows="2"
-      @keydown="onKeydown"
-    />
+    <!--
+      En móvil todo va en una sola fila; a partir de `md` el textarea ocupa su
+      propio renglón y los controles bajan al segundo.
+    -->
+    <div class="flex flex-wrap items-end gap-1.5 px-2 py-2 md:gap-2 md:px-3 md:py-3">
+      <Textarea
+        v-model="input"
+        placeholder="Pregunta lo que quieras…"
+        class="order-2 min-h-10 flex-1 resize-none border-0 bg-transparent px-2 py-2 shadow-none focus-visible:ring-0 md:order-1 md:min-h-16 md:basis-full md:px-2 md:pt-2"
+        rows="1"
+        @keydown="onKeydown"
+      />
 
-    <div class="flex items-center justify-between gap-2 px-3 pb-3">
-      <div class="flex items-center gap-1.5">
-        <!-- "+" menu (ChatGPT-style) -->
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <button
-              type="button"
-              class="flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Más opciones"
-            >
-              <Plus class="size-4.5" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" class="w-72">
-            <DropdownMenuItem @click="fileInput?.click()">
-              <Paperclip class="size-4" />
-              <div>
-                <p class="text-sm">Adjuntar fotos y archivos</p>
-                <p class="text-xs text-muted-foreground">Imágenes, PDF, Excel, Word...</p>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <!-- "+" menu (ChatGPT-style) -->
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <button
+            type="button"
+            class="order-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:order-2"
+            aria-label="Más opciones"
+          >
+            <Plus class="size-4.5" :stroke-width="1.5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" class="w-72">
+          <DropdownMenuItem @click="fileInput?.click()">
+            <Paperclip class="size-4" :stroke-width="1.5" />
+            <div>
+              <p class="text-sm">
+                Adjuntar fotos y archivos
+              </p>
+              <p class="text-xs text-muted-foreground">
+                Imágenes, PDF, Excel, Word…
+              </p>
+            </div>
+          </DropdownMenuItem>
 
-        <!-- Model selector -->
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-            >
-              <Globe class="size-3.5 text-muted-foreground" />
-              {{ selectedModel?.name ?? 'Modelo por defecto' }}
-              <ChevronDown class="size-3.5 text-muted-foreground" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" class="w-72">
-            <DropdownMenuItem @click="selectedModelId = ''">
-              <div>
-                <p class="text-sm font-medium">Modelo por defecto</p>
-                <p class="text-xs text-muted-foreground">Configurado por el club</p>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem v-for="model in models" :key="model.id" @click="selectedModelId = model.id">
-              <div>
-                <p class="text-sm font-medium">{{ model.name }}</p>
-                <p class="text-xs text-muted-foreground">{{ model.description }}</p>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+          <!-- En pantallas chicas el selector de modelo vive aquí. -->
+          <DropdownMenuSeparator class="md:hidden" />
+          <DropdownMenuLabel class="md:hidden">
+            Modelo
+          </DropdownMenuLabel>
+          <DropdownMenuItem class="md:hidden" @click="selectedModelId = ''">
+            <div>
+              <p class="text-sm font-medium">
+                Modelo del club
+              </p>
+              <p class="text-xs text-muted-foreground">
+                El configurado por el club
+              </p>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            v-for="model in models"
+            :key="`compact-${model.id}`"
+            class="md:hidden"
+            @click="selectedModelId = model.id"
+          >
+            <div>
+              <p class="text-sm font-medium">
+                {{ model.name }}
+              </p>
+              <p class="text-xs text-muted-foreground">
+                {{ model.description }}
+              </p>
+            </div>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-      <div class="flex items-center gap-1.5">
+      <!-- Model selector (desde md) -->
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <button
+            type="button"
+            class="order-3 hidden items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted md:inline-flex"
+          >
+            <Cpu class="size-3.5 text-muted-foreground" :stroke-width="1.5" />
+            {{ selectedModel?.name ?? 'Modelo del club' }}
+            <ChevronDown class="size-3.5 text-muted-foreground" :stroke-width="1.5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" class="w-72">
+          <DropdownMenuItem @click="selectedModelId = ''">
+            <div>
+              <p class="text-sm font-medium">
+                Modelo del club
+              </p>
+              <p class="text-xs text-muted-foreground">
+                El configurado por el club
+              </p>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem v-for="model in models" :key="model.id" @click="selectedModelId = model.id">
+            <div>
+              <p class="text-sm font-medium">
+                {{ model.name }}
+              </p>
+              <p class="text-xs text-muted-foreground">
+                {{ model.description }}
+              </p>
+            </div>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <div class="order-4 ml-auto flex shrink-0 items-center gap-1.5">
         <!-- Dictation -->
         <button
           v-if="micSupported"
@@ -180,9 +227,9 @@ defineExpose({
           :disabled="transcribing"
           @click="recording ? stopDictation() : startDictation()"
         >
-          <Loader2 v-if="transcribing" class="size-4 animate-spin" />
-          <Square v-else-if="recording" class="size-3.5 fill-current" />
-          <Mic v-else class="size-4" />
+          <Loader2 v-if="transcribing" class="size-4 animate-spin" :stroke-width="1.5" />
+          <Square v-else-if="recording" class="size-3.5 fill-current" :stroke-width="1.5" />
+          <Mic v-else class="size-4" :stroke-width="1.5" />
         </button>
 
         <Button
@@ -193,7 +240,7 @@ defineExpose({
           aria-label="Detener"
           @click="emit('stop')"
         >
-          <Square class="size-4" />
+          <Square class="size-4" :stroke-width="1.5" />
         </Button>
         <Button
           v-else
@@ -203,7 +250,7 @@ defineExpose({
           aria-label="Enviar mensaje"
           @click="submit"
         >
-          <ArrowUp class="size-4" />
+          <ArrowUp class="size-4" :stroke-width="1.5" />
         </Button>
       </div>
     </div>

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\ClubName;
+use App\Enums\RoleName;
 use Illuminate\Support\Str;
 use Illuminate\Support\Carbon;
 use App\Dtos\ExternalLinkPayloadDto;
@@ -58,6 +60,14 @@ final class User extends Authenticatable
         'remember_token',
     ];
 
+    /**
+     * Roles ya leídos de la base. Cada petición pregunta por el rol y por si
+     * es administrador; sin esto eran dos consultas por render.
+     *
+     * @var array<int, string>|null
+     */
+    private ?array $cachedRoleNames = null;
+
     public static function fromExternalLink(
         ExternalLinkPayloadDto $payload
     ): ?self {
@@ -77,6 +87,7 @@ final class User extends Authenticatable
 
         if ($role !== null) {
             $user->roles()->sync([$role->id]);
+            $user->cachedRoleNames = null;
         }
 
         return $user;
@@ -92,9 +103,32 @@ final class User extends Authenticatable
         return $this->hasMany(Chat::class);
     }
 
+    /**
+     * Club al que pertenece el usuario, cuando la columna trae un valor
+     * conocido. Los enlaces externos pueden traer clubes que aún no existen
+     * en el enum.
+     */
+    public function clubName(): ?ClubName
+    {
+        $club = $this->getAttributes()['club_name'] ?? null;
+
+        return is_string($club) ? ClubName::tryFrom($club) : null;
+    }
+
+    /**
+     * Primer rol del usuario. La aplicación asigna uno solo por usuario, pero
+     * la relación es de muchos a muchos.
+     */
+    public function primaryRole(): ?RoleName
+    {
+        $role = $this->roleNames()[0] ?? null;
+
+        return is_string($role) ? RoleName::tryFrom($role) : null;
+    }
+
     public function isAdmin(): bool
     {
-        return $this->roles()->where('name', 'admin')->exists();
+        return in_array('admin', $this->roleNames(), true);
     }
 
     public function roles(): BelongsToMany
@@ -128,5 +162,13 @@ final class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function roleNames(): array
+    {
+        return $this->cachedRoleNames ??= $this->roles()->pluck('name')->all();
     }
 }

@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use App\Http\Requests\StoreLibraryFileRequest;
 use App\Actions\Files\ReindexLibraryFileAction;
 use App\Actions\Files\StoreManualLibraryFileAction;
+use App\Http\Requests\ReconcileLibraryFilesRequest;
 use App\Actions\Files\ReconcileAssistantFilesAction;
 use App\Actions\Files\StartAssistantFilesSyncAction;
 
@@ -31,15 +32,15 @@ final class LibraryManagementController extends Controller
         return back()->with('success', 'Sincronización iniciada en segundo plano.');
     }
 
-    public function reconcileReport(ReconcileAssistantFilesAction $reconcile): JsonResponse
+    public function reconcileReport(ReconcileLibraryFilesRequest $request, ReconcileAssistantFilesAction $reconcile): JsonResponse
     {
-        return response()->json($reconcile->report()->toArray());
+        return response()->json($reconcile->report($request->includeUntagged())->toArray());
     }
 
-    public function reconcile(ReconcileAssistantFilesAction $reconcile): RedirectResponse
+    public function reconcile(ReconcileLibraryFilesRequest $request, ReconcileAssistantFilesAction $reconcile): RedirectResponse
     {
         try {
-            $report = $reconcile->report();
+            $report = $reconcile->report($request->includeUntagged());
 
             if ($report->isClean()) {
                 return back()->with('success', 'Nada que reconciliar');

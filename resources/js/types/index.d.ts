@@ -5,6 +5,10 @@ import type { ContentType, Role, Visibility } from './enum'
 
 export interface Auth {
   user?: User
+  is_admin?: boolean
+  club?: string | null
+  club_label?: string | null
+  role_label?: string | null
 }
 
 export interface BreadcrumbItem {
@@ -43,6 +47,7 @@ export interface HistoryItem {
   created_at: string
   updated_at: string
   visibility: Visibility
+  pinned_at?: string | null
 }
 
 export interface PaginationLink {
@@ -79,6 +84,41 @@ export interface Chunk {
 
 export type MessageChunks = Record<ChunkType, string>
 
+export type ActivityKind = 'file_search' | 'web_search' | 'tool'
+
+export type ActivityStatus = 'in_progress' | 'completed' | 'failed'
+
+export interface ActivityEntry {
+  type: ActivityKind
+  label: string
+  status: ActivityStatus
+}
+
+export interface MessageSource {
+  kind: 'web' | 'document'
+  title: string
+  url?: string | null
+  document_name?: string | null
+  synced_at?: string | null
+}
+
+/** Lo que se guarda en `messages.parts`: el texto y el rastro de la respuesta. */
+export interface MessageParts {
+  text?: string
+  activity?: ActivityEntry[]
+  sources?: MessageSource[]
+}
+
+export interface ChatStarter {
+  area: string
+  question: string
+}
+
+export interface LibraryScope {
+  count: number
+  synced_at: string | null
+}
+
 export interface MessageAttachment {
   path: string
   name: string
@@ -89,7 +129,7 @@ export interface Message {
   id?: string
   chat_id?: string
   role: Role
-  parts: MessageChunks
+  parts: MessageParts
   attachments?: MessageAttachment[] | string[] | string
   is_upvoted?: boolean
   created_at?: string
@@ -103,6 +143,7 @@ export interface Chat {
   user_id: number
   title: string
   visibility: Visibility
+  pinned_at?: string | null
   created_at: string
   updated_at: string
   messages?: Message[]

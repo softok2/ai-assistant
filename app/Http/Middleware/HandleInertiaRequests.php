@@ -46,6 +46,8 @@ final class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
                 'is_admin' => (bool) $request->user()?->isAdmin(),
                 'club' => $request->user()?->getAttributes()['club_name'] ?? null,
+                'club_label' => $request->user()?->clubName()?->label(),
+                'role_label' => $request->user()?->primaryRole()?->label(),
             ],
             'ziggy' => [
                 ...(new Ziggy)->toArray(),

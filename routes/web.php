@@ -9,6 +9,7 @@ use App\Http\Controllers\ChatSpeechController;
 use App\Http\Controllers\ChatStreamController;
 use App\Http\Controllers\ReportSettingController;
 use App\Http\Controllers\ChatAttachmentController;
+use App\Http\Controllers\ChatMessagePdfController;
 use App\Http\Controllers\ChatSuggestionsController;
 use App\Http\Controllers\ChatTranscriptionController;
 use App\Http\Controllers\LibraryManagementController;
@@ -19,6 +20,10 @@ Route::get('/', function () {
 
 Route::get('/chat/{chat}', [ChatController::class, 'show'])
     ->name('chats.show');
+
+Route::get('/chats/search', [ChatController::class, 'search'])
+    ->name('chats.search')
+    ->middleware(['auth', 'verified']);
 
 Route::resource('chat', ChatController::class)
     ->names('chats')
@@ -53,6 +58,12 @@ Route::post('/chat-transcribe', ChatTranscriptionController::class)
 Route::post('/chat-speech/{message}', ChatSpeechController::class)
     ->name('chat.speech')
     ->middleware(['auth', 'verified']);
+
+// Cada PDF levanta un Chromium: se limita para que nadie tumbe el servidor
+// pulsando el botón.
+Route::post('/chat/messages/{message}/pdf', ChatMessagePdfController::class)
+    ->name('chat.messages.pdf')
+    ->middleware(['auth', 'verified', 'throttle:10,1']);
 
 Route::middleware(['auth', 'verified', 'admin'])->group(function () {
     Route::post('/library/sync', [LibraryManagementController::class, 'sync'])
