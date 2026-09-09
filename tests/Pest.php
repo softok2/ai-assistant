@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Tests\TestCase;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /*
@@ -50,4 +52,17 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 function something(): void
 {
     // ..
+}
+
+/**
+ * Usuario con el rol de administrador, el único que puede gestionar la
+ * biblioteca de documentos del asistente.
+ */
+function adminUser(): User
+{
+    $user = User::factory()->create();
+
+    $user->roles()->attach(Role::firstOrCreate(['name' => 'admin']));
+
+    return $user;
 }

@@ -7,7 +7,6 @@ namespace App\Jobs;
 use Throwable;
 use App\Models\File;
 use Illuminate\Bus\Queueable;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
@@ -38,10 +37,9 @@ final class ImportDocsFromPentaho implements ShouldBeUniqueUntilProcessing, Shou
                         ->withBasicAuth(config('services.softok2mds.username'), config('services.softok2mds.password'))
                         ->get(config('services.softok2mds.base_url').$path.'.md');
 
-                    DB::transaction(function () use ($response, $path) {
-                        $media = File::fromPentaho($path.'-'.time().'.md', $response->body());
-                        File::markAsExpired($media->refresh());
-                    });
+                    $response->throw();
+
+                    File::fromPentaho($path.'-'.time().'.md', $response->body());
                 } catch (Throwable $e) {
                     Log::error('Error fetching document '.$path.': '.$e->getMessage(), $e->getTrace() ?? []);
 

@@ -41,7 +41,10 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            // Debe quedar por encima de UploadAssistantDoc::$timeout: si la cola
+            // reasigna el job antes de que termine, el lote lo cuenta como hecho
+            // y el `finally` del lote suelta el candado del sync antes de tiempo.
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 660),
             'after_commit' => false,
         ],
 

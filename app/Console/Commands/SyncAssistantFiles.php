@@ -4,32 +4,25 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Jobs\RemoveExpiredDocs;
 use Illuminate\Console\Command;
-use App\Jobs\IngestAssistantDocs;
-use App\Jobs\ImportDocsFromPentaho;
-use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\Cache;
+use App\Actions\Files\StartAssistantFilesSyncAction;
 
 final class SyncAssistantFiles extends Command
 {
     protected $signature = 'assistant-files:sync';
 
-    protected $description = 'Sync assistant files.';
+    protected $description = 'Importa los reportes de Pentaho, los indexa en el vector store y limpia los caducados.';
 
-    public function handle(): void
+    public function handle(StartAssistantFilesSyncAction $startSync): int
     {
-        $lock = Cache::lock('syncing-assistant-files', 300); // 5min timeout
+        if (! $startSync->execute()) {
+            $this->warn('Ya hay una sincronización en curso; no se inició otra.');
 
-        Bus::chain([
-            new ImportDocsFromPentaho,
-            new IngestAssistantDocs,
-            new RemoveExpiredDocs,
-            fn () => Cache::lock('syncing-assistant-files')->forceRelease(), // Don't use $lock->release() here because Serializable closure issue
-        ])
-            ->catch($lock->release())
-            ->dispatchIf($lock->get());
+            return self::SUCCESS;
+        }
 
-        $this->info('Assistant files sync process has been initiated  and is running in the background.');
+        $this->info('Sincronización de documentos iniciada en segundo plano.');
+
+        return self::SUCCESS;
     }
 }

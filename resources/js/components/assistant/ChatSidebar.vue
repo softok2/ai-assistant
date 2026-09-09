@@ -94,7 +94,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
     class="flex h-full shrink-0 flex-col border-r border-border bg-background transition-[width] duration-200"
     :class="collapsed ? 'w-14' : 'w-72'"
   >
-    <TooltipProvider :delay-duration="200">
+    <TooltipProvider :delay-duration="200" disable-hoverable-content>
       <!-- Header: collapse toggle -->
       <div class="flex items-center p-2" :class="collapsed ? 'justify-center' : 'justify-end'">
         <Tooltip>
@@ -114,7 +114,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
       <!-- Primary nav (ChatGPT style) -->
       <nav class="space-y-0.5 px-2">
-        <Tooltip>
+        <Tooltip :disabled="!collapsed">
           <TooltipTrigger as-child>
             <Link
               :href="route('chats.index')"
@@ -125,10 +125,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
               <span v-if="!collapsed">Nuevo chat</span>
             </Link>
           </TooltipTrigger>
-          <TooltipContent v-if="collapsed" side="right">Nuevo chat</TooltipContent>
+          <TooltipContent side="right">Nuevo chat</TooltipContent>
         </Tooltip>
 
-        <Tooltip>
+        <Tooltip :disabled="!collapsed">
           <TooltipTrigger as-child>
             <button
               type="button"
@@ -141,10 +141,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
               <kbd v-if="!collapsed" class="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">⌘K</kbd>
             </button>
           </TooltipTrigger>
-          <TooltipContent v-if="collapsed" side="right">Buscar chats</TooltipContent>
+          <TooltipContent side="right">Buscar chats</TooltipContent>
         </Tooltip>
 
-        <Tooltip>
+        <Tooltip :disabled="!collapsed">
           <TooltipTrigger as-child>
             <Link
               :href="route('library')"
@@ -155,10 +155,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
               <span v-if="!collapsed">Biblioteca</span>
             </Link>
           </TooltipTrigger>
-          <TooltipContent v-if="collapsed" side="right">Biblioteca</TooltipContent>
+          <TooltipContent side="right">Biblioteca</TooltipContent>
         </Tooltip>
 
-        <Tooltip v-if="isAdmin">
+        <Tooltip v-if="isAdmin" :disabled="!collapsed">
           <TooltipTrigger as-child>
             <Link
               :href="route('reports.settings.edit')"
@@ -169,7 +169,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
               <span v-if="!collapsed">Reportes</span>
             </Link>
           </TooltipTrigger>
-          <TooltipContent v-if="collapsed" side="right">Reportes</TooltipContent>
+          <TooltipContent side="right">Reportes</TooltipContent>
         </Tooltip>
       </nav>
     </TooltipProvider>

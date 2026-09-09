@@ -51,8 +51,26 @@ final class HandleInertiaRequests extends Middleware
                 ...(new Ziggy)->toArray(),
                 'location' => $request->url(),
             ],
+            'flash' => $this->flash($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'availableModels' => ModelName::getAvailableModels(),
+        ];
+    }
+
+    /**
+     * Mensajes de una acción para el toast de la página siguiente. Sin esto
+     * las páginas leían `flash` y nunca llegaba nada.
+     *
+     * @return array<string, string|null>
+     */
+    private function flash(Request $request): array
+    {
+        $session = $request->hasSession() ? $request->session() : null;
+
+        return [
+            'success' => $session?->get('success'),
+            'warning' => $session?->get('warning'),
+            'error' => $session?->get('error'),
         ];
     }
 }

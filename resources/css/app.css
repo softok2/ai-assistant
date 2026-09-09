@@ -64,6 +64,15 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+@theme {
+  --color-brand: oklch(0.624 0.139 238);
+  --color-brand-deep: oklch(0.45 0.12 245);
+  --color-brand-soft: oklch(0.82 0.08 238);
+  --color-brand-glow: oklch(0.93 0.03 230);
+  --color-brand-accent: oklch(0.678 0.178 355);
+  --color-brand-accent-soft: oklch(0.86 0.07 355);
+}
+
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
