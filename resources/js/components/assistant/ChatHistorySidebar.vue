@@ -3,6 +3,7 @@ import type { Chat, ChatHistory, SharedData } from '@/types'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import {
   BookMarked,
+  Database,
   FileText,
   Link2,
   Loader2,
@@ -278,20 +279,39 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           <TooltipContent side="right">Biblioteca</TooltipContent>
         </Tooltip>
 
-        <Tooltip v-if="isAdmin" :disabled="!collapsed">
-          <TooltipTrigger as-child>
-            <Link
-              :href="route('reports.settings.edit')"
-              class="flex items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
-              :class="collapsed ? 'justify-center px-0' : 'px-3'"
-              @click="emit('navigate')"
-            >
-              <FileText class="size-4.5 shrink-0 text-muted-foreground" :stroke-width="1.5" />
-              <span v-if="!collapsed">Reportes</span>
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent side="right">Reportes</TooltipContent>
-        </Tooltip>
+        <template v-if="isAdmin">
+          <div class="mx-3 my-1.5 h-px bg-border" />
+
+          <Tooltip :disabled="!collapsed">
+            <TooltipTrigger as-child>
+              <Link
+                :href="route('reports.settings.edit')"
+                class="flex items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                :class="collapsed ? 'justify-center px-0' : 'px-3'"
+                @click="emit('navigate')"
+              >
+                <FileText class="size-4.5 shrink-0 text-muted-foreground" :stroke-width="1.5" />
+                <span v-if="!collapsed">Reportes</span>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Reportes</TooltipContent>
+          </Tooltip>
+
+          <Tooltip :disabled="!collapsed">
+            <TooltipTrigger as-child>
+              <Link
+                :href="route('sources')"
+                class="flex items-center gap-3 rounded-lg py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                :class="collapsed ? 'justify-center px-0' : 'px-3'"
+                @click="emit('navigate')"
+              >
+                <Database class="size-4.5 shrink-0 text-muted-foreground" :stroke-width="1.5" />
+                <span v-if="!collapsed">Fuentes del asistente</span>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">Fuentes del asistente</TooltipContent>
+          </Tooltip>
+        </template>
       </nav>
     </TooltipProvider>
 

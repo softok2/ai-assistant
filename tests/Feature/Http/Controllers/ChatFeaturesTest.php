@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-use App\Ai\Agents\ChatFollowUpSuggester;
-use App\Ai\Agents\ChatTitleGenerator;
-use App\Ai\Agents\ClubAssistant;
 use App\Models\Chat;
 use App\Models\User;
+use Laravel\Ai\Audio;
+use App\Ai\Agents\ClubAssistant;
+use App\Ai\Agents\ChatTitleGenerator;
+use App\Ai\Agents\ChatFollowUpSuggester;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -95,12 +96,10 @@ it('denies suggestions on chats of other users', function (): void {
     $this->post(route('chat.suggestions', $otherChat))->assertForbidden();
 });
 
-it('lists library files', function (): void {
-    App\Models\File::create(['name' => 'golf-reporte.md', 'group' => 'golf', 'status' => 'completed']);
-
+it('opens the library of the user without any attachment yet', function (): void {
     $this->get(route('library'))
         ->assertOk()
-        ->assertInertia(fn ($page) => $page->component('Library')->has('files', 1));
+        ->assertInertia(fn ($page) => $page->component('Library')->where('attachments', []));
 });
 
 it('denies updating or deleting chats of other users', function (): void {
@@ -114,7 +113,7 @@ it('denies updating or deleting chats of other users', function (): void {
 });
 
 it('reads a message aloud via server-side TTS', function (): void {
-    Laravel\Ai\Audio::fake();
+    Audio::fake();
 
     $message = $this->chat->messages()->create([
         'role' => 'assistant',
@@ -134,7 +133,7 @@ Las reservas subieron 12%.
 });
 
 it('denies reading messages from chats of other users', function (): void {
-    Laravel\Ai\Audio::fake();
+    Audio::fake();
 
     $otherChat = Chat::factory()->for(User::factory()->create())->create(['visibility' => 'private']);
     $message = $otherChat->messages()->create(['role' => 'assistant', 'parts' => ['text' => 'secreto'], 'attachments' => []]);

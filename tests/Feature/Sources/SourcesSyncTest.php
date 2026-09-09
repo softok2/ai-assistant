@@ -12,7 +12,7 @@ it('starts the sync chain and keeps the lock while it runs', function () {
     Bus::fake();
 
     $this->actingAs(adminUser())
-        ->post(route('library.sync'))
+        ->post(route('sources.sync'))
         ->assertRedirect()
         ->assertSessionHas('success');
 
@@ -25,7 +25,7 @@ it('warns instead of starting a second sync', function () {
     Cache::lock(SyncLock::KEY, 60)->get();
 
     $this->actingAs(adminUser())
-        ->post(route('library.sync'))
+        ->post(route('sources.sync'))
         ->assertRedirect()
         ->assertSessionHas('warning', 'Ya hay una sincronización en curso');
 

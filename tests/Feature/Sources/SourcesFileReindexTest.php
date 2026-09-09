@@ -23,7 +23,7 @@ it('drops the OpenAI copy and queues a fresh upload', function () {
     Storage::put('docs/'.$file->name, '# reporte');
 
     $this->actingAs(adminUser())
-        ->post(route('library.files.reindex', $file))
+        ->post(route('sources.files.reindex', $file))
         ->assertRedirect()
         ->assertSessionHas('success');
 
@@ -42,7 +42,7 @@ it('brings an expired document back into the queue', function () {
     Storage::put('docs/'.$file->name, '# reporte viejo');
 
     $this->actingAs(adminUser())
-        ->post(route('library.files.reindex', $file))
+        ->post(route('sources.files.reindex', $file))
         ->assertRedirect()
         ->assertSessionHas('success');
 
@@ -53,7 +53,7 @@ it('refuses to reindex a document that is no longer on disk', function () {
     $file = File::factory()->completed()->create();
 
     $this->actingAs(adminUser())
-        ->post(route('library.files.reindex', $file))
+        ->post(route('sources.files.reindex', $file))
         ->assertRedirect()
         ->assertSessionHas('error');
 
@@ -71,7 +71,7 @@ it('keeps the row untouched when OpenAI refuses to drop the old copy', function 
     Storage::put('docs/'.$file->name, '# reporte');
 
     $this->actingAs(adminUser())
-        ->post(route('library.files.reindex', $file))
+        ->post(route('sources.files.reindex', $file))
         ->assertRedirect()
         ->assertSessionHas('error');
 
@@ -88,7 +88,7 @@ it('reindexes a row stuck in progress', function () {
     Storage::put('docs/'.$file->name, '# reporte');
 
     $this->actingAs(adminUser())
-        ->post(route('library.files.reindex', $file))
+        ->post(route('sources.files.reindex', $file))
         ->assertRedirect()
         ->assertSessionHas('success');
 

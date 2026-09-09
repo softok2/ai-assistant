@@ -10,7 +10,7 @@ use Illuminate\Http\UploadedFile;
  * Documento que un administrador sube a mano a la biblioteca, fuera del
  * import automático de Pentaho.
  */
-final readonly class ManualLibraryFileData
+final readonly class ManualSourceFileData
 {
     public function __construct(
         public string $group,

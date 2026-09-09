@@ -39,7 +39,7 @@ function pickFile(event: Event): void {
 }
 
 function submit(): void {
-  form.post(route('library.files.store'), {
+  form.post(route('sources.files.store'), {
     forceFormData: true,
     preserveScroll: true,
     onSuccess: () => emit('update:open', false),
@@ -59,16 +59,16 @@ function submit(): void {
 
       <form class="grid gap-4" @submit.prevent="submit">
         <div class="grid gap-2">
-          <Label for="library-group">Grupo</Label>
+          <Label for="source-group">Grupo</Label>
           <Input
-            id="library-group"
+            id="source-group"
             v-model="form.group"
-            list="library-groups"
+            list="source-groups"
             placeholder="golf"
             autocomplete="off"
             :aria-invalid="Boolean(form.errors.group)"
           />
-          <datalist id="library-groups">
+          <datalist id="source-groups">
             <option v-for="group in props.groups" :key="group" :value="group" />
           </datalist>
           <p class="text-xs text-muted-foreground">Minúsculas y guiones, p. ej. golf.</p>
@@ -76,9 +76,9 @@ function submit(): void {
         </div>
 
         <div class="grid gap-2">
-          <Label for="library-file">Archivo</Label>
+          <Label for="source-file">Archivo</Label>
           <input
-            id="library-file"
+            id="source-file"
             ref="fileInput"
             type="file"
             accept=".md,.txt,.pdf"

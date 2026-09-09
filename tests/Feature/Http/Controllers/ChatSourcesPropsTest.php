@@ -24,13 +24,13 @@ beforeEach(function (): void {
     ]]]);
 });
 
-it('shares the freshest library sync date with the start screen', function (): void {
+it('shares the freshest sources sync date with the start screen', function (): void {
     File::create(['name' => 'golf-a.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()->subDays(3)]);
     File::create(['name' => 'golf-b.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()->subDay()]);
 
     $this->get(route('chats.index'))
         ->assertInertia(fn ($page) => $page
-            ->where('library.count', 2)
+            ->where('sources.count', 2)
             ->has('dataFreshness'));
 });
 
@@ -65,7 +65,7 @@ it('does not recompute the starters when the sidebar loads another page of histo
     ])->json('props');
 
     expect($page)->not->toHaveKey('starters')
-        ->and($page)->not->toHaveKey('library')
+        ->and($page)->not->toHaveKey('sources')
         ->and($page)->toHaveKey('chatHistory');
 });
 
@@ -73,7 +73,7 @@ it('reports no freshness when nothing is indexed', function (): void {
     $this->get(route('chats.index'))
         ->assertInertia(fn ($page) => $page
             ->where('dataFreshness', null)
-            ->where('library.count', 0));
+            ->where('sources.count', 0));
 });
 
 it('shares the freshness with the chat screen too', function (): void {
@@ -81,5 +81,5 @@ it('shares the freshness with the chat screen too', function (): void {
     $chat = Chat::factory()->for($this->user)->create();
 
     $this->get(route('chats.show', $chat))
-        ->assertInertia(fn ($page) => $page->has('dataFreshness')->where('library.count', 1));
+        ->assertInertia(fn ($page) => $page->has('dataFreshness')->where('sources.count', 1));
 });

@@ -1,31 +1,31 @@
-export interface LibraryFile {
-  id: number
+export type AttachmentKind = 'image' | 'pdf' | 'spreadsheet' | 'document' | 'other'
+
+/** Un archivo adjuntado por el usuario en alguno de sus chats. */
+export interface LibraryAttachment {
+  path: string
   name: string
-  group: string
-  status: string
+  mime: string | null
+  kind: AttachmentKind
   bytes: number | null
-  synced_at: string | null
-  expired_at?: string | null
-  assistant_media_id?: string | null
+  url: string
+  download_url: string
+  chat_id: string
+  chat_title: string
+  created_at: string | null
 }
 
-export interface ReconciliationItem {
-  id: string
-  filename: string
-  bytes: number
-  created_at: number
-  reason: string
+/** Etiquetas en singular y plural de cada tipo, que las manda el servidor. */
+export interface KindLabel {
+  label: string
+  plural: string
 }
 
-export interface ReconciliationReport {
-  store_files: number
-  account_files: number
-  referenced: number
-  /** Archivos del store que pertenecen a otro entorno; nunca se tocan. */
-  foreign: number
-  /** Archivos del store subidos antes de que se etiquetara el entorno. */
-  untagged: number
-  orphans: ReconciliationItem[]
-  duplicates: ReconciliationItem[]
-  loose: ReconciliationItem[]
+export type KindLabels = Record<string, KindLabel>
+
+/** Adjuntos de un mismo chat, tal como los agrupa la página. */
+export interface LibraryChatGroup {
+  chatId: string
+  chatTitle: string
+  latestAt: string | null
+  attachments: LibraryAttachment[]
 }

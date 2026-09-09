@@ -8,20 +8,21 @@ use Throwable;
 use App\Models\File;
 use App\Jobs\RemoveExpiredDocs;
 use Illuminate\Http\JsonResponse;
-use App\Dtos\ManualLibraryFileData;
+use App\Dtos\ManualSourceFileData;
 use Illuminate\Http\RedirectResponse;
-use App\Http\Requests\StoreLibraryFileRequest;
-use App\Actions\Files\ReindexLibraryFileAction;
-use App\Actions\Files\StoreManualLibraryFileAction;
-use App\Http\Requests\ReconcileLibraryFilesRequest;
+use App\Http\Requests\StoreSourceFileRequest;
+use App\Actions\Files\ReindexSourceFileAction;
+use App\Actions\Files\StoreManualSourceFileAction;
+use App\Http\Requests\ReconcileSourceFilesRequest;
 use App\Actions\Files\ReconcileAssistantFilesAction;
 use App\Actions\Files\StartAssistantFilesSyncAction;
 
 /**
- * Gestión de los documentos del asistente desde la Biblioteca. Solo admin:
- * las rutas viven en el grupo con el middleware `admin`.
+ * Gestión de las fuentes del asistente: sincronizar, subir, reindexar, borrar
+ * y reconciliar contra OpenAI. Solo admin: las rutas viven en el grupo con el
+ * middleware `admin`.
  */
-final class LibraryManagementController extends Controller
+final class AssistantSourcesManagementController extends Controller
 {
     public function sync(StartAssistantFilesSyncAction $startSync): RedirectResponse
     {
@@ -32,12 +33,12 @@ final class LibraryManagementController extends Controller
         return back()->with('success', 'Sincronización iniciada en segundo plano.');
     }
 
-    public function reconcileReport(ReconcileLibraryFilesRequest $request, ReconcileAssistantFilesAction $reconcile): JsonResponse
+    public function reconcileReport(ReconcileSourceFilesRequest $request, ReconcileAssistantFilesAction $reconcile): JsonResponse
     {
         return response()->json($reconcile->report($request->includeUntagged())->toArray());
     }
 
-    public function reconcile(ReconcileLibraryFilesRequest $request, ReconcileAssistantFilesAction $reconcile): RedirectResponse
+    public function reconcile(ReconcileSourceFilesRequest $request, ReconcileAssistantFilesAction $reconcile): RedirectResponse
     {
         try {
             $report = $reconcile->report($request->includeUntagged());
@@ -56,14 +57,14 @@ final class LibraryManagementController extends Controller
         return back()->with('success', "Se borraron {$deleted} archivos de OpenAI");
     }
 
-    public function store(StoreLibraryFileRequest $request, StoreManualLibraryFileAction $storeFile): RedirectResponse
+    public function store(StoreSourceFileRequest $request, StoreManualSourceFileAction $storeFile): RedirectResponse
     {
-        $file = $storeFile->execute(ManualLibraryFileData::fromValidated($request->validated()));
+        $file = $storeFile->execute(ManualSourceFileData::fromValidated($request->validated()));
 
         return back()->with('success', "Documento {$file->name} recibido; se está indexando.");
     }
 
-    public function reindex(File $file, ReindexLibraryFileAction $reindex): RedirectResponse
+    public function reindex(File $file, ReindexSourceFileAction $reindex): RedirectResponse
     {
         try {
             if (! $reindex->execute($file)) {

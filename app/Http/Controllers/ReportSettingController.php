@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Actions\Reports\SendWeeklyReportAction;
-use App\Enums\ReportFrequency;
-use App\Http\Requests\UpdateReportSettingRequest;
-use App\Models\ReportSetting;
-use Illuminate\Http\RedirectResponse;
+use Throwable;
 use Inertia\Inertia;
 use Inertia\Response;
-use Throwable;
+use App\Models\ReportSetting;
+use App\Enums\ReportFrequency;
+use App\Queries\ChatHistoryQuery;
+use Illuminate\Http\RedirectResponse;
+use App\Actions\Reports\SendWeeklyReportAction;
+use App\Http\Requests\UpdateReportSettingRequest;
 
 final class ReportSettingController extends Controller
 {
-    public function edit(): Response
+    public function edit(ChatHistoryQuery $chatHistory): Response
     {
         $club = auth()->user()->club_name;
         $setting = ReportSetting::forClub($club);
@@ -32,6 +33,7 @@ final class ReportSettingController extends Controller
             'frequencies' => collect(ReportFrequency::cases())
                 ->map(fn (ReportFrequency $f) => ['value' => $f->value, 'label' => $f->label()])
                 ->all(),
+            'chatHistory' => Inertia::deepMerge($chatHistory->execute(auth()->user())),
         ]);
     }
 

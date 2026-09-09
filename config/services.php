@@ -51,5 +51,13 @@ return [
         'password' => env('SOFTOK2MDS_PASSWORD', 'your-password'),
         'projects' => explode(',', env('SOFTOK2MDS_PROJECTS', 'ccm')),
         'files' => explode(',', env('SOFTOK2MDS_FILES', 'golf-output')),
+        // Cadencia de `assistant-files:sync`. La lee el scheduler en
+        // bootstrap/app.php y la franja de salud de Fuentes del asistente.
+        'sync' => [
+            'cron' => '0 */2 * * *',
+            'from' => '08:00',
+            'to' => '22:00',
+            'label' => 'Cada 2 h',
+        ],
     ],
 ];

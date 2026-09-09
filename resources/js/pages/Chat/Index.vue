@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ChatHistory, ChatStarter, LibraryScope, Model, SharedData } from '@/types'
+import type { ChatHistory, ChatStarter, Model, SharedData, SourcesScope } from '@/types'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
 import ChatGreetingV2 from '@/components/assistant/ChatGreetingV2.vue'
@@ -10,7 +10,7 @@ import ChatStarters from '@/components/assistant/ChatStarters.vue'
 defineProps<{
   chatHistory?: ChatHistory | null
   starters?: ChatStarter[] | null
-  library?: LibraryScope | null
+  sources?: SourcesScope | null
   dataFreshness?: string | null
 }>()
 
@@ -32,13 +32,13 @@ function startChat(message: string, model: string | null = null, attachments: an
   <Head title="Asistente" />
 
   <AssistantLayout :chat-history="chatHistory">
-    <div class="flex flex-1 flex-col items-center justify-center overflow-y-auto px-4 py-8">
-      <div class="w-full max-w-3xl space-y-8">
+    <div class="flex flex-1 flex-col items-center overflow-y-auto px-4 py-8">
+      <div class="my-auto w-full max-w-3xl space-y-8">
         <ChatGreetingV2 :name="userName" />
 
         <div class="space-y-3">
           <ChatInput :models="models" @submit="startChat" />
-          <ChatScopeChips :library="library" />
+          <ChatScopeChips :sources="sources" />
         </div>
 
         <ChatStarters :starters="starters" @select="question => startChat(question)" />

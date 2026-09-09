@@ -4,44 +4,47 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\File;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Jobs\SyncLock;
 use Illuminate\Http\Request;
+use App\Enums\AttachmentKind;
+use App\Dtos\LibraryAttachment;
+use App\Queries\ChatHistoryQuery;
+use App\Queries\UserAttachmentsQuery;
 
+/**
+ * Biblioteca del usuario: los archivos que él mismo adjuntó en sus chats.
+ */
 final class LibraryController extends Controller
 {
-    public function __invoke(Request $request): Response
-    {
+    public function __invoke(
+        Request $request,
+        UserAttachmentsQuery $attachments,
+        ChatHistoryQuery $chatHistory,
+    ): Response {
+        $user = $request->user();
+
         return Inertia::render('Library', [
-            'files' => File::active()
-                ->orderBy('group')
-                ->orderBy('name')
-                ->get(['id', 'name', 'group', 'status', 'bytes', 'synced_at']),
-            ...$request->user()?->isAdmin() ? $this->managementProps() : [],
+            'attachments' => $attachments->execute($user)
+                ->map(fn (LibraryAttachment $attachment): array => $attachment->toArray())
+                ->all(),
+            'kindLabels' => $this->kindLabels(),
+            'chatHistory' => Inertia::deepMerge($chatHistory->execute($user)),
         ]);
     }
 
     /**
-     * Lo que solo ve un administrador: los caducados que todavía se pueden
-     * purgar, los grupos existentes para la subida manual y si hay una
-     * sincronización corriendo.
+     * Las etiquetas de cada tipo salen del enum para que la página no tenga
+     * que repetir las traducciones.
      *
-     * @return array<string, mixed>
+     * @return array<string, array{label: string, plural: string}>
      */
-    private function managementProps(): array
+    private function kindLabels(): array
     {
-        return [
-            'canManage' => true,
-            'expiredFiles' => File::expired()
-                ->orderByDesc('expired_at')
-                ->get(['id', 'name', 'group', 'status', 'bytes', 'synced_at', 'expired_at', 'assistant_media_id']),
-            'groups' => File::active()
-                ->distinct()
-                ->orderBy('group')
-                ->pluck('group'),
-            'syncRunning' => SyncLock::isHeld(),
-        ];
+        return collect(AttachmentKind::cases())
+            ->mapWithKeys(fn (AttachmentKind $kind): array => [
+                $kind->value => ['label' => $kind->label(), 'plural' => $kind->pluralLabel()],
+            ])
+            ->all();
     }
 }

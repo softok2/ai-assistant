@@ -8,7 +8,7 @@ use App\Models\File;
 use App\Enums\MediaStatus;
 use App\Jobs\UploadAssistantDoc;
 use Illuminate\Http\UploadedFile;
-use App\Dtos\ManualLibraryFileData;
+use App\Dtos\ManualSourceFileData;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -16,9 +16,9 @@ use Illuminate\Support\Facades\Storage;
  * import de Pentaho (`<grupo>-…`), para que el resto del pipeline (caducar
  * hermanos del grupo, reconciliar contra OpenAI) lo trate igual.
  */
-final class StoreManualLibraryFileAction
+final class StoreManualSourceFileAction
 {
-    public function execute(ManualLibraryFileData $data): File
+    public function execute(ManualSourceFileData $data): File
     {
         $name = sprintf(
             '%s-manual-%d-%s.%s',

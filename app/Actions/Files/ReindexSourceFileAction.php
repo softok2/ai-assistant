@@ -11,7 +11,7 @@ use App\Jobs\UploadAssistantDoc;
  * Vuelve a subir a OpenAI un documento que ya está en disco. Devuelve false
  * cuando el archivo se perdió del disco y no hay nada que reindexar.
  */
-final class ReindexLibraryFileAction
+final class ReindexSourceFileAction
 {
     public function execute(File $file): bool
     {

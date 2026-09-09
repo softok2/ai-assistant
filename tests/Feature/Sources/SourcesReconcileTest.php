@@ -18,7 +18,7 @@ beforeEach(function () {
  * El entorno de los tests es "testing": `file-prod` pertenece a otro entorno y
  * `file-legacy` viene de antes de que se etiquetaran las subidas.
  */
-function fakeLibraryInventory(): void
+function fakeSourcesInventory(): void
 {
     Http::fake([
         'https://api.openai.com/v1/vector_stores/vs_test' => Http::response(['id' => 'vs_test', 'name' => 'ccm', 'status' => 'completed', 'file_counts' => ['completed' => 6, 'in_progress' => 0, 'failed' => 0, 'cancelled' => 0, 'total' => 6]]),
@@ -65,10 +65,10 @@ function deletedOpenAiIds(): array
 }
 
 it('returns the reconciliation report as json without deleting anything', function () {
-    fakeLibraryInventory();
+    fakeSourcesInventory();
 
     $report = $this->actingAs(adminUser())
-        ->getJson(route('library.reconcile.report'))
+        ->getJson(route('sources.reconcile.report'))
         ->assertOk()
         ->assertJsonPath('store_files', 6)
         ->assertJsonPath('account_files', 7)
@@ -87,10 +87,10 @@ it('returns the reconciliation report as json without deleting anything', functi
 });
 
 it('leaves the untagged and loose files out of the report unless they are asked for', function () {
-    fakeLibraryInventory();
+    fakeSourcesInventory();
 
     $withUntagged = $this->actingAs(adminUser())
-        ->getJson(route('library.reconcile.report', ['include_untagged' => 1]))
+        ->getJson(route('sources.reconcile.report', ['include_untagged' => 1]))
         ->assertOk()
         ->assertJsonPath('foreign', 1)
         ->assertJsonPath('untagged', 1)
@@ -103,10 +103,10 @@ it('leaves the untagged and loose files out of the report unless they are asked 
 });
 
 it('applies the reconciliation and flashes how many files it deleted', function () {
-    fakeLibraryInventory();
+    fakeSourcesInventory();
 
     $this->actingAs(adminUser())
-        ->post(route('library.reconcile.apply'))
+        ->post(route('sources.reconcile.apply'))
         ->assertRedirect()
         ->assertSessionHas('success', 'Se borraron 2 archivos de OpenAI');
 
@@ -114,10 +114,10 @@ it('applies the reconciliation and flashes how many files it deleted', function 
 });
 
 it('never deletes a file that belongs to another environment', function () {
-    fakeLibraryInventory();
+    fakeSourcesInventory();
 
     $this->actingAs(adminUser())
-        ->post(route('library.reconcile.apply'), ['include_untagged' => true])
+        ->post(route('sources.reconcile.apply'), ['include_untagged' => true])
         ->assertRedirect()
         ->assertSessionHas('success', 'Se borraron 4 archivos de OpenAI');
 
@@ -136,7 +136,7 @@ it('says there is nothing to reconcile when OpenAI matches the database', functi
     File::factory()->completed()->create(['name' => 'golf-output-1787767203.md', 'assistant_media_id' => 'file-keep']);
 
     $this->actingAs(adminUser())
-        ->post(route('library.reconcile.apply'))
+        ->post(route('sources.reconcile.apply'))
         ->assertRedirect()
         ->assertSessionHas('success', 'Nada que reconciliar');
 
@@ -145,7 +145,7 @@ it('says there is nothing to reconcile when OpenAI matches the database', functi
 
 it('rejects a request that does not carry a boolean flag', function () {
     $this->actingAs(adminUser())
-        ->postJson(route('library.reconcile.apply'), ['include_untagged' => 'quizá'])
+        ->postJson(route('sources.reconcile.apply'), ['include_untagged' => 'quizá'])
         ->assertStatus(422)
         ->assertJsonValidationErrors('include_untagged');
 });
@@ -154,7 +154,7 @@ it('flashes an error when OpenAI does not answer', function () {
     Http::fake(['https://api.openai.com/v1/*' => Http::response(['error' => ['message' => 'boom']], 500)]);
 
     $this->actingAs(adminUser())
-        ->post(route('library.reconcile.apply'))
+        ->post(route('sources.reconcile.apply'))
         ->assertRedirect()
         ->assertSessionHas('error');
 });

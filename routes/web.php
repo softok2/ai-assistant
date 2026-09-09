@@ -11,8 +11,9 @@ use App\Http\Controllers\ReportSettingController;
 use App\Http\Controllers\ChatAttachmentController;
 use App\Http\Controllers\ChatMessagePdfController;
 use App\Http\Controllers\ChatSuggestionsController;
+use App\Http\Controllers\AssistantSourcesController;
 use App\Http\Controllers\ChatTranscriptionController;
-use App\Http\Controllers\LibraryManagementController;
+use App\Http\Controllers\AssistantSourcesManagementController;
 
 Route::get('/', function () {
     return to_route('chats.index');
@@ -30,7 +31,7 @@ Route::resource('chat', ChatController::class)
     ->except(['create', 'edit', 'show'])
     ->middleware(['auth', 'verified']);
 
-Route::get('/library', LibraryController::class)
+Route::get('/biblioteca', LibraryController::class)
     ->name('library')
     ->middleware(['auth', 'verified']);
 
@@ -66,20 +67,22 @@ Route::post('/chat/messages/{message}/pdf', ChatMessagePdfController::class)
     ->middleware(['auth', 'verified', 'throttle:10,1']);
 
 Route::middleware(['auth', 'verified', 'admin'])->group(function () {
-    Route::post('/library/sync', [LibraryManagementController::class, 'sync'])
-        ->name('library.sync');
-    Route::get('/library/reconcile', [LibraryManagementController::class, 'reconcileReport'])
-        ->name('library.reconcile.report');
-    Route::post('/library/reconcile', [LibraryManagementController::class, 'reconcile'])
-        ->name('library.reconcile.apply');
-    Route::post('/library/files', [LibraryManagementController::class, 'store'])
-        ->name('library.files.store');
-    Route::post('/library/files/{file}/reindex', [LibraryManagementController::class, 'reindex'])
-        ->name('library.files.reindex');
-    Route::delete('/library/files/{file}', [LibraryManagementController::class, 'destroy'])
-        ->name('library.files.destroy');
-    Route::delete('/library/expired', [LibraryManagementController::class, 'purgeExpired'])
-        ->name('library.expired.purge');
+    Route::get('/fuentes', AssistantSourcesController::class)
+        ->name('sources');
+    Route::post('/fuentes/sync', [AssistantSourcesManagementController::class, 'sync'])
+        ->name('sources.sync');
+    Route::get('/fuentes/reconcile', [AssistantSourcesManagementController::class, 'reconcileReport'])
+        ->name('sources.reconcile.report');
+    Route::post('/fuentes/reconcile', [AssistantSourcesManagementController::class, 'reconcile'])
+        ->name('sources.reconcile.apply');
+    Route::post('/fuentes/files', [AssistantSourcesManagementController::class, 'store'])
+        ->name('sources.files.store');
+    Route::post('/fuentes/files/{file}/reindex', [AssistantSourcesManagementController::class, 'reindex'])
+        ->name('sources.files.reindex');
+    Route::delete('/fuentes/files/{file}', [AssistantSourcesManagementController::class, 'destroy'])
+        ->name('sources.files.destroy');
+    Route::delete('/fuentes/expired', [AssistantSourcesManagementController::class, 'purgeExpired'])
+        ->name('sources.expired.purge');
 
     Route::get('/reportes/configuracion', [ReportSettingController::class, 'edit'])
         ->name('reports.settings.edit');

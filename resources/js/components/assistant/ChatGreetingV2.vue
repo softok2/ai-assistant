@@ -16,6 +16,7 @@ const greeting = computed(() => {
 
 /** Solo el primer nombre: «Buenas tardes, Ana». */
 const firstName = computed(() => props.name?.trim().split(/\s+/)[0] ?? '')
+const salutation = computed(() => (firstName.value ? `${greeting.value}, ${firstName.value}` : greeting.value))
 
 interface OrbSpark {
   top: string
@@ -63,9 +64,7 @@ const sparks: OrbSpark[] = [
     </div>
 
     <h1 class="text-4xl font-semibold tracking-tight text-foreground">
-      {{ greeting }}<template v-if="firstName">
-        , {{ firstName }}
-      </template>
+      {{ salutation }}
     </h1>
     <p class="mt-2 text-4xl font-semibold tracking-tight">
       <span class="text-foreground">¿Por dónde </span>

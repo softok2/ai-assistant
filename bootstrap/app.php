@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Http\Middleware\AuthenticateExternalUser;
-use App\Http\Middleware\FrameAncestors;
 use Illuminate\Foundation\Application;
+use App\Http\Middleware\FrameAncestors;
 use App\Http\Middleware\HandleAppearance;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Console\Scheduling\Schedule;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\AuthenticateExternalUser;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Softok2\TelegramNotification\Facades\TelegramNotification;
@@ -25,7 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'auth.external' => AuthenticateExternalUser::class,
-            'admin' => App\Http\Middleware\EnsureUserIsAdmin::class,
+            'admin' => EnsureUserIsAdmin::class,
         ]);
 
         $middleware->web(append: [
@@ -41,8 +42,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('telescope:prune')->daily();
         $schedule->command('assistant-files:sync')
-            ->everyTwoHours()
-            ->between('08:00', '22:00');
+            ->cron(config('services.softok2mds.sync.cron'))
+            ->between(config('services.softok2mds.sync.from'), config('services.softok2mds.sync.to'));
 
         // Evaluate report schedules hourly; the command decides which clubs are due.
         $schedule->command('reports:send-due')->hourly();

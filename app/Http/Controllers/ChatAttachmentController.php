@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreChatAttachmentRequest;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\StoreChatAttachmentRequest;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class ChatAttachmentController extends Controller
@@ -26,11 +26,21 @@ final class ChatAttachmentController extends Controller
         ]);
     }
 
+    /**
+     * Con `?download=1` el archivo se descarga con su nombre original en vez de
+     * abrirse en el navegador, que es lo que necesita la Biblioteca.
+     */
     public function show(Request $request, string $path): StreamedResponse
     {
         abort_unless(str_starts_with($path, 'chat-attachments/'.$request->user()->id.'/'), 403);
         abort_unless(Storage::exists($path), 404);
 
-        return Storage::response($path);
+        if (! $request->boolean('download')) {
+            return Storage::response($path);
+        }
+
+        $name = basename((string) $request->query('name', ''));
+
+        return Storage::download($path, $name === '' ? null : $name);
     }
 }

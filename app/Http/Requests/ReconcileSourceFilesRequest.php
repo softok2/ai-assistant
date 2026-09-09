@@ -12,7 +12,7 @@ use Illuminate\Foundation\Http\FormRequest;
  * reconciliación solo toca lo del entorno actual; `include_untagged` suma lo
  * que no se puede atribuir a ninguno.
  */
-final class ReconcileLibraryFilesRequest extends FormRequest
+final class ReconcileSourceFilesRequest extends FormRequest
 {
     public function authorize(): bool
     {

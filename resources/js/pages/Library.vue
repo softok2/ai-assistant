@@ -1,94 +1,69 @@
 <script setup lang="ts">
-import type { LibraryFile } from '@/components/library/types'
+import type { AttachmentKind, KindLabels, LibraryAttachment, LibraryChatGroup as LibraryChatGroupData } from '@/components/library/types'
 import type { ChatHistory } from '@/types'
-import { Head, router, usePage } from '@inertiajs/vue3'
-import { BookMarked, LoaderCircle, RefreshCw, ScanSearch, Trash2, Upload } from 'lucide-vue-next'
-import { computed, ref, watch } from 'vue'
-import { toast } from 'vue-sonner'
+import { Head } from '@inertiajs/vue3'
+import { Search } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
-import LibraryFileRow from '@/components/library/LibraryFileRow.vue'
-import ReconcileDialog from '@/components/library/ReconcileDialog.vue'
-import UploadLibraryFileDialog from '@/components/library/UploadLibraryFileDialog.vue'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
+import LibraryChatGroup from '@/components/library/LibraryChatGroup.vue'
+import LibraryEmptyState from '@/components/library/LibraryEmptyState.vue'
+import LibraryFilterPills from '@/components/library/LibraryFilterPills.vue'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 const props = withDefaults(defineProps<{
-  files: LibraryFile[]
-  expiredFiles?: LibraryFile[]
-  groups?: string[]
-  canManage?: boolean
-  syncRunning?: boolean
+  attachments?: LibraryAttachment[]
+  kindLabels: KindLabels
   chatHistory?: ChatHistory | null
 }>(), {
-  expiredFiles: () => [],
-  groups: () => [],
-  canManage: false,
-  syncRunning: false,
+  attachments: () => [],
 })
 
-const page = usePage()
-watch(() => page.props.flash, (flash: any) => {
-  if (flash?.success)
-    toast.success(flash.success)
-  if (flash?.warning)
-    toast.warning(flash.warning)
-  if (flash?.error)
-    toast.error(flash.error)
-}, { immediate: true, deep: true })
+const search = ref('')
+const kind = ref<AttachmentKind | null>(null)
 
-const tab = ref<'active' | 'expired'>('active')
-const busyFileId = ref<number | null>(null)
-const uploading = ref(false)
-const reconciling = ref(false)
+/** Sin acentos ni mayúsculas, para que «cancha» encuentre «Cancha». */
+function normalize(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036F]/g, '').toLowerCase()
+}
 
-const visibleFiles = computed(() => (tab.value === 'expired' ? props.expiredFiles : props.files))
+const matches = computed(() => {
+  const term = normalize(search.value.trim())
 
-const groupedFiles = computed(() => {
-  const map = new Map<string, LibraryFile[]>()
-  for (const file of visibleFiles.value) {
-    const list = map.get(file.group) ?? []
-    list.push(file)
-    map.set(file.group, list)
+  return props.attachments.filter((attachment) => {
+    if (kind.value && attachment.kind !== kind.value)
+      return false
+
+    if (!term)
+      return true
+
+    return normalize(attachment.name).includes(term) || normalize(attachment.chat_title).includes(term)
+  })
+})
+
+const groups = computed<LibraryChatGroupData[]>(() => {
+  const byChat = new Map<string, LibraryChatGroupData>()
+
+  for (const attachment of matches.value) {
+    const group = byChat.get(attachment.chat_id) ?? {
+      chatId: attachment.chat_id,
+      chatTitle: attachment.chat_title,
+      latestAt: attachment.created_at,
+      attachments: [],
+    }
+
+    group.attachments.push(attachment)
+    byChat.set(attachment.chat_id, group)
   }
-  return [...map.entries()].map(([name, files]) => ({ name, files }))
+
+  return [...byChat.values()]
 })
 
-const emptyMessage = computed(() => (tab.value === 'expired'
-  ? 'No hay documentos caducados.'
-  : 'Aún no hay documentos indexados.'))
+const filtering = computed(() => search.value.trim() !== '' || kind.value !== null)
 
-function startSync(): void {
-  router.post(route('library.sync'), {}, { preserveScroll: true })
-}
-
-function reindex(file: LibraryFile): void {
-  busyFileId.value = file.id
-  router.post(route('library.files.reindex', { file: file.id }), {}, {
-    preserveScroll: true,
-    onFinish: () => (busyFileId.value = null),
-  })
-}
-
-function remove(file: LibraryFile): void {
-  busyFileId.value = file.id
-  router.delete(route('library.files.destroy', { file: file.id }), {
-    preserveScroll: true,
-    onFinish: () => (busyFileId.value = null),
-  })
-}
-
-function purgeExpired(): void {
-  router.delete(route('library.expired.purge'), { preserveScroll: true })
+function clearFilters(): void {
+  search.value = ''
+  kind.value = null
 }
 </script>
 
@@ -97,104 +72,55 @@ function purgeExpired(): void {
 
   <AssistantLayout :chat-history="chatHistory" title="Biblioteca">
     <div class="flex-1 overflow-y-auto">
-      <div class="mx-auto w-full max-w-3xl px-4 py-8 md:px-6">
-        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div class="flex items-center gap-3">
-            <BookMarked class="size-6 text-muted-foreground" />
-            <div>
-              <h1 class="text-xl font-semibold">Biblioteca</h1>
-              <p class="text-sm text-muted-foreground">Documentos del club que el asistente conoce y consulta al responder.</p>
-            </div>
+      <div class="mx-auto flex w-full max-w-5xl flex-col gap-7 px-4 py-8 md:px-10">
+        <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 class="text-[22px] font-semibold tracking-tight">Biblioteca</h1>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Todo lo que has adjuntado en tus chats, ordenado por conversación.
+            </p>
           </div>
 
-          <div v-if="canManage" class="flex flex-wrap items-center gap-2">
-            <Button size="sm" @click="uploading = true">
-              <Upload class="size-4" />
-              Subir documento
-            </Button>
-            <Button size="sm" variant="outline" :disabled="syncRunning" @click="startSync">
-              <RefreshCw class="size-4" :class="syncRunning && 'animate-spin'" />
-              {{ syncRunning ? 'Sincronizando…' : 'Sincronizar ahora' }}
-            </Button>
-            <Button size="sm" variant="outline" @click="reconciling = true">
-              <ScanSearch class="size-4" />
-              Reconciliar con OpenAI
-            </Button>
-          </div>
-        </div>
-
-        <p v-if="canManage && syncRunning" class="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
-          <LoaderCircle class="size-3 animate-spin" />
-          Sincronización en curso…
-        </p>
-
-        <div v-if="canManage" class="mb-4 flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            :aria-pressed="tab === 'active'"
-            :class="tab === 'active' ? 'bg-muted text-foreground' : 'text-muted-foreground'"
-            @click="tab = 'active'"
-          >
-            Activos ({{ files.length }})
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            :aria-pressed="tab === 'expired'"
-            :class="tab === 'expired' ? 'bg-muted text-foreground' : 'text-muted-foreground'"
-            @click="tab = 'expired'"
-          >
-            Caducados ({{ expiredFiles.length }})
-          </Button>
-
-          <AlertDialog v-if="tab === 'expired' && expiredFiles.length">
-            <AlertDialogTrigger as-child>
-              <Button variant="ghost" size="sm" class="ml-auto text-destructive hover:text-destructive">
-                <Trash2 class="size-4" />
-                Purgar caducados
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Purgar documentos caducados</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Se borrarán {{ expiredFiles.length }} documentos de OpenAI, del disco y de la base. La purga corre en segundo plano.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction class="bg-destructive text-white hover:bg-destructive/90" @click="purgeExpired">
-                  Purgar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-
-        <div v-for="group in groupedFiles" :key="group.name" class="mb-6">
-          <p class="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{{ group.name }}</p>
-          <ul class="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-            <LibraryFileRow
-              v-for="file in group.files"
-              :key="file.id"
-              :file="file"
-              :can-manage="canManage"
-              :show-expiry="tab === 'expired'"
-              :busy="busyFileId === file.id"
-              @reindex="reindex"
-              @remove="remove"
+          <div v-if="attachments.length" class="relative w-full sm:w-80">
+            <Search
+              class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+              :stroke-width="1.5"
+              aria-hidden="true"
             />
-          </ul>
-        </div>
+            <Input
+              v-model="search"
+              type="search"
+              class="h-9 pl-9"
+              placeholder="Buscar archivo o chat"
+              aria-label="Buscar archivo o chat"
+            />
+          </div>
+        </header>
 
-        <p v-if="!visibleFiles.length" class="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          {{ emptyMessage }}
-        </p>
+        <template v-if="attachments.length">
+          <LibraryFilterPills
+            v-model="kind"
+            :attachments="attachments"
+            :kind-labels="kindLabels"
+          />
+
+          <div v-if="groups.length" class="flex flex-col gap-9">
+            <LibraryChatGroup
+              v-for="group in groups"
+              :key="group.chatId"
+              :group="group"
+              :kind-labels="kindLabels"
+            />
+          </div>
+
+          <div v-else class="flex flex-col items-center gap-3 py-20 text-center">
+            <p class="text-sm text-muted-foreground">Ningún archivo coincide con la búsqueda.</p>
+            <Button v-if="filtering" variant="ghost" size="sm" @click="clearFilters">Limpiar filtros</Button>
+          </div>
+        </template>
+
+        <LibraryEmptyState v-else />
       </div>
     </div>
-
-    <UploadLibraryFileDialog v-if="canManage" v-model:open="uploading" :groups="groups" />
-    <ReconcileDialog v-if="canManage" v-model:open="reconciling" />
   </AssistantLayout>
 </template>

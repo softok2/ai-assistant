@@ -9,6 +9,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 use App\Dtos\UpdateChatData;
 use App\Dtos\LibrarySnapshot;
+use App\Queries\ChatHistoryQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -26,8 +27,10 @@ final class ChatController extends Controller
 {
     private ?LibrarySnapshot $snapshot = null;
 
-    public function __construct(private readonly LibrarySnapshotQuery $library)
-    {
+    public function __construct(
+        private readonly LibrarySnapshotQuery $library,
+        private readonly ChatHistoryQuery $chatHistory,
+    ) {
         $this->authorizeResource(Chat::class, 'chat');
     }
 
@@ -36,7 +39,7 @@ final class ChatController extends Controller
         return Inertia::render('Chat/Index', [
             'chatHistory' => Inertia::deepMerge($this->history()),
             'dataFreshness' => fn (): ?string => $this->snapshot()->freshness(),
-            'library' => fn (): array => $this->libraryProp($this->snapshot()),
+            'sources' => fn (): array => $this->sourcesProp($this->snapshot()),
             // Proponer las preguntas cuesta una llamada al modelo: la pantalla
             // se pinta primero y las sugerencias llegan después.
             'starters' => Inertia::defer(function () use ($starters): array {
@@ -73,7 +76,7 @@ final class ChatController extends Controller
             'chat' => fn () => $chat->load('messages'),
             'chatHistory' => Inertia::deepMerge($this->history()),
             'dataFreshness' => fn (): ?string => $this->snapshot()->freshness(),
-            'library' => fn (): array => $this->libraryProp($this->snapshot()),
+            'sources' => fn (): array => $this->sourcesProp($this->snapshot()),
             'pendingMessage' => session('pending_message'),
             'pendingAttachments' => session('pending_attachments', []),
             'canWrite' => Auth::id() === $chat->user_id,
@@ -120,14 +123,7 @@ final class ChatController extends Controller
      */
     private function history(): ?LengthAwarePaginator
     {
-        if (! Auth::check()) {
-            return null;
-        }
-
-        return Auth::user()->chats()
-            ->orderByDesc('pinned_at')
-            ->orderByDesc('updated_at')
-            ->paginate(25);
+        return $this->chatHistory->execute(Auth::user());
     }
 
     /**
@@ -142,7 +138,7 @@ final class ChatController extends Controller
     /**
      * @return array{count: int, synced_at: ?string}
      */
-    private function libraryProp(LibrarySnapshot $library): array
+    private function sourcesProp(LibrarySnapshot $library): array
     {
         return [
             'count' => $library->documentCount,

@@ -15,30 +15,39 @@ beforeEach(function () {
 });
 
 it('follows the pagination of the account files until the last page', function () {
-    Http::fake([
-        'https://api.openai.com/v1/files*' => Http::sequence()
-            ->push([
-                'data' => [
-                    ['id' => 'file-a1', 'filename' => 'golf-output-1.md', 'bytes' => 100, 'created_at' => 1_785_000_001],
-                    ['id' => 'file-a2', 'filename' => 'golf-output-2.md', 'bytes' => 200, 'created_at' => 1_785_000_002],
-                ],
-                'has_more' => true,
-                'last_id' => 'file-a2',
-            ])
-            ->push([
-                'data' => [
-                    ['id' => 'file-b1', 'filename' => 'tennis-output-1.md', 'bytes' => 300, 'created_at' => 1_785_000_003],
-                ],
-                'has_more' => false,
-            ]),
-    ]);
+    $userDataPages = [
+        [
+            'data' => [
+                ['id' => 'file-a1', 'filename' => 'golf-output-1.md', 'bytes' => 100, 'created_at' => 1_785_000_001],
+                ['id' => 'file-a2', 'filename' => 'golf-output-2.md', 'bytes' => 200, 'created_at' => 1_785_000_002],
+            ],
+            'has_more' => true,
+            'last_id' => 'file-a2',
+        ],
+        [
+            'data' => [
+                ['id' => 'file-b1', 'filename' => 'tennis-output-1.md', 'bytes' => 300, 'created_at' => 1_785_000_003],
+            ],
+            'has_more' => false,
+        ],
+    ];
+
+    Http::fake(function ($request) use ($userDataPages) {
+        parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+        if (($query['purpose'] ?? null) === 'assistants') {
+            return Http::response(['data' => [], 'has_more' => false]);
+        }
+
+        return Http::response(isset($query['after']) ? $userDataPages[1] : $userDataPages[0]);
+    });
 
     $files = (new OpenAiFileInventory)->accountFiles();
 
     expect($files->pluck('id')->all())->toBe(['file-a1', 'file-a2', 'file-b1'])
         ->and($files->firstWhere('id', 'file-b1')['bytes'])->toBe(300);
 
-    Http::assertSentCount(2);
+    Http::assertSentCount(3);
     Http::assertSent(fn ($request) => str_contains($request->url(), 'after=file-a2'));
 });
 

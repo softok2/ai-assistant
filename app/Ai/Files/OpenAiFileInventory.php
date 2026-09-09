@@ -15,11 +15,20 @@ use Illuminate\Http\Client\PendingRequest;
 final class OpenAiFileInventory
 {
     /**
+     * El SDK sube con purpose "user_data"; los archivos del asistente viejo
+     * (Assistants API) quedaron con "assistants". Hay que mirar los dos.
+     */
+    private const PURPOSES = ['user_data', 'assistants'];
+
+    /**
      * @return Collection<int, array{id: string, filename: string, bytes: int, created_at: int}>
      */
     public function accountFiles(): Collection
     {
-        return $this->paginate('files', ['purpose' => 'assistants'])
+        return collect(self::PURPOSES)
+            ->flatMap(fn (string $purpose) => $this->paginate('files', ['purpose' => $purpose]))
+            ->unique('id')
+            ->values()
             ->map(fn (array $file) => [
                 'id' => $file['id'],
                 'filename' => $file['filename'] ?? '',

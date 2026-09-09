@@ -16,7 +16,7 @@ beforeEach(function () {
 
 it('stores a manual document and queues its upload', function () {
     $this->actingAs(adminUser())
-        ->post(route('library.files.store'), [
+        ->post(route('sources.files.store'), [
             'group' => 'golf',
             'file' => UploadedFile::fake()->create('reglamento.md', 12),
         ])
@@ -38,7 +38,7 @@ it('stores a manual document and queues its upload', function () {
 
 it('rejects a file type the assistant cannot read', function () {
     $this->actingAs(adminUser())
-        ->post(route('library.files.store'), [
+        ->post(route('sources.files.store'), [
             'group' => 'golf',
             'file' => UploadedFile::fake()->create('hoja.xlsx', 12),
         ])
@@ -50,7 +50,7 @@ it('rejects a file type the assistant cannot read', function () {
 
 it('rejects a document over ten megabytes', function () {
     $this->actingAs(adminUser())
-        ->post(route('library.files.store'), [
+        ->post(route('sources.files.store'), [
             'group' => 'golf',
             'file' => UploadedFile::fake()->create('enorme.pdf', 10_241),
         ])
@@ -61,7 +61,7 @@ it('rejects a document over ten megabytes', function () {
 
 it('rejects a group that is not a lowercase slug', function () {
     $this->actingAs(adminUser())
-        ->post(route('library.files.store'), [
+        ->post(route('sources.files.store'), [
             'group' => 'Golf Pro',
             'file' => UploadedFile::fake()->create('reglamento.md', 12),
         ])
@@ -72,7 +72,7 @@ it('rejects a group that is not a lowercase slug', function () {
 
 it('requires both the group and the file', function () {
     $this->actingAs(adminUser())
-        ->postJson(route('library.files.store'), [])
+        ->postJson(route('sources.files.store'), [])
         ->assertStatus(422)
         ->assertJsonValidationErrors(['group', 'file']);
 });
@@ -87,7 +87,7 @@ it('stores a text file with a safe extension whatever the client called it', fun
     file_put_contents($path, 'Texto plano del reglamento del club.');
 
     $this->actingAs(adminUser())
-        ->post(route('library.files.store'), [
+        ->post(route('sources.files.store'), [
             'group' => 'golf',
             'file' => new UploadedFile($path, 'notas.html', 'text/plain', null, true),
         ])
@@ -100,7 +100,7 @@ it('stores a text file with a safe extension whatever the client called it', fun
 /** Una subida con extensión .php se rechaza en la validación. */
 it('rejects an upload that carries a php extension', function () {
     $this->actingAs(adminUser())
-        ->post(route('library.files.store'), [
+        ->post(route('sources.files.store'), [
             'group' => 'golf',
             'file' => UploadedFile::fake()->createWithContent('notas.php', 'texto plano'),
         ])
@@ -111,7 +111,7 @@ it('rejects an upload that carries a php extension', function () {
 
 it('keeps the markdown extension for a markdown document', function () {
     $this->actingAs(adminUser())
-        ->post(route('library.files.store'), [
+        ->post(route('sources.files.store'), [
             'group' => 'golf',
             'file' => UploadedFile::fake()->createWithContent('reglamento.md', '# titulo'),
         ])
@@ -124,12 +124,12 @@ it('does not collide when two documents land in the same second', function () {
     $this->freezeTime();
     $this->actingAs(adminUser());
 
-    $this->post(route('library.files.store'), [
+    $this->post(route('sources.files.store'), [
         'group' => 'golf',
         'file' => UploadedFile::fake()->create('uno.md', 4),
     ])->assertRedirect();
 
-    $this->post(route('library.files.store'), [
+    $this->post(route('sources.files.store'), [
         'group' => 'golf',
         'file' => UploadedFile::fake()->create('dos.md', 4),
     ])->assertRedirect();

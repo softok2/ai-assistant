@@ -114,7 +114,7 @@ export interface ChatStarter {
   question: string
 }
 
-export interface LibraryScope {
+export interface SourcesScope {
   count: number
   synced_at: string | null
 }

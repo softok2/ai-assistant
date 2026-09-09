@@ -11,7 +11,7 @@ it('queues the purge of the expired documents', function () {
     File::factory()->completed()->expired()->create();
 
     $this->actingAs(adminUser())
-        ->delete(route('library.expired.purge'))
+        ->delete(route('sources.expired.purge'))
         ->assertRedirect()
         ->assertSessionHas('success');
 
