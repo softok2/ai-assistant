@@ -7,6 +7,7 @@ use App\Enums\ClubName;
 use App\Enums\RoleName;
 use App\Dtos\LibrarySnapshot;
 use Illuminate\Support\Carbon;
+use Laravel\Ai\Prompts\AgentPrompt;
 use App\Queries\LibrarySnapshotQuery;
 use Illuminate\Support\Facades\Cache;
 use App\Ai\Agents\ChatStarterSuggester;
@@ -112,19 +113,29 @@ it('reads the indexed library from the database', function (): void {
     File::create(['name' => 'golf-old.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now(), 'expired_at' => now()]);
     File::create(['name' => 'golf-pending.md', 'group' => 'golf', 'status' => 'pending']);
 
-    $totals = app(LibrarySnapshotQuery::class)->execute();
+    $totals = app(LibrarySnapshotQuery::class)->execute(ClubName::CCM);
 
     expect($totals->documentCount)->toBe(2)
         ->and($totals->documents)->toBe([])
         ->and($totals->syncedAt->toDateString())->toBe(now()->subDay()->toDateString());
 
-    $withDocuments = app(LibrarySnapshotQuery::class)->execute(withDocuments: true);
+    $withDocuments = app(LibrarySnapshotQuery::class)->execute(ClubName::CCM, withDocuments: true);
 
     expect($withDocuments->documents)->toHaveCount(2)
         ->and($withDocuments->documents[0]['name'])->toBe('golf-b.md');
 });
 
+it('prompts the club provider for the starter suggester', function (): void {
+    config(['ai.providers.openai_vallealto.key' => 'sk-va']);
+    fakeStarters(4);
+
+    app(ResolveChatStartersAction::class)
+        ->execute(ClubName::VALLEALTO, RoleName::GOLF_MANAGER, library());
+
+    ChatStarterSuggester::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->provider->name() === 'openai_vallealto');
+});
+
 it('reports an empty library when nothing is indexed', function (): void {
-    expect(app(LibrarySnapshotQuery::class)->execute()->isEmpty())->toBeTrue()
-        ->and(app(LibrarySnapshotQuery::class)->execute()->freshness())->toBeNull();
+    expect(app(LibrarySnapshotQuery::class)->execute(ClubName::CCM)->isEmpty())->toBeTrue()
+        ->and(app(LibrarySnapshotQuery::class)->execute(ClubName::CCM)->freshness())->toBeNull();
 });

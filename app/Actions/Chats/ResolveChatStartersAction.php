@@ -7,6 +7,7 @@ namespace App\Actions\Chats;
 use Throwable;
 use App\Enums\ClubName;
 use App\Enums\RoleName;
+use App\Ai\ClubAiProvider;
 use App\Dtos\LibrarySnapshot;
 use App\Ai\Starters\DefaultStarters;
 use Illuminate\Support\Facades\Cache;
@@ -22,6 +23,8 @@ final class ResolveChatStartersAction
     private const TTL_HOURS = 6;
 
     private const MAX_DOCUMENTS = 25;
+
+    public function __construct(private readonly ClubAiProvider $providers) {}
 
     /**
      * @return array<int, array{area: string, question: string}>
@@ -58,7 +61,8 @@ final class ResolveChatStartersAction
     private function suggest(?ClubName $club, ?RoleName $role, LibrarySnapshot $library): ?array
     {
         try {
-            $response = (new ChatStarterSuggester($club, $role))->prompt($this->documentList($library));
+            $response = (new ChatStarterSuggester($club, $role))
+                ->prompt($this->documentList($library), provider: $this->providers->nameFor($club));
         } catch (Throwable $exception) {
             report($exception);
 

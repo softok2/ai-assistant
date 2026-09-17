@@ -6,6 +6,7 @@ use App\Models\Chat;
 use App\Models\Role;
 use App\Models\User;
 use App\Ai\Agents\ClubAssistant;
+use Laravel\Ai\Prompts\AgentPrompt;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -113,6 +114,22 @@ describe('regenerate', function (): void {
     });
 });
 
+describe('proveedor de IA por club', function (): void {
+    it('falls back to the default provider for a user without a club', function (): void {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $chat = Chat::factory()->for($user)->create();
+
+        ClubAssistant::fake(['Respuesta']);
+
+        $this->post(route('chat.stream', $chat), ['message' => 'Hola'])
+            ->assertOk()
+            ->streamedContent();
+
+        ClubAssistant::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->provider->name() === 'openai');
+    });
+});
+
 describe('contexto y partes del mensaje', function (): void {
     beforeEach(function (): void {
         config(['services.openai.vector_stores' => ['vallealto' => 'vs_test']]);
@@ -155,5 +172,17 @@ describe('contexto y partes del mensaje', function (): void {
         expect($parts)->toHaveKey('text')
             ->and($parts)->not->toHaveKey('activity')
             ->and($parts)->not->toHaveKey('sources');
+    });
+
+    it('prompts the club provider for a user whose club has its own key', function (): void {
+        config(['ai.providers.openai_vallealto.key' => 'sk-va']);
+
+        ClubAssistant::fake(['Respuesta']);
+
+        $this->post(route('chat.stream', $this->chat), ['message' => 'Hola'])
+            ->assertOk()
+            ->streamedContent();
+
+        ClubAssistant::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->provider->name() === 'openai_vallealto');
     });
 });

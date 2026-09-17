@@ -9,6 +9,7 @@ use App\Enums\ReportFrequency;
 use App\Mail\WeeklyReportMail;
 use Illuminate\Support\Carbon;
 use App\Reports\ChartSvgRenderer;
+use Laravel\Ai\Prompts\AgentPrompt;
 use App\Reports\ReportContentParser;
 use Illuminate\Support\Facades\Mail;
 use App\Ai\Agents\ModuleReportAnalyst;
@@ -42,7 +43,10 @@ it('extracts chart blocks and bare chart json from analyst output', function ():
 });
 
 it('generates report data from indexed modules, skipping empty ones', function (): void {
-    config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm']]);
+    config([
+        'services.openai.vector_stores' => ['ccm' => 'vs_ccm'],
+        'ai.providers.openai_ccm.key' => 'sk-ccm',
+    ]);
 
     File::create(['name' => 'golf-x.md', 'group' => 'golf', 'status' => 'completed']);
     File::create(['name' => 'restaurant-x.md', 'group' => 'restaurant', 'status' => 'completed']);
@@ -61,6 +65,9 @@ it('generates report data from indexed modules, skipping empty ones', function (
     expect($report->sections[0]['title'])->toBe('Golf');
     expect($report->sections[0]['charts'])->toHaveCount(1);
     expect($report->executiveSummaryHtml)->toContain('positiva');
+
+    ModuleReportAnalyst::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->provider->name() === 'openai_ccm');
+    ExecutiveSummaryWriter::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->provider->name() === 'openai_ccm');
 });
 
 it('sends the report with a pdf attachment to configured recipients', function (): void {

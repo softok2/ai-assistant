@@ -7,6 +7,7 @@ namespace App\Actions\Files;
 use App\Models\File;
 use Laravel\Ai\Files;
 use App\Enums\ClubName;
+use App\Ai\ClubAiProvider;
 use App\Enums\MediaStatus;
 use App\Ai\Files\ClubVectorStore;
 use Illuminate\Support\Collection;
@@ -34,13 +35,14 @@ final class ReconcileAssistantFilesAction
     public function __construct(
         private readonly OpenAiFileInventory $inventory,
         private readonly ClubVectorStore $stores,
+        private readonly ClubAiProvider $providers,
     ) {}
 
     public function report(ClubName $club, bool $includeUntagged = false): ReconciliationReport
     {
         $referenced = File::query()->where('project', $club->value)->whereNotNull('assistant_media_id')->pluck('assistant_media_id')->flip();
         $referencedAnywhere = File::query()->whereNotNull('assistant_media_id')->pluck('assistant_media_id')->flip();
-        $account = $this->inventory->accountFiles()->keyBy('id');
+        $account = $this->inventory->accountFiles($club)->keyBy('id');
         $allStoreFiles = $this->inventory->storeFiles($club)->keyBy('id');
         $environment = app()->environment();
 
@@ -104,7 +106,7 @@ final class ReconcileAssistantFilesAction
         }
 
         foreach ($report->loose as $file) {
-            $this->ignoringMissing(fn () => Files::delete($file['id']));
+            $this->ignoringMissing(fn () => Files::delete($file['id'], $this->providers->nameFor($club)));
             $deleted->push($file['id']);
         }
 

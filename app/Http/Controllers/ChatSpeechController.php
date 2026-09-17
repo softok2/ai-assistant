@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use Laravel\Ai\Audio;
 use App\Models\Message;
+use App\Ai\ClubAiProvider;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
-use Laravel\Ai\Audio;
 
 final class ChatSpeechController extends Controller
 {
-    public function __invoke(Message $message): JsonResponse
+    public function __invoke(Message $message, ClubAiProvider $providers): JsonResponse
     {
         Gate::authorize('view', $message->chat);
 
@@ -19,7 +20,7 @@ final class ChatSpeechController extends Controller
 
         abort_if($text === '', 422, 'El mensaje no tiene texto para leer.');
 
-        $response = Audio::of($text)->generate();
+        $response = Audio::of($text)->generate(provider: $providers->nameFor(auth()->user()?->clubName()));
 
         return response()->json([
             'audio' => $response->audio,

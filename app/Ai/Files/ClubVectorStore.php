@@ -7,6 +7,7 @@ namespace App\Ai\Files;
 use Laravel\Ai\Store;
 use Laravel\Ai\Stores;
 use App\Enums\ClubName;
+use App\Ai\ClubAiProvider;
 
 /**
  * Único punto que sabe qué vector store de OpenAI pertenece a cada club. Nadie
@@ -15,6 +16,8 @@ use App\Enums\ClubName;
  */
 final class ClubVectorStore
 {
+    public function __construct(private readonly ClubAiProvider $providers) {}
+
     public function idFor(ClubName $club): string
     {
         $id = config("services.openai.vector_stores.{$club->value}");
@@ -28,7 +31,7 @@ final class ClubVectorStore
 
     public function storeFor(ClubName $club): Store
     {
-        return Stores::get($this->idFor($club));
+        return Stores::get($this->idFor($club), $this->providers->nameFor($club));
     }
 
     /**

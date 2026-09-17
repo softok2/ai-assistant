@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Chat;
+use App\Ai\ClubAiProvider;
 use Laravel\Ai\Files\Image;
 use Laravel\Ai\Files\Document;
 use App\Jobs\GenerateChatTitle;
@@ -21,7 +22,7 @@ final class ChatStreamController extends Controller
 {
     public function __construct(private readonly ResolveStreamInsightsAction $insights) {}
 
-    public function __invoke(ChatStreamRequest $request, Chat $chat): StreamableAgentResponse
+    public function __invoke(ChatStreamRequest $request, Chat $chat, ClubAiProvider $providers): StreamableAgentResponse
     {
         Gate::authorize('update', $chat);
 
@@ -34,7 +35,12 @@ final class ChatStreamController extends Controller
         };
 
         return ClubAssistant::forUser($request->user(), $history)
-            ->stream($userMessage, attachments: $this->toAiFiles($attachments), model: $validated['model'] ?? null)
+            ->stream(
+                $userMessage,
+                attachments: $this->toAiFiles($attachments),
+                provider: $providers->nameFor($request->user()->clubName()),
+                model: $validated['model'] ?? null,
+            )
             ->then(function (StreamedAgentResponse $response) use ($chat): void {
                 if (trim($response->text) === '') {
                     return;

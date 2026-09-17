@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
 
     /*
@@ -121,6 +123,20 @@ return [
         'openai' => [
             'driver' => 'openai',
             'key' => env('OPENAI_API_KEY'),
+            'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
+        ],
+
+        // Un proyecto de OpenAI por club: uso y costo separados, y cada store
+        // solo lo ve la clave de su proyecto. Lo resuelve App\Ai\ClubAiProvider.
+        'openai_ccm' => [
+            'driver' => 'openai',
+            'key' => env('OPENAI_API_KEY_CCM'),
+            'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
+        ],
+
+        'openai_vallealto' => [
+            'driver' => 'openai',
+            'key' => env('OPENAI_API_KEY_VALLEALTO'),
             'url' => env('OPENAI_URL', 'https://api.openai.com/v1'),
         ],
 

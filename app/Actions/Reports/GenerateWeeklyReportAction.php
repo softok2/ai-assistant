@@ -7,6 +7,7 @@ namespace App\Actions\Reports;
 use Throwable;
 use App\Models\File;
 use App\Enums\ClubName;
+use App\Ai\ClubAiProvider;
 use Illuminate\Support\Str;
 use App\Enums\ReportFrequency;
 use Illuminate\Support\Carbon;
@@ -24,6 +25,7 @@ final class GenerateWeeklyReportAction
 {
     public function __construct(
         private readonly ReportContentParser $parser,
+        private readonly ClubAiProvider $providers,
     ) {}
 
     public function execute(ClubName $club, ReportFrequency $frequency, ?Carbon $on = null): WeeklyReportData
@@ -46,7 +48,7 @@ final class GenerateWeeklyReportAction
             club: $club,
             periodLabel: $frequency->periodLabel($on),
             generatedAt: $on->translatedFormat('d MMMM Y, H:i'),
-            executiveSummaryHtml: $this->executiveSummary($moduleSummaries),
+            executiveSummaryHtml: $this->executiveSummary($club, $moduleSummaries),
             sections: $sections,
         );
     }
@@ -74,7 +76,8 @@ final class GenerateWeeklyReportAction
     {
         try {
             $output = (string) (new ModuleReportAnalyst($club, $group))->prompt(
-                "Analiza el módulo \"{$group}\" para el reporte ejecutivo del periodo más reciente."
+                "Analiza el módulo \"{$group}\" para el reporte ejecutivo del periodo más reciente.",
+                provider: $this->providers->nameFor($club),
             );
         } catch (Throwable $exception) {
             report($exception);
@@ -102,14 +105,17 @@ final class GenerateWeeklyReportAction
     /**
      * @param  array<int, string>  $moduleSummaries
      */
-    private function executiveSummary(array $moduleSummaries): string
+    private function executiveSummary(ClubName $club, array $moduleSummaries): string
     {
         if ($moduleSummaries === []) {
             return '';
         }
 
         try {
-            $summary = (string) (new ExecutiveSummaryWriter)->prompt(implode("\n\n", $moduleSummaries));
+            $summary = (string) (new ExecutiveSummaryWriter)->prompt(
+                implode("\n\n", $moduleSummaries),
+                provider: $this->providers->nameFor($club),
+            );
         } catch (Throwable $exception) {
             report($exception);
 

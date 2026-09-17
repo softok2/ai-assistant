@@ -173,3 +173,14 @@ it('fails cleanly when --club is not a known club', function () {
         ->expectsOutputToContain('Club desconocido')
         ->assertFailed();
 });
+
+it('talks to OpenAI with the key of the club being reconciled', function () {
+    config(['ai.providers.openai_ccm.key' => 'sk-ccm']);
+    fakeOpenAiInventory();
+    File::factory()->completed()->create(['name' => 'golf-output-1787767203.md', 'assistant_media_id' => 'file-keep']);
+
+    $report = app(ReconcileAssistantFilesAction::class)->report(ClubName::CCM, true);
+    app(ReconcileAssistantFilesAction::class)->apply(ClubName::CCM, $report);
+
+    Http::assertSent(fn ($request) => $request->method() === 'DELETE' && $request->hasHeader('Authorization', 'Bearer sk-ccm'));
+});

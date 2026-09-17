@@ -77,3 +77,18 @@ it('keys uniqueness by project so two clubs can purge at the same time', functio
         ->and((new RemoveExpiredDocs('vallealto'))->uniqueId())->toBe('vallealto')
         ->and((new RemoveExpiredDocs)->uniqueId())->toBe('all');
 });
+
+it('talks to OpenAI with the key of the club that owns the document', function () {
+    config(['ai.providers.openai_ccm.key' => 'sk-ccm']);
+    Http::fake([
+        '*/vector_stores/vs_test' => Http::response(['id' => 'vs_test', 'name' => 'ccm', 'status' => 'completed', 'file_counts' => ['completed' => 1, 'in_progress' => 0, 'failed' => 0, 'cancelled' => 0, 'total' => 1]]),
+        '*/vector_stores/vs_test/files/file-abc' => Http::response(['deleted' => true]),
+        '*/files/file-abc' => Http::response(['deleted' => true]),
+    ]);
+    $file = File::factory()->completed()->expired()->create(['assistant_media_id' => 'file-abc']);
+    Storage::put('docs/'.$file->name, '# viejo');
+
+    (new RemoveExpiredDocs)->handle();
+
+    Http::assertSent(fn ($request) => $request->method() === 'DELETE' && $request->hasHeader('Authorization', 'Bearer sk-ccm'));
+});

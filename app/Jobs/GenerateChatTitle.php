@@ -4,25 +4,24 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Ai\Agents\ChatTitleGenerator;
+use Throwable;
 use App\Models\Chat;
+use App\Ai\ClubAiProvider;
+use Illuminate\Support\Str;
 use Illuminate\Bus\Queueable;
+use App\Ai\Agents\ChatTitleGenerator;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Str;
-use Throwable;
 
 final class GenerateChatTitle implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public Chat $chat)
-    {
-    }
+    public function __construct(public Chat $chat) {}
 
-    public function handle(): void
+    public function handle(ClubAiProvider $providers): void
     {
         $exchange = $this->chat->messages()
             ->orderBy('created_at')
@@ -32,7 +31,10 @@ final class GenerateChatTitle implements ShouldQueue
             ->join("\n");
 
         try {
-            $title = trim((string) (new ChatTitleGenerator)->prompt($exchange), " \n\"'.");
+            $title = trim(
+                (string) (new ChatTitleGenerator)->prompt($exchange, provider: $providers->nameFor($this->chat->user?->clubName())),
+                " \n\"'."
+            );
         } catch (Throwable $exception) {
             report($exception);
 

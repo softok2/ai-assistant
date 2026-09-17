@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use Throwable;
 use App\Models\Chat;
+use App\Ai\ClubAiProvider;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -13,7 +14,7 @@ use App\Ai\Agents\ChatFollowUpSuggester;
 
 final class ChatSuggestionsController extends Controller
 {
-    public function __invoke(Request $request, Chat $chat): JsonResponse
+    public function __invoke(Request $request, Chat $chat, ClubAiProvider $providers): JsonResponse
     {
         Gate::authorize('update', $chat);
 
@@ -30,7 +31,8 @@ final class ChatSuggestionsController extends Controller
         }
 
         try {
-            $response = ChatFollowUpSuggester::forUser($request->user())->prompt($exchange);
+            $response = ChatFollowUpSuggester::forUser($request->user())
+                ->prompt($exchange, provider: $providers->nameFor($request->user()?->clubName()));
             $suggestions = collect($response->structured['suggestions'] ?? [])
                 ->filter(fn ($s) => is_string($s) && trim($s) !== '')
                 ->take(3)

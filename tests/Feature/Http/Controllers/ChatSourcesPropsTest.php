@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\Chat;
 use App\Models\File;
 use App\Models\User;
+use App\Enums\ClubName;
 use App\Ai\Agents\ChatStarterSuggester;
 use App\Http\Middleware\HandleInertiaRequests;
 
@@ -82,4 +83,14 @@ it('shares the freshness with the chat screen too', function (): void {
 
     $this->get(route('chats.show', $chat))
         ->assertInertia(fn ($page) => $page->has('dataFreshness')->where('sources.count', 1));
+});
+
+it('counts only the documents of the club of whoever is asking', function (): void {
+    File::factory()->forClub(ClubName::CCM)->completed()->count(8)->create();
+    File::factory()->forClub(ClubName::VALLEALTO)->completed()->count(2)->create();
+
+    $this->actingAs(User::factory()->create(['club_name' => 'vallealto']));
+
+    $this->get(route('chats.index'))
+        ->assertInertia(fn ($page) => $page->where('sources.count', 2));
 });

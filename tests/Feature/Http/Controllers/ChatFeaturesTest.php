@@ -5,9 +5,14 @@ declare(strict_types=1);
 use App\Models\Chat;
 use App\Models\User;
 use Laravel\Ai\Audio;
+use Laravel\Ai\Transcription;
 use App\Ai\Agents\ClubAssistant;
+use Illuminate\Http\UploadedFile;
+use Laravel\Ai\Prompts\AgentPrompt;
+use Laravel\Ai\Prompts\AudioPrompt;
 use App\Ai\Agents\ChatTitleGenerator;
 use App\Ai\Agents\ChatFollowUpSuggester;
+use Laravel\Ai\Prompts\TranscriptionPrompt;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -96,6 +101,42 @@ it('denies suggestions on chats of other users', function (): void {
     $this->post(route('chat.suggestions', $otherChat))->assertForbidden();
 });
 
+it('prompts the club provider for the follow-up suggester', function (): void {
+    config(['ai.providers.openai_vallealto.key' => 'sk-va']);
+
+    $user = User::factory()->create(['club_name' => 'vallealto']);
+    $this->actingAs($user);
+    $chat = Chat::factory()->for($user)->create();
+
+    ChatFollowUpSuggester::fake([
+        ['suggestions' => ['¿Y los KPIs de tenis?', '¿Comparativa semanal?', '¿Detalle de no-shows?']],
+    ]);
+
+    $chat->messages()->create(['role' => 'user', 'parts' => ['text' => 'KPIs de golf'], 'attachments' => []]);
+    $chat->messages()->create(['role' => 'assistant', 'parts' => ['text' => 'Aquí están...'], 'attachments' => []]);
+
+    $this->post(route('chat.suggestions', $chat))->assertOk();
+
+    ChatFollowUpSuggester::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->provider->name() === 'openai_vallealto');
+});
+
+it('prompts the club provider for the title generator', function (): void {
+    config(['ai.providers.openai_vallealto.key' => 'sk-va']);
+
+    $user = User::factory()->create(['club_name' => 'vallealto']);
+    $this->actingAs($user);
+    $chat = Chat::factory()->for($user)->create(['title' => 'Primer mensaje...', 'visibility' => 'private']);
+
+    ClubAssistant::fake(['Claro, aquí está el resumen.']);
+    ChatTitleGenerator::fake(['Resumen ejecutivo del día']);
+
+    $this->post(route('chat.stream', $chat), ['message' => 'Dame un resumen'])
+        ->assertOk()
+        ->streamedContent();
+
+    ChatTitleGenerator::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->provider->name() === 'openai_vallealto');
+});
+
 it('opens the library of the user without any attachment yet', function (): void {
     $this->get(route('library'))
         ->assertOk()
@@ -139,4 +180,41 @@ it('denies reading messages from chats of other users', function (): void {
     $message = $otherChat->messages()->create(['role' => 'assistant', 'parts' => ['text' => 'secreto'], 'attachments' => []]);
 
     $this->post(route('chat.speech', $message))->assertForbidden();
+});
+
+it('prompts the club provider for the message speech', function (): void {
+    config(['ai.providers.openai_vallealto.key' => 'sk-va']);
+
+    $user = User::factory()->create(['club_name' => 'vallealto']);
+    $this->actingAs($user);
+    $chat = Chat::factory()->for($user)->create();
+
+    Audio::fake();
+
+    $message = $chat->messages()->create([
+        'role' => 'assistant',
+        'parts' => ['text' => 'Las reservas subieron 12%.'],
+        'attachments' => [],
+    ]);
+
+    $this->post(route('chat.speech', $message))->assertOk();
+
+    Audio::assertGenerated(fn (AudioPrompt $prompt): bool => $prompt->provider->name() === 'openai_vallealto');
+});
+
+it('prompts the club provider for the dictation transcription', function (): void {
+    config(['ai.providers.openai_vallealto.key' => 'sk-va']);
+
+    $user = User::factory()->create(['club_name' => 'vallealto']);
+    $this->actingAs($user);
+
+    Transcription::fake(['Muéstrame las reservas de golf']);
+
+    $response = $this->post(route('chat.transcribe'), [
+        'audio' => UploadedFile::fake()->createWithContent('dictado.webm', 'fake-audio-bytes'),
+    ]);
+
+    $response->assertOk();
+
+    Transcription::assertGenerated(fn (TranscriptionPrompt $prompt): bool => $prompt->provider->name() === 'openai_vallealto');
 });

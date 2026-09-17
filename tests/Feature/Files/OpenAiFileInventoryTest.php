@@ -43,7 +43,7 @@ it('follows the pagination of the account files until the last page', function (
         return Http::response(isset($query['after']) ? $userDataPages[1] : $userDataPages[0]);
     });
 
-    $files = app(OpenAiFileInventory::class)->accountFiles();
+    $files = app(OpenAiFileInventory::class)->accountFiles(ClubName::CCM);
 
     expect($files->pluck('id')->all())->toBe(['file-a1', 'file-a2', 'file-b1'])
         ->and($files->firstWhere('id', 'file-b1')['bytes'])->toBe(300);
@@ -63,4 +63,21 @@ it('stops after one page when the store says there is no more', function () {
     expect(app(OpenAiFileInventory::class)->storeFiles(ClubName::CCM)->pluck('id')->all())->toBe(['file-s1']);
 
     Http::assertSentCount(1);
+});
+
+it('talks to the vector store and account of the club with its own key', function () {
+    config([
+        'ai.providers.openai_vallealto.key' => 'sk-va',
+        'services.openai.vector_stores.vallealto' => 'vs_va',
+    ]);
+    Http::fake([
+        '*/vector_stores/vs_va/files?*' => Http::response(['data' => [], 'has_more' => false]),
+        '*/files?*' => Http::response(['data' => [], 'has_more' => false]),
+    ]);
+
+    app(OpenAiFileInventory::class)->storeFiles(ClubName::VALLEALTO);
+    app(OpenAiFileInventory::class)->accountFiles(ClubName::VALLEALTO);
+
+    Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer sk-va'));
+    Http::assertNotSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer sk-test'));
 });

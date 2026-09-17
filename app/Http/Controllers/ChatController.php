@@ -48,7 +48,7 @@ final class ChatController extends Controller
                 return $starters->execute(
                     $user?->clubName(),
                     $user?->primaryRole(),
-                    $this->library->execute(withDocuments: true),
+                    $this->library->execute($user?->clubName(), $user?->primaryRole(), withDocuments: true),
                 );
             }),
         ]);
@@ -132,7 +132,9 @@ final class ChatController extends Controller
      */
     private function snapshot(): LibrarySnapshot
     {
-        return $this->snapshot ??= $this->library->execute();
+        $user = Auth::user();
+
+        return $this->snapshot ??= $this->library->execute($user?->clubName(), $user?->primaryRole());
     }
 
     /**

@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace App\Ai\Files;
 
 use App\Enums\ClubName;
+use App\Ai\ClubAiProvider;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\PendingRequest;
 
 /**
  * Lo que el SDK no expone: listar lo que hay de verdad en la cuenta de OpenAI
- * (archivos con purpose "assistants") y en el vector store del club.
+ * (archivos con purpose "assistants") y en el vector store del club. Cada
+ * club habla con el proyecto de OpenAI de su clave.
  */
 final class OpenAiFileInventory
 {
@@ -21,15 +23,18 @@ final class OpenAiFileInventory
      */
     private const PURPOSES = ['user_data', 'assistants'];
 
-    public function __construct(private readonly ClubVectorStore $stores) {}
+    public function __construct(
+        private readonly ClubVectorStore $stores,
+        private readonly ClubAiProvider $providers,
+    ) {}
 
     /**
      * @return Collection<int, array{id: string, filename: string, bytes: int, created_at: int}>
      */
-    public function accountFiles(): Collection
+    public function accountFiles(ClubName $club): Collection
     {
         return collect(self::PURPOSES)
-            ->flatMap(fn (string $purpose) => $this->paginate('files', ['purpose' => $purpose]))
+            ->flatMap(fn (string $purpose) => $this->paginate($club, 'files', ['purpose' => $purpose]))
             ->unique('id')
             ->values()
             ->map(fn (array $file) => [
@@ -47,7 +52,7 @@ final class OpenAiFileInventory
     {
         $storeId = $this->stores->idFor($club);
 
-        return $this->paginate("vector_stores/{$storeId}/files")
+        return $this->paginate($club, "vector_stores/{$storeId}/files")
             ->map(fn (array $file) => [
                 'id' => $file['id'],
                 'created_at' => (int) ($file['created_at'] ?? 0),
@@ -59,13 +64,13 @@ final class OpenAiFileInventory
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    private function paginate(string $path, array $query = []): Collection
+    private function paginate(ClubName $club, string $path, array $query = []): Collection
     {
         $items = collect();
         $after = null;
 
         do {
-            $page = $this->client()
+            $page = $this->client($club)
                 ->get($path, array_filter($query + ['limit' => 100, 'after' => $after]))
                 ->throw()
                 ->json();
@@ -78,10 +83,10 @@ final class OpenAiFileInventory
         return $items->values();
     }
 
-    private function client(): PendingRequest
+    private function client(ClubName $club): PendingRequest
     {
-        return Http::baseUrl(rtrim((string) config('ai.providers.openai.url'), '/'))
-            ->withToken((string) config('ai.providers.openai.key'))
+        return Http::baseUrl(rtrim($this->providers->urlFor($club), '/'))
+            ->withToken($this->providers->keyFor($club))
             ->acceptJson()
             ->timeout(30);
     }
