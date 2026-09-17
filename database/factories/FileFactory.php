@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Models\File;
+use App\Enums\ClubName;
 use App\Enums\MediaStatus;
+use App\Enums\SourceOrigin;
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -25,11 +28,35 @@ final class FileFactory extends Factory
             'group' => $group,
             'name' => "{$group}-output-{$stamp}.md",
             'status' => MediaStatus::PENDING,
+            'origin' => SourceOrigin::Pentaho,
             'assistant_media_id' => null,
             'bytes' => null,
+            'checksum' => null,
             'synced_at' => null,
             'expired_at' => null,
         ];
+    }
+
+    public function forClub(ClubName $club): self
+    {
+        return $this->state(fn (array $attributes) => [
+            'project' => $club->value,
+            'name' => $club->value.'/'.basename((string) $attributes['name']),
+        ]);
+    }
+
+    /**
+     * Documento del manifiesto `bi:knowledge`: nombre estable con el club como
+     * carpeta y checksum del contenido.
+     */
+    public function fromManifest(string $name): self
+    {
+        return $this->state(fn (array $attributes) => [
+            'origin' => SourceOrigin::BiKnowledge,
+            'group' => Str::before(basename($name), '-'),
+            'name' => $attributes['project'].'/'.$name,
+            'checksum' => hash('sha256', $name.fake()->unique()->numberBetween(1, 1_000_000)),
+        ]);
     }
 
     public function completed(): self

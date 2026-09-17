@@ -4,7 +4,21 @@ declare(strict_types=1);
 
 use App\Enums\ClubName;
 use App\Enums\RoleName;
+use App\Enums\SourceGroup;
 use App\Ai\Agents\ClubAssistant;
+use Laravel\Ai\Providers\Tools\WebSearch;
+use Laravel\Ai\Providers\Tools\FileSearch;
+
+function fileSearchOf(iterable $tools): ?FileSearch
+{
+    foreach ($tools as $tool) {
+        if ($tool instanceof FileSearch) {
+            return $tool;
+        }
+    }
+
+    return null;
+}
 
 it('labels every club and role in Spanish', function (): void {
     expect(ClubName::CCM->label())->toBe('Club Campestre Monterrey')
@@ -63,4 +77,70 @@ it('keeps the base prompt free of hard-coded club and role', function (): void {
         ->and($prompt)->not->toContain('Director General')
         ->and($prompt)->toContain('{{club}}')
         ->and($prompt)->toContain('{{role}}');
+});
+
+it('names the roles after the BI report keys and keeps the old ones as aliases', function (): void {
+    expect(RoleName::RESTAURANT_MANAGER->value)->toBe('restaurant_manager')
+        ->and(RoleName::FUTBOL_MANAGER->label())->toBe('Gerencia de fútbol')
+        ->and(RoleName::INCIDENCES_MANAGER->label())->toBe('Gerencia de incidencias')
+        ->and(RoleName::GUESTS_MANAGER->label())->toBe('Gerencia de invitados')
+        ->and(RoleName::WELLNESS_MANAGER->label())->toBe('Gerencia de bienestar')
+        ->and(RoleName::RESTAURANT_CAPTAIN->value)->toBe('restaurant_captain');
+});
+
+it('narrows single-area roles to their source groups and leaves the rest open', function (): void {
+    expect(RoleName::ADMIN->sourceGroups())->toBe([])
+        ->and(RoleName::GENERAL_SERVICE_MANAGER->sourceGroups())->toBe([])
+        ->and(RoleName::GOLF_MANAGER->sourceGroups())->toBe(['golf'])
+        ->and(RoleName::RESTAURANT_MANAGER->sourceGroups())->toBe(['restaurant'])
+        ->and(RoleName::RESTAURANT_CAPTAIN->sourceGroups())->toBe(['restaurant'])
+        ->and(RoleName::FUTBOL_MANAGER->sourceGroups())->toBe(['futbol'])
+        ->and(RoleName::INCIDENCES_MANAGER->sourceGroups())->toBe(['incidences'])
+        ->and(RoleName::GUESTS_MANAGER->sourceGroups())->toBe(['guests'])
+        ->and(RoleName::WELLNESS_MANAGER->sourceGroups())->toBe(['wellness'])
+        ->and(RoleName::AESTHETICS_MANAGER->sourceGroups())->toBe(['wellness', 'aesthetic'])
+        ->and(RoleName::MASSAGE_MANAGER->sourceGroups())->toBe(['wellness', 'massage'])
+        ->and(RoleName::PODIATRY_MANAGER->sourceGroups())->toBe(['wellness']);
+});
+
+it('labels the wellness and BI groups in Spanish', function (): void {
+    expect(SourceGroup::labelFor('wellness'))->toBe('Bienestar')
+        ->and(SourceGroup::labelFor('futbol'))->toBe('Fútbol')
+        ->and(SourceGroup::labelFor('incidences'))->toBe('Incidencias')
+        ->and(SourceGroup::labelFor('guests'))->toBe('Invitados');
+});
+
+it('searches the store of the user club and narrows a single-area role to its groups', function (): void {
+    config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm', 'vallealto' => 'vs_va']]);
+
+    $search = fileSearchOf(ClubAssistant::make(club: ClubName::VALLEALTO, role: RoleName::MASSAGE_MANAGER)->tools());
+
+    expect($search->ids())->toBe(['vs_va'])
+        ->and($search->filters)->toBe([['type' => 'in', 'key' => 'group', 'value' => ['wellness', 'massage']]]);
+});
+
+it('does not filter by group for the admin', function (): void {
+    config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm']]);
+
+    $search = fileSearchOf(ClubAssistant::make(club: ClubName::CCM, role: RoleName::ADMIN)->tools());
+
+    expect($search->ids())->toBe(['vs_ccm'])
+        ->and($search->filters)->toBe([]);
+});
+
+it('degrades to web search only when the club has no vector store configured', function (): void {
+    config(['services.openai.vector_stores' => []]);
+
+    $tools = iterator_to_array(ClubAssistant::make(club: ClubName::VALLEALTO, role: RoleName::ADMIN)->tools());
+
+    expect(fileSearchOf($tools))->toBeNull()
+        ->and($tools)->toHaveCount(1)
+        ->and($tools[0])->toBeInstanceOf(WebSearch::class);
+});
+
+it('offers no file search when the user has no club', function (): void {
+    $tools = iterator_to_array(ClubAssistant::make()->tools());
+
+    expect(fileSearchOf($tools))->toBeNull()
+        ->and($tools[0])->toBeInstanceOf(WebSearch::class);
 });

@@ -128,6 +128,7 @@ return [
     'club_signature_secrets' => [
         'ccm' => env('CCM_SIGNATURE_SECRET'),
         'saltillo' => env('SALTILLO_SIGNATURE_SECRET'),
+        'vallealto' => env('VALLEALTO_SIGNATURE_SECRET'),
     ],
 
     /*

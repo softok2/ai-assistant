@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Enums\ClubName;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -15,11 +17,12 @@ final class StoreSourceFileRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array<int, string>>
+     * @return array<string, array<int, mixed>>
      */
     public function rules(): array
     {
         return [
+            'club' => ['required', Rule::in(array_column(ClubName::cases(), 'value'))],
             'file' => ['required', 'file', 'mimes:md,txt,pdf', 'max:10240'],
             'group' => ['required', 'string', 'alpha_dash', 'lowercase', 'max:40'],
         ];
@@ -31,6 +34,8 @@ final class StoreSourceFileRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'club.required' => 'Indica el club del documento.',
+            'club.in' => 'Ese club no está configurado.',
             'file.required' => 'Elige un documento.',
             'file.mimes' => 'El documento debe ser .md, .txt o .pdf.',
             'file.max' => 'El documento no puede pasar de 10 MB.',

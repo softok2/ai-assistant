@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 use App\Jobs\SyncLock;
 use App\Jobs\IngestAssistantDocs;
-use App\Jobs\ImportDocsFromPentaho;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
+use App\Jobs\ImportKnowledgeDocuments;
 
 it('starts the sync chain and keeps the lock while it runs', function () {
     Bus::fake();
@@ -16,7 +16,7 @@ it('starts the sync chain and keeps the lock while it runs', function () {
         ->assertRedirect()
         ->assertSessionHas('success');
 
-    Bus::assertChained([ImportDocsFromPentaho::class, IngestAssistantDocs::class]);
+    Bus::assertChained([ImportKnowledgeDocuments::class, IngestAssistantDocs::class]);
     expect(Cache::lock(SyncLock::KEY, 60)->get())->toBeFalse();
 });
 
@@ -29,5 +29,5 @@ it('warns instead of starting a second sync', function () {
         ->assertRedirect()
         ->assertSessionHas('warning', 'Ya hay una sincronización en curso');
 
-    Bus::assertNotDispatched(ImportDocsFromPentaho::class);
+    Bus::assertNotDispatched(ImportKnowledgeDocuments::class);
 });

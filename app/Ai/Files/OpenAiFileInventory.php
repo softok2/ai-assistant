@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Files;
 
+use App\Enums\ClubName;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\PendingRequest;
@@ -19,6 +20,8 @@ final class OpenAiFileInventory
      * (Assistants API) quedaron con "assistants". Hay que mirar los dos.
      */
     private const PURPOSES = ['user_data', 'assistants'];
+
+    public function __construct(private readonly ClubVectorStore $stores) {}
 
     /**
      * @return Collection<int, array{id: string, filename: string, bytes: int, created_at: int}>
@@ -40,9 +43,9 @@ final class OpenAiFileInventory
     /**
      * @return Collection<int, array{id: string, created_at: int, status: string, environment: ?string}>
      */
-    public function storeFiles(): Collection
+    public function storeFiles(ClubName $club): Collection
     {
-        $storeId = config('services.openai.vector_store_id');
+        $storeId = $this->stores->idFor($club);
 
         return $this->paginate("vector_stores/{$storeId}/files")
             ->map(fn (array $file) => [

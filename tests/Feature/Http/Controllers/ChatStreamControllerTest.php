@@ -115,6 +115,7 @@ describe('regenerate', function (): void {
 
 describe('contexto y partes del mensaje', function (): void {
     beforeEach(function (): void {
+        config(['services.openai.vector_stores' => ['vallealto' => 'vs_test']]);
         $this->user = User::factory()->create(['name' => 'Ana Gómez', 'club_name' => 'vallealto']);
         $this->user->roles()->attach(Role::firstOrCreate(['name' => 'golf_manager']));
         $this->actingAs($this->user);

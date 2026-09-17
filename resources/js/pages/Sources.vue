@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { SourceFile, SourcesHealth } from '@/components/sources/types'
+import type { ClubOption, SourceFile, SourcesHealth } from '@/components/sources/types'
 import type { ChatHistory } from '@/types'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import { LoaderCircle, RefreshCw, ScanSearch, Upload } from 'lucide-vue-next'
@@ -8,12 +8,16 @@ import { toast } from 'vue-sonner'
 import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
 import ExpiredSourcesSection from '@/components/sources/ExpiredSourcesSection.vue'
 import ReconcileDialog from '@/components/sources/ReconcileDialog.vue'
+import SourcesClubSwitch from '@/components/sources/SourcesClubSwitch.vue'
 import SourcesHealthStrip from '@/components/sources/SourcesHealthStrip.vue'
 import SourcesTable from '@/components/sources/SourcesTable.vue'
 import UploadSourceDialog from '@/components/sources/UploadSourceDialog.vue'
 import { Button } from '@/components/ui/button'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
+  club: string
+  clubs?: ClubOption[]
+  clubLocked?: boolean
   files: SourceFile[]
   expiredFiles?: SourceFile[]
   groups?: string[]
@@ -21,6 +25,8 @@ withDefaults(defineProps<{
   health: SourcesHealth
   chatHistory?: ChatHistory | null
 }>(), {
+  clubs: () => [],
+  clubLocked: false,
   expiredFiles: () => [],
   groups: () => [],
   syncRunning: false,
@@ -46,7 +52,7 @@ function startSync(): void {
 
 function reindex(file: SourceFile): void {
   busyFileId.value = file.id
-  router.post(route('sources.files.reindex', { file: file.id }), {}, {
+  router.post(route('sources.files.reindex', { file: file.id }), { club: props.club }, {
     preserveScroll: true,
     onFinish: () => (busyFileId.value = null),
   })
@@ -55,13 +61,18 @@ function reindex(file: SourceFile): void {
 function remove(file: SourceFile): void {
   busyFileId.value = file.id
   router.delete(route('sources.files.destroy', { file: file.id }), {
+    data: { club: props.club },
     preserveScroll: true,
     onFinish: () => (busyFileId.value = null),
   })
 }
 
 function purgeExpired(): void {
-  router.delete(route('sources.expired.purge'), { preserveScroll: true })
+  router.delete(route('sources.expired.purge'), { data: { club: props.club }, preserveScroll: true })
+}
+
+function switchClub(club: string): void {
+  router.get(route('sources'), { club }, { preserveState: false, preserveScroll: true })
 }
 </script>
 
@@ -75,7 +86,7 @@ function purgeExpired(): void {
           <div>
             <h1 class="text-[22px] font-semibold tracking-tight">Fuentes del asistente</h1>
             <p class="mt-1 text-sm text-muted-foreground">
-              Reportes de Pentaho y documentos del club que el asistente consulta al responder.
+              Documentos del BI de cada club, reportes de Pentaho y archivos subidos a mano que el asistente consulta al responder.
             </p>
           </div>
 
@@ -95,6 +106,8 @@ function purgeExpired(): void {
             </Button>
           </div>
         </header>
+
+        <SourcesClubSwitch :clubs="clubs" :model-value="club" :locked="clubLocked" @update:model-value="switchClub" />
 
         <SourcesHealthStrip :health="health" :sync-running="syncRunning" />
 
@@ -116,7 +129,7 @@ function purgeExpired(): void {
       </div>
     </div>
 
-    <UploadSourceDialog v-model:open="uploading" :groups="groups" />
-    <ReconcileDialog v-model:open="reconciling" />
+    <UploadSourceDialog v-model:open="uploading" :groups="groups" :club="club" />
+    <ReconcileDialog v-model:open="reconciling" :club="club" />
   </AssistantLayout>
 </template>

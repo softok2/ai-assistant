@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 use App\Jobs\SyncLock;
 use App\Jobs\IngestAssistantDocs;
-use App\Jobs\ImportDocsFromPentaho;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
+use App\Jobs\ImportKnowledgeDocuments;
 
 it('chains the import and the ingest and holds the lock while they run', function () {
     Bus::fake();
 
     $this->artisan('assistant-files:sync')->assertSuccessful();
 
-    Bus::assertChained([ImportDocsFromPentaho::class, IngestAssistantDocs::class]);
+    Bus::assertChained([ImportKnowledgeDocuments::class, IngestAssistantDocs::class]);
     expect(Cache::lock('syncing-assistant-files', 60)->get())->toBeFalse();
 });
 
@@ -25,7 +25,7 @@ it('refuses to start a second sync while one is running', function () {
         ->expectsOutputToContain('en curso')
         ->assertSuccessful();
 
-    Bus::assertNotDispatched(ImportDocsFromPentaho::class);
+    Bus::assertNotDispatched(ImportKnowledgeDocuments::class);
 });
 
 it('holds the lock long enough for a slow ingestion', function () {

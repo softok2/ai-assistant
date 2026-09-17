@@ -14,16 +14,19 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-const props = withDefaults(defineProps<{ open: boolean, groups?: string[] }>(), { groups: () => [] })
+const props = withDefaults(defineProps<{ open: boolean, groups?: string[], club: string }>(), { groups: () => [] })
 
 const emit = defineEmits<{ 'update:open': [value: boolean] }>()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 
-const form = useForm<{ group: string, file: File | null }>({
+const form = useForm<{ group: string, file: File | null, club: string }>({
   group: '',
   file: null,
+  club: props.club,
 })
+
+watch(() => props.club, v => form.club = v)
 
 watch(() => props.open, (open) => {
   if (!open) {
@@ -53,7 +56,7 @@ function submit(): void {
       <DialogHeader>
         <DialogTitle>Subir documento</DialogTitle>
         <DialogDescription>
-          El asistente lo indexa en segundo plano y sustituye al documento anterior del mismo grupo.
+          El asistente lo indexa en el store del club. Para sustituir un documento anterior, elimínalo desde la lista.
         </DialogDescription>
       </DialogHeader>
 

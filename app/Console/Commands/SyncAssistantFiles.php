@@ -11,7 +11,7 @@ final class SyncAssistantFiles extends Command
 {
     protected $signature = 'assistant-files:sync';
 
-    protected $description = 'Importa los reportes de Pentaho, los indexa en el vector store y limpia los caducados.';
+    protected $description = 'Importa los documentos de cada club, indexa lo que cambió en su vector store y limpia los caducados.';
 
     public function handle(StartAssistantFilesSyncAction $startSync): int
     {

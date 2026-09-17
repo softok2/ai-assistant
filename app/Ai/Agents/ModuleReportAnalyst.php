@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Ai\Agents;
 
-use Laravel\Ai\Attributes\Provider;
-use Laravel\Ai\Contracts\Agent;
-use Laravel\Ai\Contracts\HasTools;
+use App\Enums\ClubName;
 use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
+use Laravel\Ai\Contracts\Agent;
+use App\Ai\Files\ClubVectorStore;
+use Laravel\Ai\Contracts\HasTools;
+use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Providers\Tools\FileSearch;
 
 /**
@@ -21,9 +23,7 @@ final class ModuleReportAnalyst implements Agent, HasTools
 {
     use Promptable;
 
-    public function __construct(protected string $group)
-    {
-    }
+    public function __construct(protected ClubName $club, protected string $group) {}
 
     public function instructions(): string
     {
@@ -66,7 +66,7 @@ final class ModuleReportAnalyst implements Agent, HasTools
     {
         return [
             new FileSearch(
-                stores: [config('services.openai.vector_store_id')],
+                stores: [app(ClubVectorStore::class)->idFor($this->club)],
                 where: ['group' => $this->group],
             ),
         ];

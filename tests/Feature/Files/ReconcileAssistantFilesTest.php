@@ -3,12 +3,13 @@
 declare(strict_types=1);
 
 use App\Models\File;
+use App\Enums\ClubName;
 use App\Enums\MediaStatus;
 use Illuminate\Support\Facades\Http;
 use App\Actions\Files\ReconcileAssistantFilesAction;
 
 beforeEach(function () {
-    config(['services.openai.vector_store_id' => 'vs_test', 'ai.providers.openai.key' => 'sk-test', 'ai.providers.openai.url' => 'https://api.openai.com/v1']);
+    config(['services.openai.vector_stores.ccm' => 'vs_test', 'ai.providers.openai.key' => 'sk-test', 'ai.providers.openai.url' => 'https://api.openai.com/v1']);
 });
 
 function fakeOpenAiInventory(): void
@@ -94,7 +95,7 @@ it('never touches files of another environment and skips untagged and loose file
     File::factory()->completed()->create(['name' => 'golf-output-1787767203.md', 'assistant_media_id' => 'file-keep']);
     File::factory()->completed()->create(['name' => 'aesthetic-output-1785355206.md', 'assistant_media_id' => 'file-dup-new']);
 
-    $report = app(ReconcileAssistantFilesAction::class)->report();
+    $report = app(ReconcileAssistantFilesAction::class)->report(ClubName::CCM);
 
     expect($report->foreign)->toBe(1)
         ->and($report->untagged)->toBe(1)
@@ -132,4 +133,43 @@ it('sends back to pending the rows that pointed at a deleted file', function () 
 
     Http::assertSent(fn ($request) => $request->method() === 'DELETE'
         && str_ends_with($request->url(), '/vector_stores/vs_test/files/file-dup-new'));
+});
+
+/**
+ * `file-loose` está en la cuenta pero no en ningún store de la corrida
+ * (fixture de `fakeOpenAiInventory`). Si una fila de OTRO club lo referencia,
+ * el reporte de ccm no debe ofrecerlo como "loose": borrarlo tumbaría el
+ * archivo indexado de ese otro club.
+ */
+it('never treats an account file referenced by another club as loose', function () {
+    fakeOpenAiInventory();
+    File::factory()->completed()->create(['name' => 'golf-output-1787767203.md', 'assistant_media_id' => 'file-keep']);
+    File::factory()->forClub(ClubName::VALLEALTO)->completed()->create(['assistant_media_id' => 'file-loose']);
+
+    $report = app(ReconcileAssistantFilesAction::class)->report(ClubName::CCM, includeUntagged: true);
+
+    expect($report->loose->pluck('id')->all())->not->toContain('file-loose');
+});
+
+it('ignores the rows and files of another club', function () {
+    fakeOpenAiInventory();
+    File::factory()->completed()->create(['name' => 'ccm/golf-output-1787767203.md', 'assistant_media_id' => 'file-keep']);
+    // Fila de vallealto que apunta al id que en el store de ccm sería huérfano:
+    // no debe contar como referenciado desde el reporte de ccm.
+    File::factory()->forClub(ClubName::VALLEALTO)->completed()->create(['assistant_media_id' => 'file-orphan']);
+
+    $report = app(ReconcileAssistantFilesAction::class)->report(ClubName::CCM);
+
+    expect($report->referenced)->toBe(1)
+        ->and($report->orphans->pluck('id')->all())->toContain('file-orphan');
+});
+
+/**
+ * `ClubName::from()` tira un `ValueError` sin mensaje útil para un `--club`
+ * mal escrito; el comando debe avisar y salir con error, no reventar.
+ */
+it('fails cleanly when --club is not a known club', function () {
+    $this->artisan('assistant-files:reconcile', ['--club' => 'marte'])
+        ->expectsOutputToContain('Club desconocido')
+        ->assertFailed();
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\File;
 use App\Enums\MediaStatus;
+use App\Enums\SourceOrigin;
 use App\Jobs\UploadAssistantDoc;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
@@ -17,6 +18,7 @@ beforeEach(function () {
 it('stores a manual document and queues its upload', function () {
     $this->actingAs(adminUser())
         ->post(route('sources.files.store'), [
+            'club' => 'ccm',
             'group' => 'golf',
             'file' => UploadedFile::fake()->create('reglamento.md', 12),
         ])
@@ -25,15 +27,23 @@ it('stores a manual document and queues its upload', function () {
 
     $file = File::query()->sole();
 
-    expect($file->project)->toBe('manual')
+    expect($file->project)->toBe('ccm')
         ->and($file->group)->toBe('golf')
         ->and($file->status)->toBe(MediaStatus::PENDING)
-        ->and($file->name)->toStartWith('golf-manual-')
+        ->and($file->origin)->toBe(SourceOrigin::Manual)
+        ->and($file->checksum)->not->toBeNull()
+        ->and($file->name)->toStartWith('ccm/golf-manual-')
         ->and($file->name)->toEndWith('.md')
         ->and($file->expired_at)->toBeNull();
 
     Storage::assertExists('docs/'.$file->name);
     Bus::assertDispatched(UploadAssistantDoc::class, fn (UploadAssistantDoc $job) => $job->fileId === $file->id);
+});
+
+it('rejects a club the assistant does not serve', function () {
+    $this->actingAs(adminUser())
+        ->post(route('sources.files.store'), ['club' => 'marte', 'group' => 'golf', 'file' => UploadedFile::fake()->create('r.md', 1)])
+        ->assertSessionHasErrors('club');
 });
 
 it('rejects a file type the assistant cannot read', function () {
@@ -88,6 +98,7 @@ it('stores a text file with a safe extension whatever the client called it', fun
 
     $this->actingAs(adminUser())
         ->post(route('sources.files.store'), [
+            'club' => 'ccm',
             'group' => 'golf',
             'file' => new UploadedFile($path, 'notas.html', 'text/plain', null, true),
         ])
@@ -112,6 +123,7 @@ it('rejects an upload that carries a php extension', function () {
 it('keeps the markdown extension for a markdown document', function () {
     $this->actingAs(adminUser())
         ->post(route('sources.files.store'), [
+            'club' => 'ccm',
             'group' => 'golf',
             'file' => UploadedFile::fake()->createWithContent('reglamento.md', '# titulo'),
         ])
@@ -125,11 +137,13 @@ it('does not collide when two documents land in the same second', function () {
     $this->actingAs(adminUser());
 
     $this->post(route('sources.files.store'), [
+        'club' => 'ccm',
         'group' => 'golf',
         'file' => UploadedFile::fake()->create('uno.md', 4),
     ])->assertRedirect();
 
     $this->post(route('sources.files.store'), [
+        'club' => 'ccm',
         'group' => 'golf',
         'file' => UploadedFile::fake()->create('dos.md', 4),
     ])->assertRedirect();

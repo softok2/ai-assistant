@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Role;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
@@ -100,4 +100,29 @@ it('sends the frame-ancestors policy', function (): void {
 
     expect($response->headers->get('Content-Security-Policy'))
         ->toBe("frame-ancestors 'self' https://ccm-admin-api.test");
+});
+
+it('accepts every role the clubs derive from their BI report keys', function (string $role): void {
+    $this->artisan('db:seed', ['--class' => 'RoleSeeder']);
+
+    $this->get('/?'.http_build_query(signedLinkParams(['role' => $role])))
+        ->assertRedirect(route('chats.index'));
+
+    expect(User::sole()->roles()->sole()->name)->toBe($role);
+})->with(['restaurant_manager', 'futbol_manager', 'incidences_manager', 'guests_manager', 'wellness_manager']);
+
+it('authenticates a vallealto link signed with its own secret', function (): void {
+    // La clave debe existir en config/app.php: Config::set sobre una clave
+    // inexistente la crearía y el test pasaría sin tocar la config real.
+    expect(config('app.club_signature_secrets'))->toHaveKey('vallealto');
+
+    Config::set('app.club_signature_secrets.vallealto', 'va-secret');
+    Role::firstOrCreate(['name' => 'restaurant_manager']);
+
+    $params = ['club' => 'vallealto', 'user_id' => 7, 'user_name' => 'Ana', 'role' => 'restaurant_manager', 'issued_at' => now()->getTimestamp()];
+    $params['sig'] = hash_hmac('sha256', implode('|', $params), 'va-secret');
+
+    $this->get('/?'.http_build_query($params))->assertRedirect(route('chats.index'));
+
+    expect(User::sole()->club_name)->toBe('vallealto');
 });

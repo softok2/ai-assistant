@@ -6,8 +6,9 @@ namespace App\Actions\Files;
 
 use App\Models\File;
 use Laravel\Ai\Files;
-use Laravel\Ai\Stores;
+use App\Enums\ClubName;
 use App\Enums\MediaStatus;
+use App\Ai\Files\ClubVectorStore;
 use Illuminate\Support\Collection;
 use App\Ai\Files\OpenAiFileInventory;
 use Illuminate\Http\Client\RequestException;
@@ -18,6 +19,9 @@ use Illuminate\Http\Client\RequestException;
  * (se conserva el referenciado o, si ninguno lo está, el más nuevo) y
  * archivos de la cuenta que no están en el store ni referenciados.
  *
+ * Cada club tiene su store; el reporte y el borrado se acotan al club
+ * recibido.
+ *
  * Varios entornos (local, stage, prod) pueden compartir la misma cuenta y el
  * mismo vector store, cada uno con su propia tabla `files`. Por eso cada
  * subida etiqueta el archivo con su entorno y aquí SOLO se tocan los del
@@ -27,13 +31,17 @@ use Illuminate\Http\Client\RequestException;
  */
 final class ReconcileAssistantFilesAction
 {
-    public function __construct(private readonly OpenAiFileInventory $inventory) {}
+    public function __construct(
+        private readonly OpenAiFileInventory $inventory,
+        private readonly ClubVectorStore $stores,
+    ) {}
 
-    public function report(bool $includeUntagged = false): ReconciliationReport
+    public function report(ClubName $club, bool $includeUntagged = false): ReconciliationReport
     {
-        $referenced = File::query()->whereNotNull('assistant_media_id')->pluck('assistant_media_id')->flip();
+        $referenced = File::query()->where('project', $club->value)->whereNotNull('assistant_media_id')->pluck('assistant_media_id')->flip();
+        $referencedAnywhere = File::query()->whereNotNull('assistant_media_id')->pluck('assistant_media_id')->flip();
         $account = $this->inventory->accountFiles()->keyBy('id');
-        $allStoreFiles = $this->inventory->storeFiles()->keyBy('id');
+        $allStoreFiles = $this->inventory->storeFiles($club)->keyBy('id');
         $environment = app()->environment();
 
         $foreign = $allStoreFiles->filter(fn (array $file) => $file['environment'] !== null && $file['environment'] !== $environment);
@@ -69,7 +77,7 @@ final class ReconcileAssistantFilesAction
 
         $loose = $includeUntagged
             ? $account->keys()
-                ->reject(fn (string $id) => $allStoreFiles->has($id) || $referenced->has($id))
+                ->reject(fn (string $id) => $allStoreFiles->has($id) || $referencedAnywhere->has($id))
                 ->map(fn (string $id) => $describe($id, 'loose'))
             : collect();
 
@@ -85,9 +93,9 @@ final class ReconcileAssistantFilesAction
         );
     }
 
-    public function apply(ReconciliationReport $report): int
+    public function apply(ClubName $club, ReconciliationReport $report): int
     {
-        $store = Stores::get(config('services.openai.vector_store_id'));
+        $store = $this->stores->storeFor($club);
         $deleted = collect();
 
         foreach ($report->orphans->concat($report->duplicates) as $file) {

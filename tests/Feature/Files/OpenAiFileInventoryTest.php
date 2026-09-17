@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Enums\ClubName;
 use Illuminate\Support\Facades\Http;
 use App\Ai\Files\OpenAiFileInventory;
 
 beforeEach(function () {
     config([
-        'services.openai.vector_store_id' => 'vs_test',
+        'services.openai.vector_stores.ccm' => 'vs_test',
         'ai.providers.openai.key' => 'sk-test',
         'ai.providers.openai.url' => 'https://api.openai.com/v1',
     ]);
@@ -42,7 +43,7 @@ it('follows the pagination of the account files until the last page', function (
         return Http::response(isset($query['after']) ? $userDataPages[1] : $userDataPages[0]);
     });
 
-    $files = (new OpenAiFileInventory)->accountFiles();
+    $files = app(OpenAiFileInventory::class)->accountFiles();
 
     expect($files->pluck('id')->all())->toBe(['file-a1', 'file-a2', 'file-b1'])
         ->and($files->firstWhere('id', 'file-b1')['bytes'])->toBe(300);
@@ -59,7 +60,7 @@ it('stops after one page when the store says there is no more', function () {
         ]),
     ]);
 
-    expect((new OpenAiFileInventory)->storeFiles()->pluck('id')->all())->toBe(['file-s1']);
+    expect(app(OpenAiFileInventory::class)->storeFiles(ClubName::CCM)->pluck('id')->all())->toBe(['file-s1']);
 
     Http::assertSentCount(1);
 });

@@ -2,21 +2,22 @@
 
 declare(strict_types=1);
 
-use App\Actions\Reports\GenerateWeeklyReportAction;
-use App\Actions\Reports\SendWeeklyReportAction;
-use App\Ai\Agents\ExecutiveSummaryWriter;
-use App\Ai\Agents\ModuleReportAnalyst;
+use App\Models\File;
 use App\Enums\ClubName;
+use App\Models\ReportSetting;
 use App\Enums\ReportFrequency;
 use App\Mail\WeeklyReportMail;
-use App\Models\File;
-use App\Models\ReportSetting;
+use Illuminate\Support\Carbon;
 use App\Reports\ChartSvgRenderer;
 use App\Reports\ReportContentParser;
-use App\Reports\WeeklyReportPdfRenderer;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use App\Ai\Agents\ModuleReportAnalyst;
+use App\Reports\WeeklyReportPdfRenderer;
+use App\Ai\Agents\ExecutiveSummaryWriter;
 use League\CommonMark\CommonMarkConverter;
+use App\Actions\Reports\SendWeeklyReportAction;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Actions\Reports\GenerateWeeklyReportAction;
 
 uses(RefreshDatabase::class);
 
@@ -41,8 +42,11 @@ it('extracts chart blocks and bare chart json from analyst output', function ():
 });
 
 it('generates report data from indexed modules, skipping empty ones', function (): void {
+    config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm']]);
+
     File::create(['name' => 'golf-x.md', 'group' => 'golf', 'status' => 'completed']);
     File::create(['name' => 'restaurant-x.md', 'group' => 'restaurant', 'status' => 'completed']);
+    File::create(['name' => 'vallealto/golf-live.md', 'group' => 'golf', 'status' => 'completed', 'project' => 'vallealto']);
 
     // indexedGroups() is alphabetical: golf then restaurant.
     ModuleReportAnalyst::fake([
@@ -60,6 +64,7 @@ it('generates report data from indexed modules, skipping empty ones', function (
 });
 
 it('sends the report with a pdf attachment to configured recipients', function (): void {
+    config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm']]);
     Mail::fake();
     $this->mock(WeeklyReportPdfRenderer::class)->shouldReceive('render')->andReturn('%PDF-fake');
 
@@ -83,6 +88,15 @@ it('sends the report with a pdf attachment to configured recipients', function (
     Mail::assertSent(WeeklyReportMail::class, fn (WeeklyReportMail $mail) => $mail->hasTo('director@ccm.test'));
 });
 
+it('grounds each module on the store of the report club', function (): void {
+    config(['services.openai.vector_stores' => ['vallealto' => 'vs_va']]);
+
+    $search = collect((new ModuleReportAnalyst(ClubName::VALLEALTO, 'golf'))->tools())->first();
+
+    expect($search->ids())->toBe(['vs_va'])
+        ->and($search->filters)->toBe([['type' => 'eq', 'key' => 'group', 'value' => 'golf']]);
+});
+
 it('throws when there is no indexed content', function (): void {
     Mail::fake();
     $setting = ReportSetting::create([
@@ -95,7 +109,7 @@ it('throws when there is no indexed content', function (): void {
 });
 
 it('computes due state from frequency, day, hour and last send', function (): void {
-    $monday8am = \Illuminate\Support\Carbon::now()->startOfWeek()->addHours(8);
+    $monday8am = Carbon::now()->startOfWeek()->addHours(8);
 
     expect(ReportFrequency::Weekly->isDue($monday8am, 1, 8, null))->toBeTrue();
     expect(ReportFrequency::Weekly->isDue($monday8am, 2, 8, null))->toBeFalse();

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Enums\ClubName;
 use Illuminate\Console\Command;
 use App\Actions\Files\ReconcileAssistantFilesAction;
 
 final class ReconcileAssistantFiles extends Command
 {
     protected $signature = 'assistant-files:reconcile
+        {--club=ccm : Club cuyo store se reconcilia}
         {--dry-run : Solo mostrar lo que se borraría}
         {--include-untagged : Incluir archivos sin etiqueta de entorno (subidos antes de esta versión) y sueltos en la cuenta}';
 
@@ -17,7 +19,17 @@ final class ReconcileAssistantFiles extends Command
 
     public function handle(ReconcileAssistantFilesAction $action): int
     {
-        $report = $action->report(includeUntagged: (bool) $this->option('include-untagged'));
+        $club = ClubName::tryFrom((string) $this->option('club'));
+
+        if ($club === null) {
+            $this->error("Club desconocido [{$this->option('club')}].");
+
+            return self::FAILURE;
+        }
+
+        $this->info("Club: {$club->value}");
+
+        $report = $action->report($club, includeUntagged: (bool) $this->option('include-untagged'));
 
         $this->info("Store: {$report->storeFiles} archivos · Cuenta: {$report->accountFiles} · Referenciados: {$report->referenced}");
         $this->line('Entorno actual: '.app()->environment()." · de otros entornos (ignorados): {$report->foreign} · sin etiqueta: {$report->untagged}".($this->option('include-untagged') ? ' (incluidos)' : ' (ignorados; usa --include-untagged)'));
@@ -43,7 +55,7 @@ final class ReconcileAssistantFiles extends Command
             return self::SUCCESS;
         }
 
-        $deleted = $action->apply($report);
+        $deleted = $action->apply($club, $report);
         $this->info("Borrados en OpenAI: {$deleted}.");
 
         return self::SUCCESS;

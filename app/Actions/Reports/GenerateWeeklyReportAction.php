@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Actions\Reports;
 
-use App\Ai\Agents\ExecutiveSummaryWriter;
-use App\Ai\Agents\ModuleReportAnalyst;
-use App\Enums\ClubName;
-use App\Enums\ReportFrequency;
-use App\Models\File;
-use App\Reports\ReportContentParser;
-use App\Reports\WeeklyReportData;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 use Throwable;
+use App\Models\File;
+use App\Enums\ClubName;
+use Illuminate\Support\Str;
+use App\Enums\ReportFrequency;
+use Illuminate\Support\Carbon;
+use App\Reports\WeeklyReportData;
+use App\Reports\ReportContentParser;
+use App\Ai\Agents\ModuleReportAnalyst;
+use App\Ai\Agents\ExecutiveSummaryWriter;
 
 /**
  * Builds the weekly executive report by having the AI analyse each indexed
@@ -24,8 +24,7 @@ final class GenerateWeeklyReportAction
 {
     public function __construct(
         private readonly ReportContentParser $parser,
-    ) {
-    }
+    ) {}
 
     public function execute(ClubName $club, ReportFrequency $frequency, ?Carbon $on = null): WeeklyReportData
     {
@@ -34,8 +33,8 @@ final class GenerateWeeklyReportAction
         $sections = [];
         $moduleSummaries = [];
 
-        foreach ($this->indexedGroups() as $group) {
-            $section = $this->analyseModule($group);
+        foreach ($this->indexedGroups($club) as $group) {
+            $section = $this->analyseModule($club, $group);
 
             if ($section !== null) {
                 $sections[] = $section;
@@ -55,10 +54,11 @@ final class GenerateWeeklyReportAction
     /**
      * @return array<int, string>
      */
-    private function indexedGroups(): array
+    private function indexedGroups(ClubName $club): array
     {
         return File::query()
             ->where('status', 'completed')
+            ->where('project', $club->value)
             ->whereNull('expired_at')
             ->distinct()
             ->orderBy('group')
@@ -70,10 +70,10 @@ final class GenerateWeeklyReportAction
     /**
      * @return array{title: string, html: string, charts: array<int, string>}|null
      */
-    private function analyseModule(string $group): ?array
+    private function analyseModule(ClubName $club, string $group): ?array
     {
         try {
-            $output = (string) (new ModuleReportAnalyst($group))->prompt(
+            $output = (string) (new ModuleReportAnalyst($club, $group))->prompt(
                 "Analiza el módulo \"{$group}\" para el reporte ejecutivo del periodo más reciente."
             );
         } catch (Throwable $exception) {

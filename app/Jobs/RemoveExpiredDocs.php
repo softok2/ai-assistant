@@ -16,8 +16,23 @@ final class RemoveExpiredDocs implements ShouldBeUniqueUntilProcessing, ShouldQu
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public function __construct(public readonly ?string $project = null) {}
+
+    /**
+     * Sin esto, `ShouldBeUniqueUntilProcessing` usaría la clase como llave y
+     * la purga de un club bloquearía la de los demás.
+     */
+    public function uniqueId(): string
+    {
+        return $this->project ?? 'all';
+    }
+
     public function handle(): void
     {
-        File::expired()->lazy()->each->remove();
+        File::expired()
+            ->when($this->project !== null, fn ($query) => $query->where('project', $this->project))
+            ->lazy()
+            ->each
+            ->remove();
     }
 }

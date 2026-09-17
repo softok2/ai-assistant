@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Throwable;
-use Laravel\Ai\Stores;
+use App\Enums\ClubName;
 use App\Enums\MediaStatus;
-use Illuminate\Support\Str;
+use App\Enums\SourceOrigin;
 use Laravel\Ai\Files\Document;
+use App\Ai\Files\ClubVectorStore;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -22,20 +23,6 @@ final class File extends Model
     use HasFactory;
 
     protected $guarded = ['id'];
-
-    public static function fromPentaho(string $fileName, $content): self
-    {
-        $file = self::firstOrCreate([
-            'name' => $fileName,
-            'group' => Str::of($fileName)->basename('.md')->before('-'),
-        ]);
-
-        if ($file->wasRecentlyCreated) {
-            Storage::put('docs/'.$fileName, $content);
-        }
-
-        return $file;
-    }
 
     /**
      * Reclama un pendiente para subirlo. Es un UPDATE condicional: si otro
@@ -54,25 +41,38 @@ final class File extends Model
         return $claimed === 1 ? self::find($id) : null;
     }
 
+    public function club(): ClubName
+    {
+        return ClubName::from((string) $this->project);
+    }
+
     /**
-     * Caduca los documentos MÁS VIEJOS del grupo (cualquier estado) una vez que
-     * este archivo quedó indexado. Solo los más viejos: si dos pendientes del
-     * mismo grupo se suben a la vez, se caducarían mutuamente y el grupo se
-     * quedaría sin documento.
+     * Caduca los documentos MÁS VIEJOS que este una vez que quedó indexado, y
+     * solo dentro de su club. Para el manifiesto del BI el nombre es estable
+     * (`vallealto/golf-live.md`) así que se acota también por nombre: golf-live
+     * y golf-annual del mismo grupo conviven. Pentaho cambia el nombre en cada
+     * corrida, ahí basta club + grupo. Solo los más viejos: si dos pendientes
+     * se suben a la vez no se caducan mutuamente.
      */
     public function expireSiblings(): void
     {
-        self::query()
+        $query = self::query()
             ->where('id', '<', $this->id)
+            ->where('project', $this->project)
             ->where('group', $this->group)
-            ->whereNull('expired_at')
-            ->update(['expired_at' => now()]);
+            ->whereNull('expired_at');
+
+        if ($this->origin !== SourceOrigin::Pentaho) {
+            $query->where('name', $this->name);
+        }
+
+        $query->update(['expired_at' => now()]);
     }
 
     public function upload(): self
     {
         try {
-            $store = Stores::get(config('services.openai.vector_store_id'));
+            $store = app(ClubVectorStore::class)->storeFor($this->club());
 
             $document = $store->add(
                 Document::fromStorage('docs/'.$this->name),
@@ -146,7 +146,7 @@ final class File extends Model
     protected function removeFromProvider(): void
     {
         try {
-            Stores::get(config('services.openai.vector_store_id'))
+            app(ClubVectorStore::class)->storeFor($this->club())
                 ->remove($this->assistant_media_id, deleteFile: true);
         } catch (RequestException $e) {
             if ($e->response->status() !== 404) {
@@ -159,6 +159,7 @@ final class File extends Model
     {
         return [
             'status' => MediaStatus::class,
+            'origin' => SourceOrigin::class,
             'synced_at' => 'datetime',
             'expired_at' => 'datetime',
         ];

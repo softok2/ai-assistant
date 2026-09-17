@@ -6,6 +6,7 @@ namespace App\Actions\Files;
 
 use App\Models\File;
 use App\Enums\MediaStatus;
+use App\Enums\SourceOrigin;
 use App\Jobs\UploadAssistantDoc;
 use Illuminate\Http\UploadedFile;
 use App\Dtos\ManualSourceFileData;
@@ -14,14 +15,16 @@ use Illuminate\Support\Facades\Storage;
 /**
  * Guarda un documento subido a mano con el mismo patrón de nombre que el
  * import de Pentaho (`<grupo>-…`), para que el resto del pipeline (caducar
- * hermanos del grupo, reconciliar contra OpenAI) lo trate igual.
+ * hermanos del grupo, reconciliar contra OpenAI) lo trate igual; el nombre
+ * lleva el club como carpeta, como el import.
  */
 final class StoreManualSourceFileAction
 {
     public function execute(ManualSourceFileData $data): File
     {
         $name = sprintf(
-            '%s-manual-%d-%s.%s',
+            '%s/%s-manual-%d-%s.%s',
+            $data->club->value,
             $data->group,
             now()->timestamp,
             bin2hex(random_bytes(3)),
@@ -31,10 +34,12 @@ final class StoreManualSourceFileAction
         Storage::putFileAs('docs', $data->file, $name);
 
         $file = File::query()->create([
-            'project' => 'manual',
+            'project' => $data->club->value,
             'group' => $data->group,
             'name' => $name,
             'status' => MediaStatus::PENDING,
+            'origin' => SourceOrigin::Manual,
+            'checksum' => hash_file('sha256', $data->file->getRealPath()),
             'bytes' => Storage::size('docs/'.$name),
         ]);
 

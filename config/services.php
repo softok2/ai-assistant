@@ -38,26 +38,15 @@ return [
     ],
     'openai' => [
         'model' => env('OPENAI_MODEL', 'gpt-4.1-mini'),
-        'vector_store_id' => env('OPENAI_VECTOR_STORE_ID'),
+        // Un vector store por club: la separación entre clubes es una frontera
+        // dura, no un filtro. Lo lee solo App\Ai\Files\ClubVectorStore.
+        'vector_stores' => [
+            'ccm' => env('OPENAI_VECTOR_STORE_CCM'),
+            'vallealto' => env('OPENAI_VECTOR_STORE_VALLEALTO'),
+        ],
     ],
 
     'browsershot' => [
         'chrome_path' => env('BROWSERSHOT_CHROME_PATH'),
-    ],
-
-    'softok2mds' => [
-        'base_url' => env('SOFTOK2MDS_BASE_URL', 'https://softok2mds.example.com/api/'),
-        'username' => env('SOFTOK2MDS_USERNAME', 'your-username'),
-        'password' => env('SOFTOK2MDS_PASSWORD', 'your-password'),
-        'projects' => explode(',', env('SOFTOK2MDS_PROJECTS', 'ccm')),
-        'files' => explode(',', env('SOFTOK2MDS_FILES', 'golf-output')),
-        // Cadencia de `assistant-files:sync`. La lee el scheduler en
-        // bootstrap/app.php y la franja de salud de Fuentes del asistente.
-        'sync' => [
-            'cron' => '0 */2 * * *',
-            'from' => '08:00',
-            'to' => '22:00',
-            'label' => 'Cada 2 h',
-        ],
     ],
 ];

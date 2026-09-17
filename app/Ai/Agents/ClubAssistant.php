@@ -11,13 +11,16 @@ use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Messages\Message;
+use App\Ai\Files\ClubVectorStore;
 use Illuminate\Support\Collection;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Attributes\Provider;
 use App\Models\Message as ChatMessage;
+use App\Ai\Files\MissingClubVectorStore;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Providers\Tools\WebSearch;
 use Laravel\Ai\Providers\Tools\FileSearch;
+use Laravel\Ai\Providers\Tools\FileSearchQuery;
 
 #[Provider(Lab::OpenAI)]
 final class ClubAssistant implements Agent, Conversational, HasTools
@@ -87,12 +90,29 @@ final class ClubAssistant implements Agent, Conversational, HasTools
     }
 
     /**
-     * Get the tools available to the agent.
+     * Herramientas del agente. La búsqueda de documentos va SIEMPRE al store
+     * del club del usuario (frontera dura entre clubes) y, si el rol es de una
+     * sola área, se recorta a sus grupos. Sin club no hay documentos que
+     * buscar: solo queda la web.
      */
     public function tools(): iterable
     {
+        if ($this->club === null) {
+            return [new WebSearch];
+        }
+
+        try {
+            $store = app(ClubVectorStore::class)->idFor($this->club);
+        } catch (MissingClubVectorStore) {
+            return [new WebSearch];
+        }
+
+        $groups = $this->role?->sourceGroups() ?? [];
+
         return [
-            new FileSearch(stores: [config('services.openai.vector_store_id')]),
+            $groups === []
+                ? new FileSearch(stores: [$store])
+                : new FileSearch(stores: [$store], where: fn (FileSearchQuery $query) => $query->whereIn('group', $groups)),
             new WebSearch,
         ];
     }

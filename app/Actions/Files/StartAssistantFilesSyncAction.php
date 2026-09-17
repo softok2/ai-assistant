@@ -6,14 +6,14 @@ namespace App\Actions\Files;
 
 use App\Jobs\SyncLock;
 use App\Jobs\IngestAssistantDocs;
-use App\Jobs\ImportDocsFromPentaho;
 use Illuminate\Support\Facades\Bus;
+use App\Jobs\ImportKnowledgeDocuments;
 
 /**
- * Arranca la sincronización de documentos: importa de Pentaho y luego indexa
- * lo pendiente. El candado se toma aquí y lo libera la ingesta al terminar (o
- * el `catch` de la cadena si algo revienta), para que dos corridas nunca suban
- * los mismos archivos.
+ * Arranca la sincronización de documentos: importa de la fuente de cada club
+ * y luego indexa lo pendiente. El candado se toma aquí y lo libera la ingesta
+ * al terminar (o el `catch` de la cadena si algo revienta), para que dos
+ * corridas nunca suban los mismos archivos.
  */
 final class StartAssistantFilesSyncAction
 {
@@ -27,7 +27,7 @@ final class StartAssistantFilesSyncAction
         }
 
         Bus::chain([
-            new ImportDocsFromPentaho,
+            new ImportKnowledgeDocuments,
             new IngestAssistantDocs,
         ])
             ->catch(static fn () => SyncLock::release())

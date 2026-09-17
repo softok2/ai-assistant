@@ -21,6 +21,7 @@ export function shortId(id: string): string {
 
 export const originLabel: Record<string, string> = {
   pentaho: 'Pentaho',
+  bi_knowledge: 'BI del club',
   manual: 'Manual',
 }
 

@@ -13,7 +13,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 beforeEach(function () {
     Storage::fake();
     Stores::fake();
-    config(['services.openai.vector_store_id' => 'vs_test']);
+    config(['services.openai.vector_stores.ccm' => 'vs_test']);
 });
 
 function pendingDoc(array $attributes = []): File

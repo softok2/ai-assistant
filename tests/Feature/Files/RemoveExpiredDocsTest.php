@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     Storage::fake();
-    config(['services.openai.vector_store_id' => 'vs_test', 'ai.providers.openai.key' => 'sk-test']);
+    config(['services.openai.vector_stores.ccm' => 'vs_test', 'ai.providers.openai.key' => 'sk-test']);
     Http::preventStrayRequests();
 });
 
@@ -66,4 +66,14 @@ it('keeps the row when OpenAI fails for another reason', function () {
     (new RemoveExpiredDocs)->handle();
 
     expect(File::find($file->id))->not->toBeNull();
+});
+
+/**
+ * Sin `uniqueId()` propio, `ShouldBeUniqueUntilProcessing` usa la clase como
+ * llave: una purga de ccm en curso bloquearía la de vallealto.
+ */
+it('keys uniqueness by project so two clubs can purge at the same time', function () {
+    expect((new RemoveExpiredDocs('ccm'))->uniqueId())->toBe('ccm')
+        ->and((new RemoveExpiredDocs('vallealto'))->uniqueId())->toBe('vallealto')
+        ->and((new RemoveExpiredDocs)->uniqueId())->toBe('all');
 });

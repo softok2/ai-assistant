@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatBytes, formatTimestamp } from './format'
 
-const props = defineProps<{ open: boolean }>()
+const props = defineProps<{ open: boolean, club: string }>()
 
 const emit = defineEmits<{ 'update:open': [value: boolean] }>()
 
@@ -57,7 +57,7 @@ async function load(): Promise<void> {
   failed.value = false
   try {
     const { data } = await axios.get<ReconciliationReport>(route('sources.reconcile.report'), {
-      params: includeUntagged.value === true ? { include_untagged: 1 } : {},
+      params: { club: props.club, ...(includeUntagged.value === true ? { include_untagged: 1 } : {}) },
     })
     report.value = data
   }
@@ -82,7 +82,7 @@ watch(includeUntagged, () => {
 
 function apply(): void {
   applying.value = true
-  router.post(route('sources.reconcile.apply'), { include_untagged: includeUntagged.value === true }, {
+  router.post(route('sources.reconcile.apply'), { club: props.club, include_untagged: includeUntagged.value === true }, {
     preserveScroll: true,
     onFinish: () => {
       applying.value = false

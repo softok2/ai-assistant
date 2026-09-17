@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Queries;
 
 use App\Models\File;
+use App\Enums\ClubName;
 use Cron\CronExpression;
 use App\Enums\MediaStatus;
 use Illuminate\Support\Carbon;
+use App\Ai\Files\ClubVectorStore;
 use App\Dtos\AssistantSourcesHealth;
+use App\Ai\Files\MissingClubVectorStore;
 
 /**
  * Resumen de salud de las fuentes: cuántas quedaron indexadas, cuándo vuelve a
@@ -22,9 +25,12 @@ final class AssistantSourcesHealthQuery
      */
     private const MAX_CANDIDATES = 24;
 
-    public function execute(): AssistantSourcesHealth
+    public function __construct(private readonly ClubVectorStore $stores) {}
+
+    public function execute(ClubName $club): AssistantSourcesHealth
     {
         $totals = File::active()
+            ->where('project', $club->value)
             ->reorder()
             ->toBase()
             ->selectRaw('count(*) as total')
@@ -33,7 +39,7 @@ final class AssistantSourcesHealthQuery
             ->first();
 
         $latest = $totals->latest_sync ?? null;
-        $sync = (array) config('services.softok2mds.sync');
+        $sync = (array) config('knowledge.sync');
 
         return new AssistantSourcesHealth(
             indexed: (int) ($totals->indexed ?? 0),
@@ -43,8 +49,8 @@ final class AssistantSourcesHealthQuery
             window: sprintf('De %s a %s', $sync['from'] ?? '00:00', $sync['to'] ?? '23:59'),
             nextRunAt: $this->nextRunAt($sync),
             environment: app()->environment(),
-            vectorStoreSuffix: $this->vectorStoreSuffix(),
-            expiredCount: File::expired()->count(),
+            vectorStoreSuffix: $this->vectorStoreSuffix($club),
+            expiredCount: File::expired()->where('project', $club->value)->count(),
         );
     }
 
@@ -76,10 +82,12 @@ final class AssistantSourcesHealthQuery
         return null;
     }
 
-    private function vectorStoreSuffix(): ?string
+    private function vectorStoreSuffix(ClubName $club): ?string
     {
-        $store = (string) config('services.openai.vector_store_id');
-
-        return $store === '' ? null : mb_substr($store, -8);
+        try {
+            return mb_substr($this->stores->idFor($club), -8);
+        } catch (MissingClubVectorStore) {
+            return null;
+        }
     }
 }

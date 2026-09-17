@@ -42,8 +42,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('telescope:prune')->daily();
         $schedule->command('assistant-files:sync')
-            ->cron(config('services.softok2mds.sync.cron'))
-            ->between(config('services.softok2mds.sync.from'), config('services.softok2mds.sync.to'));
+            ->cron(config('knowledge.sync.cron'))
+            ->between(config('knowledge.sync.from'), config('knowledge.sync.to'));
 
         // Evaluate report schedules hourly; the command decides which clubs are due.
         $schedule->command('reports:send-due')->hourly();

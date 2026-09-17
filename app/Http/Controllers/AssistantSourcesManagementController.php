@@ -6,12 +6,15 @@ namespace App\Http\Controllers;
 
 use Throwable;
 use App\Models\File;
+use Illuminate\Http\Request;
 use App\Jobs\RemoveExpiredDocs;
 use Illuminate\Http\JsonResponse;
 use App\Dtos\ManualSourceFileData;
 use Illuminate\Http\RedirectResponse;
 use App\Http\Requests\StoreSourceFileRequest;
 use App\Actions\Files\ReindexSourceFileAction;
+use App\Actions\Files\ResolveSourcesClubAction;
+use App\Http\Requests\PurgeExpiredSourcesRequest;
 use App\Actions\Files\StoreManualSourceFileAction;
 use App\Http\Requests\ReconcileSourceFilesRequest;
 use App\Actions\Files\ReconcileAssistantFilesAction;
@@ -35,19 +38,19 @@ final class AssistantSourcesManagementController extends Controller
 
     public function reconcileReport(ReconcileSourceFilesRequest $request, ReconcileAssistantFilesAction $reconcile): JsonResponse
     {
-        return response()->json($reconcile->report($request->includeUntagged())->toArray());
+        return response()->json($reconcile->report($request->club(), $request->includeUntagged())->toArray());
     }
 
     public function reconcile(ReconcileSourceFilesRequest $request, ReconcileAssistantFilesAction $reconcile): RedirectResponse
     {
         try {
-            $report = $reconcile->report($request->includeUntagged());
+            $report = $reconcile->report($request->club(), $request->includeUntagged());
 
             if ($report->isClean()) {
                 return back()->with('success', 'Nada que reconciliar');
             }
 
-            $deleted = $reconcile->apply($report);
+            $deleted = $reconcile->apply($request->club(), $report);
         } catch (Throwable $e) {
             report($e);
 
@@ -64,8 +67,12 @@ final class AssistantSourcesManagementController extends Controller
         return back()->with('success', "Documento {$file->name} recibido; se está indexando.");
     }
 
-    public function reindex(File $file, ReindexSourceFileAction $reindex): RedirectResponse
+    public function reindex(Request $request, File $file, ReindexSourceFileAction $reindex, ResolveSourcesClubAction $resolveClub): RedirectResponse
     {
+        $club = $resolveClub->execute($request->user(), $request->input('club'));
+
+        abort_unless($file->project === $club->value, 404);
+
         try {
             if (! $reindex->execute($file)) {
                 return back()->with('error', "El documento {$file->name} ya no está en el disco; no se puede reindexar.");
@@ -79,8 +86,12 @@ final class AssistantSourcesManagementController extends Controller
         return back()->with('success', "Documento {$file->name} puesto en cola para reindexar.");
     }
 
-    public function destroy(File $file): RedirectResponse
+    public function destroy(Request $request, File $file, ResolveSourcesClubAction $resolveClub): RedirectResponse
     {
+        $club = $resolveClub->execute($request->user(), $request->input('club'));
+
+        abort_unless($file->project === $club->value, 404);
+
         $name = $file->name;
 
         $file->remove();
@@ -92,9 +103,9 @@ final class AssistantSourcesManagementController extends Controller
         return back()->with('success', "Documento {$name} eliminado.");
     }
 
-    public function purgeExpired(): RedirectResponse
+    public function purgeExpired(PurgeExpiredSourcesRequest $request, ResolveSourcesClubAction $resolveClub): RedirectResponse
     {
-        RemoveExpiredDocs::dispatch();
+        RemoveExpiredDocs::dispatch($resolveClub->execute($request->user(), $request->club())->value);
 
         return back()->with('success', 'Purga de documentos caducados iniciada.');
     }

@@ -15,7 +15,7 @@ beforeEach(function () {
     Stores::fake();
     Files::fake();
     Bus::fake();
-    config(['services.openai.vector_store_id' => 'vs_test']);
+    config(['services.openai.vector_stores.ccm' => 'vs_test']);
 });
 
 it('drops the OpenAI copy and queues a fresh upload', function () {
@@ -23,7 +23,7 @@ it('drops the OpenAI copy and queues a fresh upload', function () {
     Storage::put('docs/'.$file->name, '# reporte');
 
     $this->actingAs(adminUser())
-        ->post(route('sources.files.reindex', $file))
+        ->post(route('sources.files.reindex', $file), ['club' => 'ccm'])
         ->assertRedirect()
         ->assertSessionHas('success');
 
@@ -42,7 +42,7 @@ it('brings an expired document back into the queue', function () {
     Storage::put('docs/'.$file->name, '# reporte viejo');
 
     $this->actingAs(adminUser())
-        ->post(route('sources.files.reindex', $file))
+        ->post(route('sources.files.reindex', $file), ['club' => 'ccm'])
         ->assertRedirect()
         ->assertSessionHas('success');
 
@@ -53,7 +53,7 @@ it('refuses to reindex a document that is no longer on disk', function () {
     $file = File::factory()->completed()->create();
 
     $this->actingAs(adminUser())
-        ->post(route('sources.files.reindex', $file))
+        ->post(route('sources.files.reindex', $file), ['club' => 'ccm'])
         ->assertRedirect()
         ->assertSessionHas('error');
 
@@ -71,7 +71,7 @@ it('keeps the row untouched when OpenAI refuses to drop the old copy', function 
     Storage::put('docs/'.$file->name, '# reporte');
 
     $this->actingAs(adminUser())
-        ->post(route('sources.files.reindex', $file))
+        ->post(route('sources.files.reindex', $file), ['club' => 'ccm'])
         ->assertRedirect()
         ->assertSessionHas('error');
 
@@ -88,10 +88,24 @@ it('reindexes a row stuck in progress', function () {
     Storage::put('docs/'.$file->name, '# reporte');
 
     $this->actingAs(adminUser())
-        ->post(route('sources.files.reindex', $file))
+        ->post(route('sources.files.reindex', $file), ['club' => 'ccm'])
         ->assertRedirect()
         ->assertSessionHas('success');
 
     expect($file->fresh()->status)->toBe(MediaStatus::PENDING);
     Bus::assertDispatched(UploadAssistantDoc::class);
+});
+
+it('refuses to reindex a file that belongs to another club', function () {
+    $admin = adminUser();
+    $admin->forceFill(['club_name' => 'vallealto'])->save();
+    $file = File::factory()->completed()->create();
+    Storage::put('docs/'.$file->name, '# reporte');
+
+    $this->actingAs($admin)
+        ->post(route('sources.files.reindex', $file), ['club' => 'ccm'])
+        ->assertNotFound();
+
+    expect($file->fresh()->status)->toBe(MediaStatus::COMPLETED);
+    Bus::assertNotDispatched(UploadAssistantDoc::class);
 });

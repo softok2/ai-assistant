@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
     config([
-        'services.openai.vector_store_id' => 'vs_test',
+        'services.openai.vector_stores.ccm' => 'vs_test',
         'ai.providers.openai.key' => 'sk-test',
         'ai.providers.openai.url' => 'https://api.openai.com/v1',
     ]);
@@ -68,7 +68,7 @@ it('returns the reconciliation report as json without deleting anything', functi
     fakeSourcesInventory();
 
     $report = $this->actingAs(adminUser())
-        ->getJson(route('sources.reconcile.report'))
+        ->getJson(route('sources.reconcile.report', ['club' => 'ccm']))
         ->assertOk()
         ->assertJsonPath('store_files', 6)
         ->assertJsonPath('account_files', 7)
@@ -90,7 +90,7 @@ it('leaves the untagged and loose files out of the report unless they are asked 
     fakeSourcesInventory();
 
     $withUntagged = $this->actingAs(adminUser())
-        ->getJson(route('sources.reconcile.report', ['include_untagged' => 1]))
+        ->getJson(route('sources.reconcile.report', ['include_untagged' => 1, 'club' => 'ccm']))
         ->assertOk()
         ->assertJsonPath('foreign', 1)
         ->assertJsonPath('untagged', 1)
@@ -106,7 +106,7 @@ it('applies the reconciliation and flashes how many files it deleted', function 
     fakeSourcesInventory();
 
     $this->actingAs(adminUser())
-        ->post(route('sources.reconcile.apply'))
+        ->post(route('sources.reconcile.apply'), ['club' => 'ccm'])
         ->assertRedirect()
         ->assertSessionHas('success', 'Se borraron 2 archivos de OpenAI');
 
@@ -117,7 +117,7 @@ it('never deletes a file that belongs to another environment', function () {
     fakeSourcesInventory();
 
     $this->actingAs(adminUser())
-        ->post(route('sources.reconcile.apply'), ['include_untagged' => true])
+        ->post(route('sources.reconcile.apply'), ['include_untagged' => true, 'club' => 'ccm'])
         ->assertRedirect()
         ->assertSessionHas('success', 'Se borraron 4 archivos de OpenAI');
 
@@ -136,7 +136,7 @@ it('says there is nothing to reconcile when OpenAI matches the database', functi
     File::factory()->completed()->create(['name' => 'golf-output-1787767203.md', 'assistant_media_id' => 'file-keep']);
 
     $this->actingAs(adminUser())
-        ->post(route('sources.reconcile.apply'))
+        ->post(route('sources.reconcile.apply'), ['club' => 'ccm'])
         ->assertRedirect()
         ->assertSessionHas('success', 'Nada que reconciliar');
 
@@ -145,7 +145,7 @@ it('says there is nothing to reconcile when OpenAI matches the database', functi
 
 it('rejects a request that does not carry a boolean flag', function () {
     $this->actingAs(adminUser())
-        ->postJson(route('sources.reconcile.apply'), ['include_untagged' => 'quizá'])
+        ->postJson(route('sources.reconcile.apply'), ['include_untagged' => 'quizá', 'club' => 'ccm'])
         ->assertStatus(422)
         ->assertJsonValidationErrors('include_untagged');
 });
@@ -154,7 +154,7 @@ it('flashes an error when OpenAI does not answer', function () {
     Http::fake(['https://api.openai.com/v1/*' => Http::response(['error' => ['message' => 'boom']], 500)]);
 
     $this->actingAs(adminUser())
-        ->post(route('sources.reconcile.apply'))
+        ->post(route('sources.reconcile.apply'), ['club' => 'ccm'])
         ->assertRedirect()
         ->assertSessionHas('error');
 });

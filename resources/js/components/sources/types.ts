@@ -1,4 +1,9 @@
-export type SourceOrigin = 'pentaho' | 'manual'
+export type SourceOrigin = 'pentaho' | 'bi_knowledge' | 'manual'
+
+export interface ClubOption {
+  value: string
+  label: string
+}
 
 export interface SourceFile {
   id: number

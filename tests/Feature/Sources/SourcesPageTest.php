@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-use App\Jobs\SyncLock;
 use App\Models\File;
 use App\Models\User;
+use App\Jobs\SyncLock;
+use App\Enums\ClubName;
+use App\Enums\SourceOrigin;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
@@ -39,7 +41,7 @@ it('gives an admin the expired files, the groups and the sync state', function (
 
 it('labels the group and tells apart a pentaho report from a manual upload', function () {
     File::factory()->completed()->create(['group' => 'paddle', 'name' => 'ccm/paddle-output-1787767203.md']);
-    File::factory()->completed()->create(['group' => 'unknown-area', 'name' => 'unknown-area-manual-1787767203-ab12cd.pdf']);
+    File::factory()->completed()->create(['group' => 'unknown-area', 'name' => 'unknown-area-manual-1787767203-ab12cd.pdf', 'origin' => SourceOrigin::Manual]);
 
     $this->actingAs(adminUser())
         ->get(route('sources'))
@@ -51,8 +53,50 @@ it('labels the group and tells apart a pentaho report from a manual upload', fun
             ->where('files.1.origin', 'manual'));
 });
 
+it('scopes the page to the club of an external admin and locks the selector', function () {
+    File::factory()->forClub(ClubName::VALLEALTO)->completed()->create(['group' => 'golf']);
+    File::factory()->forClub(ClubName::CCM)->completed()->create(['group' => 'golf']);
+    $admin = adminUser();
+    $admin->forceFill(['club_name' => 'vallealto'])->save();
+
+    $this->actingAs($admin)
+        ->get(route('sources', ['club' => 'ccm']))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('club', 'vallealto')
+            ->where('clubLocked', true)
+            ->has('files', 1)
+            ->where('files.0.name', fn ($name) => str_starts_with($name, 'vallealto/'))
+            ->where('health.total', 1));
+});
+
+it('lets a local admin without club pick one and defaults to the first configured', function () {
+    config(['knowledge.sources' => ['ccm' => ['driver' => 'pentaho'], 'vallealto' => ['driver' => 'bi_knowledge']]]);
+    File::factory()->forClub(ClubName::VALLEALTO)->completed()->create(['group' => 'golf']);
+
+    $this->actingAs(adminUser())
+        ->get(route('sources'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->where('club', 'ccm')
+            ->where('clubLocked', false)
+            ->where('clubs.1.value', 'vallealto')
+            ->has('files', 0));
+
+    $this->actingAs(adminUser())
+        ->get(route('sources', ['club' => 'vallealto']))
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('club', 'vallealto')->has('files', 1));
+});
+
+it('labels the origin from the column instead of the file name', function () {
+    File::factory()->forClub(ClubName::VALLEALTO)->fromManifest('golf-live.md')->completed()->create();
+
+    $this->actingAs(adminUser())
+        ->get(route('sources', ['club' => 'vallealto']))
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('files.0.origin', 'bi_knowledge'));
+});
+
 it('summarises the health of the sources', function () {
-    config(['services.openai.vector_store_id' => 'vs_abcdefgh12345678']);
+    config(['services.openai.vector_stores.ccm' => 'vs_abcdefgh12345678']);
 
     File::factory()->completed()->create(['group' => 'golf']);
     File::factory()->create(['group' => 'tennis']);
@@ -71,6 +115,15 @@ it('summarises the health of the sources', function () {
             ->where('health.schedule.every', 'Cada 2 h')
             ->where('health.schedule.window', 'De 08:00 a 22:00')
             ->has('health.schedule.next_run_at'));
+});
+
+it('reports no store when the club has none configured', function () {
+    config(['services.openai.vector_stores' => ['ccm' => null]]);
+
+    $this->actingAs(adminUser())
+        ->get(route('sources'))
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('health.vector_store_suffix', null));
 });
 
 it('computes the next sync from the configured cadence, skipping the night', function (string $now, string $expected) {
