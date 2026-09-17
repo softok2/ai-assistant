@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Models\File;
+use App\Models\User;
 use App\Enums\ClubName;
 use App\Enums\RoleName;
 use App\Enums\SourceGroup;
+use Illuminate\Support\Carbon;
 use App\Ai\Agents\ClubAssistant;
 use Laravel\Ai\Providers\Tools\WebSearch;
 use Laravel\Ai\Providers\Tools\FileSearch;
@@ -143,4 +146,40 @@ it('offers no file search when the user has no club', function (): void {
 
     expect(fileSearchOf($tools))->toBeNull()
         ->and($tools[0])->toBeInstanceOf(WebSearch::class);
+});
+
+it('keeps the freshness rules in the base prompt', function (): void {
+    $prompt = file_get_contents(resource_path('prompts/club_assistant.md'));
+
+    expect($prompt)->toContain('Vigencia de los datos')
+        ->and($prompt)->toContain('no están en los reportes');
+});
+
+it('tells the assistant when its reports were last updated', function (): void {
+    $instructions = ClubAssistant::make(
+        club: ClubName::VALLEALTO,
+        role: RoleName::ADMIN,
+        dataCutoff: Carbon::parse('2026-09-16 03:15:00'),
+    )->instructions();
+
+    expect($instructions)->toContain('Última actualización de los reportes: 2026-09-16');
+});
+
+it('says nothing about a cut-off when the library has no date', function (): void {
+    expect(ClubAssistant::make(club: ClubName::VALLEALTO, role: RoleName::ADMIN)->instructions())
+        ->not->toContain('Última actualización de los reportes');
+});
+
+it('takes the cut-off from the indexed library of the user club', function (): void {
+    $user = User::factory()->create(['club_name' => 'vallealto']);
+    File::create([
+        'project' => 'vallealto',
+        'name' => 'vallealto/golf-live.md',
+        'group' => 'golf',
+        'status' => 'completed',
+        'synced_at' => '2026-09-16 03:15:00',
+    ]);
+
+    expect(ClubAssistant::forUser($user)->instructions())
+        ->toContain('Última actualización de los reportes: 2026-09-16');
 });

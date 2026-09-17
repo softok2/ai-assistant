@@ -9,12 +9,14 @@ use App\Enums\ClubName;
 use App\Enums\RoleName;
 use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
+use Illuminate\Support\Carbon;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Messages\Message;
 use App\Ai\Files\ClubVectorStore;
 use Illuminate\Support\Collection;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Attributes\Provider;
+use App\Queries\LibrarySnapshotQuery;
 use App\Models\Message as ChatMessage;
 use App\Ai\Files\MissingClubVectorStore;
 use Laravel\Ai\Contracts\Conversational;
@@ -29,12 +31,14 @@ final class ClubAssistant implements Agent, Conversational, HasTools
 
     /**
      * @param  Collection<int, ChatMessage>|null  $history  prior chat messages, oldest first
+     * @param  Carbon|null  $dataCutoff  última actualización de la biblioteca del club
      */
     public function __construct(
         protected ?Collection $history = null,
         protected ?ClubName $club = null,
         protected ?RoleName $role = null,
         protected ?string $userName = null,
+        protected ?Carbon $dataCutoff = null,
     ) {}
 
     /**
@@ -44,11 +48,15 @@ final class ClubAssistant implements Agent, Conversational, HasTools
      */
     public static function forUser(?User $user, ?Collection $history = null): self
     {
+        $club = $user?->clubName();
+        $role = $user?->primaryRole();
+
         return new self(
             history: $history,
-            club: $user?->clubName(),
-            role: $user?->primaryRole(),
+            club: $club,
+            role: $role,
             userName: $user?->name,
+            dataCutoff: app(LibrarySnapshotQuery::class)->execute($club, $role)->syncedAt,
         );
     }
 
@@ -133,6 +141,10 @@ final class ClubAssistant implements Agent, Conversational, HasTools
 
         if ($this->userName !== null && trim($this->userName) !== '') {
             $lines[] = 'Nombre de quien pregunta: '.trim($this->userName).'.';
+        }
+
+        if ($this->dataCutoff !== null) {
+            $lines[] = 'Última actualización de los reportes: '.$this->dataCutoff->format('Y-m-d H:i').'.';
         }
 
         $lines[] = '';

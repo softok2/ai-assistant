@@ -20,6 +20,8 @@ use App\Ai\Agents\ChatStarterSuggester;
  */
 final class ResolveChatStartersAction
 {
+    private const VERSION = 'v2';
+
     private const TTL_HOURS = 6;
 
     private const MAX_DOCUMENTS = 25;
@@ -61,7 +63,7 @@ final class ResolveChatStartersAction
     private function suggest(?ClubName $club, ?RoleName $role, LibrarySnapshot $library): ?array
     {
         try {
-            $response = (new ChatStarterSuggester($club, $role))
+            $response = (new ChatStarterSuggester($club, $role, $library->syncedAt?->toDateString()))
                 ->prompt($this->documentList($library), provider: $this->providers->nameFor($club));
         } catch (Throwable $exception) {
             report($exception);
@@ -96,8 +98,12 @@ final class ResolveChatStartersAction
         return "Documentos indexados en la biblioteca del club:\n".implode("\n", $lines);
     }
 
+    /**
+     * La versión de la llave se sube cuando cambian las reglas del sugeridor:
+     * así lo cacheado con las reglas viejas no sobrevive al despliegue.
+     */
     private function cacheKey(?ClubName $club, ?RoleName $role): string
     {
-        return 'chat-starters:'.($club?->value ?? 'sin-club').':'.($role?->value ?? 'sin-rol');
+        return 'chat-starters:'.self::VERSION.':'.($club?->value ?? 'sin-club').':'.($role?->value ?? 'sin-rol');
     }
 }

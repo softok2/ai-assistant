@@ -67,10 +67,10 @@ final class DefaultStarters
                 ['area' => 'Servicios generales', 'question' => 'Compara los reportes de este mes con el anterior'],
             ],
             default => [
-                ['area' => 'Dirección', 'question' => 'Dame un resumen ejecutivo de la semana'],
-                ['area' => 'Golf', 'question' => '¿Cómo va la ocupación del campo?'],
-                ['area' => 'Restaurantes', 'question' => '¿Cómo se comportaron las reservas de restaurante?'],
-                ['area' => 'Dirección', 'question' => '¿Qué área necesita atención esta semana?'],
+                ['area' => 'Dirección', 'question' => 'Dame el resumen ejecutivo de la semana pasada'],
+                ['area' => 'Golf', 'question' => '¿Cómo cerró la ocupación del campo el mes pasado?'],
+                ['area' => 'Incidencias', 'question' => '¿Qué incidencias siguen abiertas al último corte?'],
+                ['area' => 'Deportes', 'question' => 'Compara tenis, pádel y fútbol del último mes'],
             ],
         };
     }
