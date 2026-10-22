@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Models\Chat;
 use App\Models\User;
 use App\Models\Message;
-use App\Enums\ModelName;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -73,7 +72,6 @@ describe('ChatController', function (): void {
             $data = [
                 'message' => 'Test chat message',
                 'visibility' => 'private',
-                'model' => ModelName::GPT_4_1_NANO->value,
             ];
 
             $response = $this->post(route('chats.store'), $data);
@@ -98,7 +96,6 @@ describe('ChatController', function (): void {
             $data = [
                 'message' => 'Test message',
                 'visibility' => 'invalid',
-                'model' => ModelName::GPT_4O_MINI->value,
             ];
 
             $response = $this->post(route('chats.store'), $data);
@@ -106,16 +103,16 @@ describe('ChatController', function (): void {
             $response->assertSessionHasErrors('visibility');
         });
 
-        it('validates model enum values', function (): void {
+        it('ignores a model sent by an outdated client', function (): void {
             $data = [
                 'message' => 'Test message',
                 'visibility' => 'private',
-                'model' => 'invalid-model',
+                'model' => 'gpt-6-luna',
             ];
 
             $response = $this->post(route('chats.store'), $data);
 
-            $response->assertSessionHasErrors('model');
+            $response->assertSessionDoesntHaveErrors('model');
         });
     });
 

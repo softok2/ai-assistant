@@ -9,14 +9,18 @@ use Laravel\Ai\Promptable;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Attributes\MaxTokens;
+use Laravel\Ai\Contracts\HasProviderOptions;
+use App\Ai\Concerns\ConfiguresOpenAiReasoning;
 
 /**
  * Writes the cover executive summary from the already-produced module sections.
  */
 #[Provider(Lab::OpenAI)]
-#[MaxTokens(400)]
-final class ExecutiveSummaryWriter implements Agent
+// gpt-6-luna razona antes de escribir y esos tokens cuentan en el tope.
+#[MaxTokens(2000)]
+final class ExecutiveSummaryWriter implements Agent, HasProviderOptions
 {
+    use ConfiguresOpenAiReasoning;
     use Promptable;
 
     public function instructions(): string

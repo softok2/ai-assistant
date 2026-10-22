@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use Inertia\Middleware;
-use App\Enums\ModelName;
 use Tighten\Ziggy\Ziggy;
 use Illuminate\Http\Request;
 
@@ -55,7 +54,6 @@ final class HandleInertiaRequests extends Middleware
             ],
             'flash' => $this->flash($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
-            'availableModels' => ModelName::getAvailableModels(),
         ];
     }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ChatHistory, ChatStarter, Model, SharedData, SourcesScope } from '@/types'
+import type { ChatHistory, ChatStarter, SharedData, SourcesScope } from '@/types'
 import { Head, router, usePage } from '@inertiajs/vue3'
 import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
 import ChatGreetingV2 from '@/components/assistant/ChatGreetingV2.vue'
@@ -16,12 +16,9 @@ defineProps<{
 
 const sharedProps = usePage<SharedData>().props
 const userName = sharedProps.auth?.user?.name ?? null
-const models = (sharedProps.availableModels ?? []) as Model[]
-
-function startChat(message: string, model: string | null = null, attachments: any[] = []): void {
+function startChat(message: string, attachments: any[] = []): void {
   router.post(route('chats.store'), {
     message,
-    model,
     visibility: 'private',
     attachments,
   })
@@ -37,7 +34,7 @@ function startChat(message: string, model: string | null = null, attachments: an
         <ChatGreetingV2 :name="userName" />
 
         <div class="space-y-3">
-          <ChatInput :models="models" @submit="startChat" />
+          <ChatInput @submit="startChat" />
           <ChatScopeChips :sources="sources" />
         </div>
 

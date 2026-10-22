@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Que el asistente use `gpt-6-luna` con razonamiento `low`, que el resumen del razonamiento se vea en vivo ("Pensando…") y quede guardado en el mensaje ("Razonó N s"), y que desaparezca el selector de modelo por mensaje.
+**Goal:** Que el asistente y los agentes de reportes usen `gpt-6-luna` con razonamiento `low`, que el resumen del razonamiento se vea en vivo ("Pensando…") y quede guardado en el mensaje ("Razonó N s"), y que desaparezca el selector de modelo por mensaje.
 
-**Architecture:** Backend: `ClubAssistant` fija modelo y opciones de razonamiento desde `config('services.openai.assistant')` e implementa `HasProviderOptions`; `ResolveStreamInsightsAction` convierte los eventos `ReasoningStart/Delta/End` de laravel/ai en una parte `reasoning` persistida en `messages.parts`. El controller de stream no cambia: ya reenvía todos los eventos. Frontend: `useAssistantStream.ts` acumula los eventos de razonamiento en `parts.reasoning`; un componente nuevo `ReasoningTrail.vue` lo pinta encima de `ActivityTrail`.
+**Architecture:** Backend: `config('services.openai.model')` pasa a `gpt-6-luna` y un trait `ConfiguresOpenAiReasoning` da `HasProviderOptions` a `ClubAssistant` (con `summary`) y a los dos agentes de reportes (solo `effort`); `ResolveStreamInsightsAction` convierte los eventos `ReasoningStart/Delta/End` de laravel/ai en una parte `reasoning` persistida en `messages.parts`. El controller de stream no cambia: ya reenvía todos los eventos. Frontend: `useAssistantStream.ts` acumula los eventos de razonamiento en `parts.reasoning`; un componente nuevo `ReasoningTrail.vue` lo pinta encima de `ActivityTrail`.
 
 **Tech Stack:** Laravel 13 / PHP 8.5 / laravel/ai 1.3 (`Laravel\Ai\Contracts\HasProviderOptions`, `Laravel\Ai\Streaming\Events\{ReasoningStart,ReasoningDelta,ReasoningEnd}`), Pest 5, Vue 3.5 + Inertia 3, `@laravel/stream-vue`, Tailwind 4, `@lucide/vue`.
 
@@ -14,9 +14,8 @@
 
 - **No commitear ni pushear.** Cada tarea termina con `git add -A` y `git status --short`; Franky commitea.
 - Rama `feature/assistant-reasoning` creada desde `stage` **con el working tree limpio** (la ronda de correcciones del upgrade debe estar commiteada antes; si `git status` no está limpio, parar y avisar).
-- Modelo por defecto del asistente `gpt-6-luna`; esfuerzo `low`; env `OPENAI_ASSISTANT_MODEL` y `OPENAI_REASONING_EFFORT` (vacío = sin razonamiento). Config en `services.openai.assistant.{model,reasoning_effort}`.
-- Solo `ClubAssistant` cambia de modelo. Títulos, sugerencias y reportes no se tocan.
-- El bloque enviado a OpenAI es exactamente `['reasoning' => ['effort' => <effort>, 'summary' => 'auto']]`, solo para el driver `openai` y solo si el modelo es de razonamiento (prefijos `gpt-5` salvo `gpt-5-chat`, `gpt-6`, `o` + dígito).
+- Un solo modelo: `services.openai.model` (env `OPENAI_MODEL`) default `gpt-6-luna`; `services.openai.reasoning_effort` (env `OPENAI_REASONING_EFFORT`) default `low`, vacío = sin razonamiento. Lo usan `ClubAssistant`, `ModuleReportAnalyst` y `ExecutiveSummaryWriter`. Títulos y sugerencias (`#[UseCheapestModel]`) no se tocan.
+- El bloque enviado a OpenAI es exactamente `['reasoning' => ['effort' => <effort>, 'summary' => 'auto']]` en el asistente y `['reasoning' => ['effort' => <effort>]]` en los agentes de reportes, solo para el driver `openai` y solo si el modelo es de razonamiento (prefijos `gpt-5` salvo `gpt-5-chat`, `gpt-6`, `o` + dígito).
 - Parte persistida: `parts.reasoning = ['summary' => string, 'seconds' => int]`; ausente si no hubo deltas. Bloques concatenados con `"\n\n"`. `seconds` = suma por bloque de `end.timestamp - start.timestamp`, mínimo 1.
 - El resumen se guarda crudo; solo se formatea al pintar (negritas `**…**` como títulos). Sin Markdown.
 - "Pensando…" solo con razonamiento real. El indicador de puntos previo pierde el texto.
@@ -26,7 +25,7 @@
 ## Review Focus
 
 1. **Cliente viejo que aún envía `model`** (localStorage de usuarios activos): el stream debe ignorarlo sin error de validación. Test en Tarea 1 (`ChatStreamControllerTest`, `ChatControllerTest`).
-2. **Modelo configurado sin razonamiento** (`OPENAI_ASSISTANT_MODEL=gpt-4.1-mini`) o `OPENAI_REASONING_EFFORT=` vacío: `providerOptions()` devuelve `[]` y el chat funciona como hoy. Tests en Tarea 2.
+2. **Modelo configurado sin razonamiento** (`OPENAI_MODEL=gpt-4.1-mini`) o `OPENAI_REASONING_EFFORT=` vacío: `providerOptions()` devuelve `[]` y el chat funciona como hoy. Tests en Tarea 2.
 3. **Respuesta con razonamiento pero sin texto** (p. ej. error tras razonar): la parte `reasoning` se persiste igual y la UI no muestra "Razonó" sobre un mensaje vacío de forma rara. Test de persistencia en Tarea 3; comprobación visual en Tarea 5.
 4. **Varios bloques de razonamiento** con herramientas entre medias: un solo "Pensando…", segundos sumados. Test en Tarea 3 (dos `reasoning_id`).
 5. **Resumen con negritas pegadas** ("…resultados.**Reviso cifras**"): el formateador separa en líneas. Test manual en Tarea 5 con un resumen fijo en el componente (no hay runner de tests de Vue).
@@ -99,16 +98,17 @@ git add -A && git status --short
 
 ---
 
-### Task 2: Modelo y opciones de razonamiento del `ClubAssistant`
+### Task 2: Modelo único y opciones de razonamiento en los agentes OpenAI
 
 **Files:**
-- Modify: `config/services.php:39-41` (clave `openai.assistant`)
-- Modify: `.env.example` (junto a `OPENAI_MODEL`)
-- Modify: `app/Ai/Agents/ClubAssistant.php:27,82-85`
-- Create: `tests/Feature/Ai/ClubAssistantReasoningTest.php`
+- Modify: `config/services.php:39-41` (default de `model`, clave `reasoning_effort`)
+- Modify: `.env.example` (`OPENAI_MODEL`, `OPENAI_REASONING_EFFORT`)
+- Create: `app/Ai/Concerns/ConfiguresOpenAiReasoning.php`
+- Modify: `app/Ai/Agents/ClubAssistant.php:27`, `app/Ai/Agents/ModuleReportAnalyst.php`, `app/Ai/Agents/ExecutiveSummaryWriter.php` (`implements HasProviderOptions` + trait)
+- Create: `tests/Feature/Ai/OpenAiReasoningOptionsTest.php`
 
 **Interfaces:**
-- Produces: `ClubAssistant implements HasProviderOptions`; `model(): string` lee `config('services.openai.assistant.model')`; `providerOptions(Lab|string $provider): array`.
+- Produces: trait `ConfiguresOpenAiReasoning` con `public function providerOptions(Lab|string $provider): array`, `protected function reasoningSummary(): ?string` (el asistente devuelve `'auto'`, los reportes `null`) y `private function supportsReasoning(string $model): bool`. Los tres agentes siguen leyendo `config('services.openai.model')` en `model()`.
 
 - [ ] **Step 1: Tests**
 
@@ -118,74 +118,83 @@ git add -A && git status --short
 declare(strict_types=1);
 
 use App\Ai\Agents\ClubAssistant;
+use App\Ai\Agents\ModuleReportAnalyst;
 
-function assistantFor(string $model, string $effort = 'low'): ClubAssistant
+function configureOpenAi(string $model, string $effort = 'low'): void
 {
     config([
-        'services.openai.assistant.model' => $model,
-        'services.openai.assistant.reasoning_effort' => $effort,
+        'services.openai.model' => $model,
+        'services.openai.reasoning_effort' => $effort,
     ]);
-
-    return ClubAssistant::forUser(adminUser());
 }
 
-it('uses the configured assistant model', function (): void {
-    expect(assistantFor('gpt-6-luna')->model())->toBe('gpt-6-luna');
-});
+it('asks openai for a low-effort reasoning summary in the assistant', function (): void {
+    configureOpenAi('gpt-6-luna');
 
-it('asks openai for a low-effort reasoning summary on a reasoning model', function (): void {
-    expect(assistantFor('gpt-6-luna')->providerOptions('openai'))
+    expect(ClubAssistant::forUser(adminUser())->providerOptions('openai'))
         ->toBe(['reasoning' => ['effort' => 'low', 'summary' => 'auto']]);
 });
 
+it('asks for low-effort reasoning without a summary in report agents', function (): void {
+    configureOpenAi('gpt-6-luna');
+
+    expect(app(ModuleReportAnalyst::class)->providerOptions('openai'))
+        ->toBe(['reasoning' => ['effort' => 'low']]);
+});
+
 it('sends no reasoning options for a model without reasoning', function (): void {
-    expect(assistantFor('gpt-4.1-mini')->providerOptions('openai'))->toBe([]);
+    configureOpenAi('gpt-4.1-mini');
+
+    expect(ClubAssistant::forUser(adminUser())->providerOptions('openai'))->toBe([]);
 });
 
 it('sends no reasoning options when the effort is empty', function (): void {
-    expect(assistantFor('gpt-6-luna', '')->providerOptions('openai'))->toBe([]);
+    configureOpenAi('gpt-6-luna', '');
+
+    expect(ClubAssistant::forUser(adminUser())->providerOptions('openai'))->toBe([]);
 });
 
 it('sends no reasoning options to other providers', function (): void {
-    expect(assistantFor('gpt-6-luna')->providerOptions('anthropic'))->toBe([]);
+    configureOpenAi('gpt-6-luna');
+
+    expect(ClubAssistant::forUser(adminUser())->providerOptions('anthropic'))->toBe([]);
 });
 ```
 
-Si `ClubAssistant::forUser()` no es el constructor usado en `ChatStreamController`, usar el mismo que allí (leer el controller) y ajustar `assistantFor`.
+Si `ClubAssistant::forUser()` o `app(ModuleReportAnalyst::class)` no son la forma de construirlos en el código (leer `ChatStreamController` y `GenerateWeeklyReportAction`), usar la que esté en uso.
 
 - [ ] **Step 2: Verificar que fallan**
 
-Run: `php artisan test --filter=ClubAssistantReasoningTest 2>&1 | tail -8`
-Expected: FAIL (no existe `providerOptions`; `model()` lee otra clave).
+Run: `php artisan test --filter=OpenAiReasoningOptionsTest 2>&1 | tail -8`
+Expected: FAIL (no existe `providerOptions`).
 
 - [ ] **Step 3: Config**
 
-`config/services.php`, dentro de `'openai'`, debajo de `'model'`:
+`config/services.php`: `'model' => env('OPENAI_MODEL', 'gpt-6-luna'),` y debajo:
 
 ```php
-// Modelo del asistente del club y esfuerzo de razonamiento (vacío = sin razonamiento).
-'assistant' => [
-    'model' => env('OPENAI_ASSISTANT_MODEL', 'gpt-6-luna'),
-    'reasoning_effort' => env('OPENAI_REASONING_EFFORT', 'low'),
-],
+// Esfuerzo de razonamiento para los agentes que usan `model` (vacío = sin razonamiento).
+'reasoning_effort' => env('OPENAI_REASONING_EFFORT', 'low'),
 ```
 
-`.env.example`: `OPENAI_ASSISTANT_MODEL=gpt-6-luna` y `OPENAI_REASONING_EFFORT=low` debajo de `OPENAI_MODEL`.
+`.env.example`: `OPENAI_MODEL=gpt-6-luna` y, debajo, `OPENAI_REASONING_EFFORT=low`.
 
-- [ ] **Step 4: `ClubAssistant`**
+- [ ] **Step 4: Trait y agentes**
 
-`implements … , HasProviderOptions` (import `Laravel\Ai\Contracts\HasProviderOptions`). `model()` devuelve `config('services.openai.assistant.model')`. Añadir:
+`app/Ai/Concerns/ConfiguresOpenAiReasoning.php`:
 
 ```php
 public function providerOptions(Lab|string $provider): array
 ```
 
-Devuelve `[]` salvo que el driver sea `openai` (`$provider instanceof Lab ? $provider->value : $provider`; comprobar en `vendor/laravel/ai/src/Enums/Lab.php` el valor de `Lab::OpenAI`), `config('services.openai.assistant.reasoning_effort')` esté `filled` y `$this->supportsReasoning($this->model())`; entonces `['reasoning' => ['effort' => <effort>, 'summary' => 'auto']]`. `private function supportsReasoning(string $model): bool` con `preg_match('/^(gpt-5(?!-chat)|gpt-6|o\d)/', $model) === 1`. Comentario de una línea: OpenAI rechaza `reasoning` en modelos sin razonamiento.
+Devuelve `[]` salvo que el driver sea `openai` (`$provider instanceof Lab ? $provider->value : $provider`; comprobar el valor de `Lab::OpenAI` en `vendor/laravel/ai/src/Enums/Lab.php`), `config('services.openai.reasoning_effort')` esté `filled` y `$this->supportsReasoning($this->model())`. Entonces `['reasoning' => array_filter(['effort' => <effort>, 'summary' => $this->reasoningSummary()])]`. `protected function reasoningSummary(): ?string { return null; }`; `private function supportsReasoning(string $model): bool` con `preg_match('/^(gpt-5(?!-chat)|gpt-6|o\d)/', $model) === 1`. Comentario de una línea: OpenAI rechaza `reasoning` en modelos sin razonamiento.
+
+Los tres agentes: `implements … , HasProviderOptions` + `use ConfiguresOpenAiReasoning;`. `ClubAssistant` sobrescribe `reasoningSummary(): ?string` devolviendo `'auto'`. `model()` no cambia en ninguno (ya leen `services.openai.model`).
 
 - [ ] **Step 5: Verde**
 
-Run: `php artisan test --filter=ClubAssistantReasoningTest 2>&1 | tail -4 && php artisan test 2>&1 | tail -3`
-Expected: 5 passed; suite completa en verde.
+Run: `php artisan test --filter=OpenAiReasoningOptionsTest 2>&1 | tail -4 && php artisan test 2>&1 | tail -3`
+Expected: 5 passed; suite completa en verde (los tests de reportes siguen con fakes y no dependen del modelo).
 
 - [ ] **Step 6: Stage**
 
@@ -359,11 +368,11 @@ Expected: texto de respuesta. Si devuelve 429 "no credits", anotar en el gate do
 
 - [ ] **Step 3: Humo en `https://ai-assistant.test`** (con `agent-browser` o a mano, capturas al scratchpad)
 
-(a) Pregunta que requiera consultar documentos: aparece "Pensando…" con texto creciendo antes del primer token; (b) al terminar, "Razonó N s" plegado, se despliega y se ve el resumen con títulos separados; (c) recargar el chat: la entrada sigue; (d) con `OPENAI_REASONING_EFFORT=` vacío (vía `php artisan tinker` o config temporal, sin tocar `.env`) el chat responde y no aparece la entrada; (e) un mensaje en un chat antiguo sin `parts.reasoning` se pinta como antes.
+(a) Pregunta que requiera consultar documentos: aparece "Pensando…" con texto creciendo antes del primer token; (b) al terminar, "Razonó N s" plegado, se despliega y se ve el resumen con títulos separados; (c) recargar el chat: la entrada sigue; (d) con `OPENAI_REASONING_EFFORT=` vacío (vía config temporal en tinker, sin tocar `.env`) el chat responde y no aparece la entrada; (f) generar un reporte semanal con `reports:send-due` o la acción directa y comprobar que responde con `gpt-6-luna`; (e) un mensaje en un chat antiguo sin `parts.reasoning` se pinta como antes.
 
 - [ ] **Step 4: Nota de coste**
 
-Tres preguntas iguales con `gpt-4.1-mini` y con `gpt-6-luna` + `low` (vía tinker, leyendo `->usage` de la respuesta): tabla con tokens de entrada, salida y razonamiento, y segundos hasta el primer token si se puede medir. Va al gate doc.
+Tres preguntas iguales con `gpt-4.1-mini` y con `gpt-6-luna` + `low` (cambiando `services.openai.model` en tinker) (vía tinker, leyendo `->usage` de la respuesta): tabla con tokens de entrada, salida y razonamiento, y segundos hasta el primer token si se puede medir. Va al gate doc.
 
 - [ ] **Step 5: Gate doc y stage**
 

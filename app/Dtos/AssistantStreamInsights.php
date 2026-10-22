@@ -13,10 +13,12 @@ final readonly class AssistantStreamInsights
     /**
      * @param  array<int, array{type: string, label: string, status: string}>  $activity
      * @param  array<int, array{kind: string, title: string, url: ?string, document_name: ?string, synced_at: ?string}>  $sources
+     * @param  array{summary: string, seconds: int}|null  $reasoning  resumen del razonamiento del modelo y su duración
      */
     public function __construct(
         public array $activity = [],
         public array $sources = [],
+        public ?array $reasoning = null,
     ) {}
 
     /**
@@ -30,6 +32,7 @@ final readonly class AssistantStreamInsights
         return array_filter([
             'activity' => $this->activity,
             'sources' => $this->sources,
-        ], fn (array $value): bool => $value !== []);
+            'reasoning' => $this->reasoning,
+        ], fn (?array $value): bool => $value !== null && $value !== []);
     }
 }

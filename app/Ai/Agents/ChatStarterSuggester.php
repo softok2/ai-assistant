@@ -26,7 +26,7 @@ use Illuminate\JsonSchema\JsonSchemaTypeFactory;
  */
 #[Provider(Lab::OpenAI)]
 #[UseCheapestModel]
-#[MaxTokens(300)]
+#[MaxTokens(1200)]
 final class ChatStarterSuggester implements Agent, HasStructuredOutput
 {
     use Promptable;

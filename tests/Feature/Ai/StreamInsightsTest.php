@@ -10,6 +10,9 @@ use Laravel\Ai\Responses\Data\UrlCitation;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Streaming\Events\ToolResult;
 use Laravel\Ai\Streaming\Events\StreamStart;
+use Laravel\Ai\Streaming\Events\ReasoningEnd;
+use Laravel\Ai\Streaming\Events\ReasoningDelta;
+use Laravel\Ai\Streaming\Events\ReasoningStart;
 use App\Actions\Chats\ResolveStreamInsightsAction;
 use Laravel\Ai\Streaming\Events\ProviderToolEvent;
 use Laravel\Ai\Responses\Data\ToolCall as ToolCallData;
@@ -109,4 +112,45 @@ it('returns nothing when the stream only carried text', function (): void {
     ]);
 
     expect($parts)->toBe([]);
+});
+
+// El SDK marca ReasoningStart al llegar el primer delta del resumen, no cuando el
+// modelo empieza a pensar: cada bloque se mide desde el evento anterior.
+it('keeps the reasoning summary and measures each block from the previous event', function (): void {
+    $parts = resolveInsights([
+        new StreamStart('s0', 'openai', 'gpt-6-luna', 990),
+        new ReasoningStart('e1', 'r1', 1000),
+        new ReasoningDelta('e2', 'r1', 'Reviso ', 1000),
+        new ReasoningDelta('e3', 'r1', 'el presupuesto', 1001),
+        new ReasoningEnd('e4', 'r1', 1003),
+        new ReasoningStart('e5', 'r2', 1005),
+        new ReasoningDelta('e6', 'r2', 'Confirmo cifras', 1005),
+        new ReasoningEnd('e7', 'r2', 1006),
+        new TextDelta('e8', 'm1', 'Hola', 1006),
+    ]);
+
+    expect($parts['reasoning'])->toBe([
+        'summary' => "Reviso el presupuesto\n\nConfirmo cifras",
+        'seconds' => 16,
+    ]);
+});
+
+it('counts at least one second of reasoning', function (): void {
+    $parts = resolveInsights([
+        new ReasoningStart('e1', 'r1', 1000),
+        new ReasoningDelta('e2', 'r1', 'Pienso', 1000),
+        new ReasoningEnd('e3', 'r1', 1000),
+    ]);
+
+    expect($parts['reasoning']['seconds'])->toBe(1);
+});
+
+it('omits reasoning when no delta arrived', function (): void {
+    $parts = resolveInsights([
+        new ReasoningStart('e1', 'r1', 1000),
+        new ReasoningEnd('e2', 'r1', 1002),
+        new TextDelta('e3', 'm1', 'Hola', 1002),
+    ]);
+
+    expect($parts)->not->toHaveKey('reasoning');
 });

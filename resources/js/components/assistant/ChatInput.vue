@@ -1,16 +1,12 @@
 <script setup lang="ts">
 import type { ChatAttachment } from '@/composables/useChatUploads'
-import type { Model } from '@/types'
-import { ArrowUp, ChevronDown, Cpu, FileText, LoaderCircle, Mic, Paperclip, Plus, Square, X } from '@lucide/vue'
-import { useStorage } from '@vueuse/core'
-import { computed, ref } from 'vue'
+import { ArrowUp, FileText, LoaderCircle, Mic, Paperclip, Plus, Square, X } from '@lucide/vue'
+import { ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Textarea } from '@/components/ui/textarea'
@@ -18,23 +14,16 @@ import { useChatUploads } from '@/composables/useChatUploads'
 import { useVoiceDictation } from '@/composables/useVoiceDictation'
 
 const props = defineProps<{
-  models: Model[]
   busy?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'submit', message: string, model: string | null, attachments: ChatAttachment[]): void
+  (e: 'submit', message: string, attachments: ChatAttachment[]): void
   (e: 'stop'): void
 }>()
 
 const input = ref('')
 const fileInput = ref<HTMLInputElement>()
-
-const selectedModelId = useStorage<string>('assistant-model', '')
-
-const selectedModel = computed<Model | null>(
-  () => props.models.find(model => model.id === selectedModelId.value) ?? null,
-)
 
 const { attachments, uploading, upload, remove, clear } = useChatUploads()
 
@@ -50,7 +39,7 @@ function submit(): void {
   const files = [...attachments.value]
   input.value = ''
   clear()
-  emit('submit', message, selectedModel.value?.id ?? null, files)
+  emit('submit', message, files)
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -141,73 +130,6 @@ defineExpose({
               </p>
               <p class="text-xs text-muted-foreground">
                 Imágenes, PDF, Excel, Word…
-              </p>
-            </div>
-          </DropdownMenuItem>
-
-          <!-- En pantallas chicas el selector de modelo vive aquí. -->
-          <DropdownMenuSeparator class="md:hidden" />
-          <DropdownMenuLabel class="md:hidden">
-            Modelo
-          </DropdownMenuLabel>
-          <DropdownMenuItem class="md:hidden" @click="selectedModelId = ''">
-            <div>
-              <p class="text-sm font-medium">
-                Modelo del club
-              </p>
-              <p class="text-xs text-muted-foreground">
-                El configurado por el club
-              </p>
-            </div>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            v-for="model in models"
-            :key="`compact-${model.id}`"
-            class="md:hidden"
-            @click="selectedModelId = model.id"
-          >
-            <div>
-              <p class="text-sm font-medium">
-                {{ model.name }}
-              </p>
-              <p class="text-xs text-muted-foreground">
-                {{ model.description }}
-              </p>
-            </div>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <!-- Model selector (desde md) -->
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <button
-            type="button"
-            class="order-3 hidden items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted md:inline-flex"
-          >
-            <Cpu class="size-3.5 text-muted-foreground" :stroke-width="1.5" />
-            {{ selectedModel?.name ?? 'Modelo del club' }}
-            <ChevronDown class="size-3.5 text-muted-foreground" :stroke-width="1.5" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" class="w-72">
-          <DropdownMenuItem @click="selectedModelId = ''">
-            <div>
-              <p class="text-sm font-medium">
-                Modelo del club
-              </p>
-              <p class="text-xs text-muted-foreground">
-                El configurado por el club
-              </p>
-            </div>
-          </DropdownMenuItem>
-          <DropdownMenuItem v-for="model in models" :key="model.id" @click="selectedModelId = model.id">
-            <div>
-              <p class="text-sm font-medium">
-                {{ model.name }}
-              </p>
-              <p class="text-xs text-muted-foreground">
-                {{ model.description }}
               </p>
             </div>
           </DropdownMenuItem>
