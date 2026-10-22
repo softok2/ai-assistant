@@ -2,11 +2,19 @@
 
 declare(strict_types=1);
 
+use Laravel\Ai\Ai;
 use App\Models\Chat;
 use App\Models\Role;
 use App\Models\User;
 use App\Ai\Agents\ClubAssistant;
+use Laravel\Ai\Gateway\StepContext;
 use Laravel\Ai\Prompts\AgentPrompt;
+use Laravel\Ai\Streaming\Events\Error;
+use Laravel\Ai\Gateway\FakeTextGateway;
+use Illuminate\Support\Facades\Exceptions;
+use Laravel\Ai\Streaming\Events\TextDelta;
+use Laravel\Ai\Gateway\TextGenerationOptions;
+use Laravel\Ai\Contracts\Providers\TextProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -71,6 +79,82 @@ describe('ChatStreamController', function (): void {
 
         expect($otherChat->messages()->count())->toBe(0);
     });
+
+    it('ends the stream with a terminal error and [DONE] when the provider fails mid-stream', function (string $failure, bool $reported): void {
+        Exceptions::fake();
+        ClubAssistant::fake();
+
+        // Streams the first text delta, then fails the way the given scenario describes.
+        $gateway = new class(['Primera parte de la respuesta'], $failure) extends FakeTextGateway
+        {
+            public function __construct(array $responses, private readonly string $failure)
+            {
+                parent::__construct($responses);
+            }
+
+            public function generateStreamStep(
+                string $invocationId,
+                TextProvider $provider,
+                string $model,
+                ?string $instructions,
+                array $messages,
+                array $tools,
+                ?array $schema,
+                ?TextGenerationOptions $options,
+                ?int $timeout,
+                StepContext $stepContext,
+            ): Generator {
+                $events = parent::generateStreamStep(
+                    $invocationId, $provider, $model, $instructions, $messages, $tools, $schema, $options, $timeout, $stepContext,
+                );
+
+                foreach ($events as $event) {
+                    yield $event;
+
+                    if (! $event instanceof TextDelta) {
+                        continue;
+                    }
+
+                    if ($this->failure === 'exception') {
+                        throw new RuntimeException('gateway exploded');
+                    }
+
+                    // Like a real provider: emit the error event and end the step without a response.
+                    yield new Error('evt', 'insufficient_quota', 'Sin créditos', false, time())->withInvocationId($invocationId);
+
+                    return null;
+                }
+            }
+        };
+
+        (fn (): object => $this->fakeAgentGateways[ClubAssistant::class] = $gateway)->call(Ai::getFacadeRoot());
+
+        $response = $this->post(route('chat.stream', $this->chat), ['message' => 'Hola']);
+
+        $response->assertOk();
+        $response->assertStreamed();
+
+        $content = $response->streamedContent();
+
+        expect($content)->toContain('"type":"text_delta"')
+            ->and($content)->toContain('Primera')
+            ->and(mb_substr_count($content, '"recoverable":false'))->toBe(1)
+            ->and($content)->toEndWith("data: [DONE]\n\n");
+
+        expect($this->chat->messages()->where('role', 'assistant')->count())->toBe(0);
+
+        if ($reported) {
+            expect($content)->toContain('data: {"type":"error","message":"stream_failed","recoverable":false}');
+            Exceptions::assertReported(RuntimeException::class);
+        } else {
+            Exceptions::assertNothingReported();
+        }
+    })->with([
+        // laravel/ai forwards the provider error event, then throws StreamErrorException.
+        'provider error event' => ['provider_error', false],
+        // Any other failure (e.g. a gateway HTTP error) becomes a masked "type":"error" event.
+        'unexpected exception' => ['exception', true],
+    ]);
 
     it('validates the message payload', function (): void {
         $this->post(route('chat.stream', $this->chat), [

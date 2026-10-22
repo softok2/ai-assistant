@@ -34,6 +34,7 @@ jobs:
         scl enable php85 "php artisan storage:link"
         scl enable php85 "php artisan view:clear"
         scl enable php85 "php artisan optimize"
+        scl enable php85 "php artisan queue:restart"
       working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
     - name: Setup Laravel mandatory DB Migrate and seed commands
       run: |

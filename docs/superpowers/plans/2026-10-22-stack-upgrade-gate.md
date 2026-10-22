@@ -52,6 +52,18 @@ In stage the real test is simpler: open the assistant from the CCM admin panel a
 - `INERTIA_SSR_ENABLED=false` in the stage and production `.env` files.
 - Production loses Telegram exception alerts: the Telegram logging package was removed by decision. The deploy-status Telegram step in the workflow is unaffected.
 - PDF export needs puppeteer resolvable by the `node` that PHP-FPM runs (`npm root -g`) and a Chrome binary (`BROWSERSHOT_CHROME_PATH` or puppeteer's cache). Check stage after switching runtimes.
+- Every PHP process must run php85, not just the CLI. `composer.lock` and `vendor/composer/platform_check.php` now require PHP 8.5, so anything still on php83 fatals:
+  - the PHP-FPM pool the nginx vhost points at (otherwise every web request returns 500);
+  - the supervisor queue workers (`QUEUE_CONNECTION=database`);
+  - the scheduler cron entry (`schedule:run`, which runs `reports:send-due` and `assistant-files:sync`).
+  The same applies to production.
+- Queue workers must restart after each deploy so they stop running the old framework in memory. The stage workflow now runs `scl enable php85 "php artisan queue:restart"` after `optimize`; production needs the same step.
+- OpenAI credits. In the local smoke both club projects (ccm and vallealto keys) answered `429` / "You have no credits remaining", so chat streaming, titles and suggestions were never verified by hand. If stage shares these keys it fails the same way. Top up before the stage smoke, and redo smoke (b) and (c) before merging to `main`.
+- Four smoke/CSRF chats were left in the local dev DB (not on stage). Delete them when convenient:
+  - `01a164ab-c182-70e6-adb4-ef341146445d` (user 9, ccm)
+  - `01a164ae-980b-7234-887d-abea0c2a51e0` (user 10, vallealto)
+  - `01a164b4-354a-72f1-a349-421fbbafe98d` (user 10, CSRF run 1)
+  - `01a164b4-fbdf-72e7-83fc-947cdc7ce4a3` (user 10, CSRF run 2)
 
 ## Behavior notes for the owner
 
@@ -59,7 +71,7 @@ In stage the real test is simpler: open the assistant from the CCM admin panel a
 - `mb_trim` now treats NBSP and ideographic spaces as whitespace, so three trimmed inputs that contain only those characters now become empty strings.
 - Sessions are now JSON-serialized. All active sessions are invalidated on deploy, so users must re-enter through the signed link.
 - `unplugin-vue-components` finds no components. This is a pre-existing no-op.
-- When OpenAI fails mid-stream, laravel/ai 1.3 throws `StreamErrorException` after output has started and the log shows a second error, "Cannot modify header information - headers already sent". The user still sees the graceful error reply. Worth a follow-up so the stream controller catches the exception inside the stream.
+- When OpenAI fails mid-stream, laravel/ai 1.3 throws `StreamErrorException` after output has started. Resolved in the final fix wave: `ChatStreamController` now owns the SSE stream, catches the exception, emits one masked error event only when the provider sent none, and always terminates with `[DONE]` (covered by `ChatStreamControllerTest`).
 
 ## Other observations
 

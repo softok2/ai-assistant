@@ -8,8 +8,6 @@ use RectorLaravel\Rector\If_\ThrowIfRector;
 use RectorLaravel\Rector\StaticCall\CarbonToDateFacadeRector;
 use RectorLaravel\Rector\FuncCall\SleepFuncToSleepStaticCallRector;
 use RectorLaravel\Rector\StaticCall\DispatchToHelperFunctionsRector;
-use Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector;
-use Rector\Php83\Rector\ClassMethod\AddOverrideAttributeToOverriddenMethodsRector;
 use Rector\Php85\Rector\Property\AddOverrideAttributeToOverriddenPropertiesRector;
 use RectorLaravel\Rector\FuncCall\ThrowIfAndThrowUnlessExceptionsToUseClassStringRector;
 
@@ -23,9 +21,7 @@ return RectorConfig::configure()
         __DIR__.'/tests',
     ])
     ->withSkip([
-        AddOverrideAttributeToOverriddenMethodsRector::class,
-        EncapsedStringsToSprintfRector::class,
-        // Mismo criterio que #[\Override] en métodos: no se añade al código existente.
+        // #[\Override] no se añade a las propiedades del código existente.
         AddOverrideAttributeToOverriddenPropertiesRector::class,
         // Job::dispatch() -> dispatch(new \FQN()): cambia el estilo del proyecto sin ganar nada.
         DispatchToHelperFunctionsRector::class,

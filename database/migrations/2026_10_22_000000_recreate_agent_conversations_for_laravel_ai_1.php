@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Schema;
+use Laravel\Ai\Migrations\AiMigration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Database\Migrations\Migration;
 
 /*
  * laravel/ai 1.x changed the conversation schema (participant_type/participant_id
@@ -12,7 +12,7 @@ use Illuminate\Database\Migrations\Migration;
  * The app never reads or writes these tables (they are dormant), so instead of
  * migrating data we drop and recreate them with the exact 1.3 schema.
  */
-return new class extends Migration
+return new class extends AiMigration
 {
     /**
      * Run the migrations.

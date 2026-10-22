@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use Throwable;
 use App\Models\Chat;
 use App\Ai\ClubAiProvider;
 use Laravel\Ai\Files\Image;
@@ -12,17 +13,20 @@ use App\Jobs\GenerateChatTitle;
 use App\Ai\Agents\ClubAssistant;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Laravel\Ai\Streaming\Events\Error;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\ChatStreamRequest;
+use Laravel\Ai\Exceptions\StreamErrorException;
 use Laravel\Ai\Responses\StreamedAgentResponse;
 use Laravel\Ai\Responses\StreamableAgentResponse;
 use App\Actions\Chats\ResolveStreamInsightsAction;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class ChatStreamController extends Controller
 {
     public function __construct(private readonly ResolveStreamInsightsAction $insights) {}
 
-    public function __invoke(ChatStreamRequest $request, Chat $chat, ClubAiProvider $providers): StreamableAgentResponse
+    public function __invoke(ChatStreamRequest $request, Chat $chat, ClubAiProvider $providers): StreamedResponse
     {
         Gate::authorize('update', $chat);
 
@@ -34,7 +38,7 @@ final class ChatStreamController extends Controller
             default => $this->prepareNewMessage($chat, $validated, $request->user()->id),
         };
 
-        return ClubAssistant::forUser($request->user(), $history)
+        $stream = ClubAssistant::forUser($request->user(), $history)
             ->stream(
                 $userMessage,
                 attachments: $this->toAiFiles($attachments),
@@ -61,6 +65,41 @@ final class ChatStreamController extends Controller
                     GenerateChatTitle::dispatch($chat);
                 }
             });
+
+        return $this->toEventStream($stream);
+    }
+
+    /**
+     * Serialise the agent stream as SSE exactly like StreamableAgentResponse::toResponse()
+     * (`data: {json}` frames ending in `data: [DONE]`), but end with a terminal error event
+     * instead of throwing once the headers are already sent.
+     */
+    private function toEventStream(StreamableAgentResponse $stream): StreamedResponse
+    {
+        return response()->stream(function () use ($stream) {
+            $errored = false;
+
+            try {
+                foreach ($stream as $event) {
+                    $errored = $errored || $event instanceof Error;
+
+                    yield 'data: '.$event."\n\n";
+                }
+            } catch (Throwable $throwable) {
+                // A stream error exception follows a provider error event the client already got...
+                report_unless($throwable instanceof StreamErrorException, $throwable);
+
+                if (! $errored) {
+                    yield 'data: '.json_encode(['type' => 'error', 'message' => 'stream_failed', 'recoverable' => false])."\n\n";
+                }
+            }
+
+            yield "data: [DONE]\n\n";
+        }, headers: [
+            'Cache-Control' => 'no-cache, no-transform',
+            'Content-Type' => 'text/event-stream',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 
     /**

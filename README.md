@@ -13,9 +13,9 @@ un enlace firmado, y ofrece:
 
 ## Stack
 
-- **Backend**: Laravel 12 · PHP 8.3 · [Laravel AI SDK](https://laravel.com/docs/12.x/ai-sdk)
+- **Backend**: Laravel 13 · PHP 8.5 · [Laravel AI SDK](https://laravel.com/docs/13.x/ai-sdk)
   (OpenAI **Responses API**, File Search sobre vector stores)
-- **Frontend**: Vue 3 · Inertia.js 2 · TailwindCSS 4 · shadcn-vue
+- **Frontend**: Vue 3 · Inertia.js 3 · TailwindCSS 4 · shadcn-vue
 - **PDF**: spatie/laravel-pdf + Browsershot (Chromium) · **Markdown**: league/commonmark
 - **Auth**: enlace externo firmado (HMAC) — sin login propio; la sesión la abre el club
 
@@ -119,7 +119,7 @@ php artisan migrate
 npm run build          # o: composer run dev (dev con hot reload)
 ```
 
-Requisitos: **PHP 8.3+**, **Composer 2**, **Node 18+**, **Chromium** (para el PDF),
+Requisitos: **PHP 8.5+**, **Composer 2**, **Node 22.12+**, **Chromium** (para el PDF),
 y una cola corriendo (`php artisan queue:work`) para los jobs de ingesta y títulos.
 
 ## Reporte ejecutivo automático
