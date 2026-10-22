@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Chat, ChatHistory, Message, Model, SharedData } from '@/types'
-import { Head, usePage } from '@inertiajs/vue3'
+import type { Chat, ChatHistory, Message } from '@/types'
+import { Head } from '@inertiajs/vue3'
 import { computed, onMounted, ref } from 'vue'
 import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
 import ChatHeader from '@/components/assistant/ChatHeader.vue'
@@ -17,9 +17,6 @@ const props = defineProps<{
   canWrite?: boolean
   dataFreshness?: string | null
 }>()
-
-const sharedProps = usePage<SharedData>().props
-const models = (sharedProps.availableModels ?? []) as Model[]
 
 const messages = ref<Message[]>([...(props.chat.messages ?? [])])
 
@@ -51,13 +48,13 @@ async function fetchSuggestions(): Promise<void> {
   }
 }
 
-function sendMessage(message: string, model: string | null = null, attachments: Array<{ path: string, name: string, mime: string }> = []): void {
+function sendMessage(message: string, attachments: Array<{ path: string, name: string, mime: string }> = []): void {
   if (busy.value)
     return
 
   suggestions.value = []
   messages.value.push({ role: Role.USER, parts: { text: message }, attachments })
-  send({ message, model, attachments })
+  send({ message, attachments })
 }
 
 function editMessage(messageId: string, text: string): void {
@@ -87,7 +84,7 @@ function regenerate(): void {
 
 onMounted(() => {
   if (props.pendingMessage) {
-    sendMessage(props.pendingMessage, null, props.pendingAttachments ?? [])
+    sendMessage(props.pendingMessage, props.pendingAttachments ?? [])
   }
 })
 </script>
@@ -115,7 +112,7 @@ onMounted(() => {
 
     <div v-if="canWrite" class="px-4 pb-4 md:px-8">
       <div class="mx-auto w-full max-w-3xl">
-        <ChatInput :models="models" :busy="busy" @submit="sendMessage" @stop="cancel" />
+        <ChatInput :busy="busy" @submit="sendMessage" @stop="cancel" />
       </div>
     </div>
     <div v-else class="px-4 pb-4 text-center text-xs text-muted-foreground">

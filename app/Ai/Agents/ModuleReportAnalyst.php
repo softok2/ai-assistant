@@ -12,6 +12,8 @@ use App\Ai\Files\ClubVectorStore;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Providers\Tools\FileSearch;
+use Laravel\Ai\Contracts\HasProviderOptions;
+use App\Ai\Concerns\ConfiguresOpenAiReasoning;
 
 /**
  * Produces the executive analysis for a single club module, grounded on the
@@ -19,8 +21,9 @@ use Laravel\Ai\Providers\Tools\FileSearch;
  * metadata the ingestion pipeline attaches to each file).
  */
 #[Provider(Lab::OpenAI)]
-final class ModuleReportAnalyst implements Agent, HasTools
+final class ModuleReportAnalyst implements Agent, HasProviderOptions, HasTools
 {
+    use ConfiguresOpenAiReasoning;
     use Promptable;
 
     public function __construct(private ClubName $club, private string $group) {}

@@ -18,7 +18,7 @@ use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 
 #[Provider(Lab::OpenAI)]
 #[UseCheapestModel]
-#[MaxTokens(120)]
+#[MaxTokens(800)]
 final class ChatFollowUpSuggester implements Agent, HasStructuredOutput
 {
     use Promptable;

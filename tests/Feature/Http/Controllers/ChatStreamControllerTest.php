@@ -14,6 +14,9 @@ use Laravel\Ai\Gateway\FakeTextGateway;
 use Illuminate\Support\Facades\Exceptions;
 use Laravel\Ai\Streaming\Events\TextDelta;
 use Laravel\Ai\Gateway\TextGenerationOptions;
+use Laravel\Ai\Streaming\Events\ReasoningEnd;
+use Laravel\Ai\Streaming\Events\ReasoningDelta;
+use Laravel\Ai\Streaming\Events\ReasoningStart;
 use Laravel\Ai\Contracts\Providers\TextProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -161,10 +164,11 @@ describe('ChatStreamController', function (): void {
             'message' => str_repeat('a', 4001),
         ])->assertSessionHasErrors('message');
 
+        // Clientes antiguos aún pueden mandar `model` desde localStorage; se ignora.
         $this->post(route('chat.stream', $this->chat), [
             'message' => 'Hola',
             'model' => 'modelo-inexistente',
-        ])->assertSessionHasErrors('model');
+        ])->assertSessionDoesntHaveErrors('model');
     });
 });
 
@@ -242,6 +246,48 @@ describe('contexto y partes del mensaje', function (): void {
             ->streamedContent();
 
         expect($this->chat->messages()->where('role', 'assistant')->first()->parts['text'])->toBe($answer);
+    });
+
+    it('persists the reasoning summary with the assistant message', function (): void {
+        ClubAssistant::fake();
+
+        // Razona un bloque y después escribe, como hace OpenAI con `reasoning.summary`.
+        $gateway = new class(['Listo']) extends FakeTextGateway
+        {
+            public function generateStreamStep(
+                string $invocationId,
+                TextProvider $provider,
+                string $model,
+                ?string $instructions,
+                array $messages,
+                array $tools,
+                ?array $schema,
+                ?TextGenerationOptions $options,
+                ?int $timeout,
+                StepContext $stepContext,
+            ): Generator {
+                yield new ReasoningStart('r-start', 'r1', 1000)->withInvocationId($invocationId);
+                yield new ReasoningDelta('r-delta', 'r1', 'Reviso cifras', 1000)->withInvocationId($invocationId);
+                yield new ReasoningEnd('r-end', 'r1', 1002)->withInvocationId($invocationId);
+
+                return yield from parent::generateStreamStep(
+                    $invocationId, $provider, $model, $instructions, $messages, $tools, $schema, $options, $timeout, $stepContext,
+                );
+            }
+        };
+
+        (fn (): object => $this->fakeAgentGateways[ClubAssistant::class] = $gateway)->call(Ai::getFacadeRoot());
+
+        $content = $this->post(route('chat.stream', $this->chat), ['message' => 'Hola'])
+            ->assertOk()
+            ->streamedContent();
+
+        expect($content)->toContain('"type":"reasoning_delta"');
+
+        $parts = $this->chat->messages()->where('role', 'assistant')->first()->parts;
+
+        expect($parts['reasoning'])->toBe(['summary' => 'Reviso cifras', 'seconds' => 2])
+            ->and($parts['text'])->toBe('Listo');
     });
 
     it('leaves activity and sources out when the stream carried no tool events', function (): void {

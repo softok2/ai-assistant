@@ -20,9 +20,11 @@ razonamiento.
 
 ## Decisiones del usuario (Franky)
 
-1. El asistente del club pasa a usar por defecto el modelo `gpt-6-luna`
-   (modelo de razonamiento, el "cheapest" de laravel/ai 1.x).
-2. Esfuerzo de razonamiento `low` por defecto.
+1. Un solo modelo para el asistente y los reportes: `OPENAI_MODEL` pasa a
+   `gpt-6-luna` por defecto (modelo de razonamiento, el "cheapest" de
+   laravel/ai 1.x). La línea `OPENAI_MODEL=gpt-4.1-mini` se quita del `.env`.
+2. Esfuerzo de razonamiento `low` por defecto, para los tres agentes que usan
+   ese modelo (`ClubAssistant`, `ModuleReportAnalyst`, `ExecutiveSummaryWriter`).
 3. Se acepta el coste extra (tokens de razonamiento) y la latencia extra hasta
    el primer texto, a cambio de mostrar el razonamiento.
 4. Se elimina el selector de modelo por mensaje de `ChatInput.vue`
@@ -36,20 +38,23 @@ razonamiento.
 
 ## Decisiones del diseñador
 
-- **Solo cambia el `ClubAssistant`.** Títulos, sugerencias y los agentes de
-  reportes (`ModuleReportAnalyst`, `ExecutiveSummaryWriter`) siguen con su
-  modelo actual. Para no arrastrarlos, el asistente deja de leer
-  `services.openai.model` y lee una clave nueva `services.openai.assistant`:
-  `model` (env `OPENAI_ASSISTANT_MODEL`, default `gpt-6-luna`) y
-  `reasoning_effort` (env `OPENAI_REASONING_EFFORT`, default `low`; vacío
-  desactiva el razonamiento).
-- **Cómo se pide el razonamiento.** `ClubAssistant` implementa
-  `Laravel\Ai\Contracts\HasProviderOptions` y en `providerOptions()` devuelve,
+- **Una sola configuración.** `services.openai.model` (env `OPENAI_MODEL`)
+  cambia su default a `gpt-6-luna`; se añade `services.openai.reasoning_effort`
+  (env `OPENAI_REASONING_EFFORT`, default `low`; vacío desactiva el
+  razonamiento). Títulos y sugerencias siguen con `#[UseCheapestModel]` y no se
+  tocan. Los dos agentes de reportes ya leen `services.openai.model`, así que
+  heredan el modelo sin cambios; además reciben el esfuerzo `low` (sin
+  `summary`, nadie lo muestra) para que no razonen al esfuerzo por defecto de
+  OpenAI, más caro. La lógica de "qué bloque `reasoning` enviar" vive en un
+  trait `App\Ai\Concerns\ConfiguresOpenAiReasoning` que usan los tres
+  agentes; el asistente pasa `summary: 'auto'`, los reportes no.
+- **Cómo se pide el razonamiento.** Los tres agentes implementan
+  `Laravel\Ai\Contracts\HasProviderOptions` vía el trait y `providerOptions()` devuelve,
   solo para el driver `openai` y solo si el esfuerzo está configurado y el
   modelo es de razonamiento (prefijos `gpt-5`, `gpt-6`, `o`), el bloque
-  `['reasoning' => ['effort' => <effort>, 'summary' => 'auto']]`. Si el modelo
-  no soporta razonamiento, no se envía nada (OpenAI rechaza el parámetro con
-  400). `laravel/ai` mezcla ese array en el cuerpo de la petición Responses.
+  `['reasoning' => ['effort' => <effort>, 'summary' => 'auto']]` (sin `summary`
+  en los agentes de reportes). Si el modelo no soporta razonamiento, no se
+  envía nada (OpenAI rechaza el parámetro con 400). `laravel/ai` mezcla ese array en el cuerpo de la petición Responses.
 - **El stream no cambia de forma.** `ChatStreamController` ya reenvía al
   cliente todos los eventos de `laravel/ai` tal cual; los de razonamiento
   llegan solos. Nada que tocar en el controller salvo la persistencia.
@@ -87,8 +92,9 @@ razonamiento.
   o WebSearch: razona, busca, razona, escribe): una sola entrada. Pasa a
   "Pensando…" en el primer `reasoning_start` y sigue así hasta el primer
   `text_delta` (o el fin del stream); los bloques se concatenan con una línea en
-  blanco. `seconds` = suma de cada bloque (`reasoning_end.timestamp` −
-  `reasoning_start.timestamp`), mínimo 1, calculada con los timestamps de los
+  blanco. `seconds` = suma de cada bloque (`reasoning_end.timestamp` − timestamp del
+  evento anterior al bloque, porque el SDK marca `reasoning_start` al primer
+  delta del resumen y no al empezar a pensar), mínimo 1, calculada con los timestamps de los
   eventos tanto en servidor como en cliente para que "en vivo" y "recargado"
   coincidan. La entrada va siempre encima de `ActivityTrail`; no se intercala
   con la actividad de herramientas.
@@ -104,7 +110,7 @@ razonamiento.
   línea de título en negrita precedida de salto de línea, el resto como texto
   plano. No se usa el renderizador de Markdown.
 - **Un solo modelo, el de la configuración.** Con el selector eliminado
-  (decisión 4), `ClubAssistant::model()` es la única fuente del modelo y
+  (decisión 4), `model()` de cada agente es la única fuente del modelo y
   `providerOptions()` decide el bloque `reasoning` a partir de él.
 - **Nada falso.** No hay indicador de "pensando" sin deltas reales. Si el
   modelo no razona o el resumen llega vacío, la UI se comporta como hoy.
@@ -112,15 +118,17 @@ razonamiento.
 ## Alcance
 
 Backend:
-- `config/services.php`: clave `openai.assistant` (`model`, `reasoning_effort`).
-- `.env.example`: `OPENAI_ASSISTANT_MODEL=gpt-6-luna`,
-  `OPENAI_REASONING_EFFORT=low`.
-- `app/Ai/Agents/ClubAssistant.php`: `implements HasProviderOptions`,
-  `model()` lee la clave nueva, `providerOptions(Lab|string $provider): array`.
+- `config/services.php`: default de `openai.model` → `gpt-6-luna`; clave nueva
+  `openai.reasoning_effort`.
+- `.env.example`: `OPENAI_MODEL=gpt-6-luna`, `OPENAI_REASONING_EFFORT=low`.
+- `app/Ai/Concerns/ConfiguresOpenAiReasoning.php`: trait nuevo con
+  `providerOptions(Lab|string $provider): array` y `supportsReasoning()`.
+- `app/Ai/Agents/{ClubAssistant,ModuleReportAnalyst,ExecutiveSummaryWriter}.php`:
+  `implements HasProviderOptions` + trait; el asistente con `summary`.
 - `app/Actions/Chats/ResolveStreamInsightsAction.php` y
   `app/Dtos/AssistantStreamInsights.php`: parte `reasoning`.
-- Tests Pest: `ClubAssistant` devuelve las opciones de razonamiento con un
-  modelo de razonamiento y array vacío con `gpt-4.1-mini` o esfuerzo vacío;
+- Tests Pest: `ClubAssistant` devuelve las opciones con `summary`, un agente de
+  reportes sin `summary`, y array vacío con `gpt-4.1-mini` o esfuerzo vacío;
   `ResolveStreamInsightsAction` produce `reasoning` desde una secuencia
   `ReasoningStart` → `ReasoningDelta`×n → `ReasoningEnd` y la omite sin deltas;
   `ChatStreamController` persiste `parts.reasoning` cuando el stream fake
@@ -140,7 +148,7 @@ Frontend:
 - Razonamiento en el PDF del mensaje, en la búsqueda de chats o en los
   reportes semanales.
 - Selector de esfuerzo en la UI; se configura por `.env`.
-- Cambiar el modelo de títulos, sugerencias o reportes.
+- Cambiar el modelo de títulos y sugerencias (siguen con `#[UseCheapestModel]`).
 - Mostrar cadena de pensamiento cruda (OpenAI solo entrega resúmenes).
 - Tests de navegador (el proyecto no los tiene).
 

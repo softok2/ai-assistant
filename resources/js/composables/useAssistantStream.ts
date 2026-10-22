@@ -5,7 +5,6 @@ import { Role } from '@/types/enum'
 
 interface StreamParams {
   message?: string
-  model?: string | null
   attachments?: Array<{ path: string, name: string, mime: string }>
   regenerate?: boolean
   edit_message_id?: string
@@ -23,6 +22,8 @@ interface StreamEvent {
   tool_id?: string
   successful?: boolean
   citation?: { title?: string | null, url?: string }
+  reasoning_id?: string
+  timestamp?: number
 }
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -49,6 +50,9 @@ function toStatus(status: string | undefined): ActivityStatus {
 export function useAssistantStream(chatId: string, messages: Ref<Message[]>, onFinish?: () => void) {
   let buffer = ''
   const activityKeys = new Map<string, number>()
+  const reasoningStarts = new Map<string, number>()
+  let lastReasoningId: string | null = null
+  let lastTimestamp: number | undefined
 
   const currentAssistantMessage = (): Message => {
     let current = messages.value[messages.value.length - 1]
@@ -113,9 +117,44 @@ export function useAssistantStream(chatId: string, messages: Ref<Message[]>, onF
     })
   }
 
+  const currentReasoning = () => {
+    const current = currentAssistantMessage()
+    return current.parts.reasoning ?? (current.parts.reasoning = { summary: '', seconds: 0 })
+  }
+
   const handle = (event: StreamEvent): void => {
+    const previousTimestamp = lastTimestamp
+    if (event.timestamp !== undefined)
+      lastTimestamp = event.timestamp
+
     if (event.type === 'text_delta' && event.delta) {
       appendToAssistantMessage(event.delta)
+      return
+    }
+
+    // Razonamiento: un solo resumen por mensaje, bloques separados por una
+    // línea en blanco. El SDK marca `reasoning_start` al primer delta del
+    // resumen, así que cada bloque se mide desde el evento anterior.
+    if (event.type === 'reasoning_start') {
+      reasoningStarts.set(event.reasoning_id ?? '', previousTimestamp ?? event.timestamp ?? 0)
+      currentReasoning()
+      return
+    }
+
+    if (event.type === 'reasoning_delta' && event.delta) {
+      const reasoning = currentReasoning()
+      const id = event.reasoning_id ?? ''
+      if (lastReasoningId !== null && lastReasoningId !== id && reasoning.summary !== '')
+        reasoning.summary += '\n\n'
+      reasoning.summary += event.delta
+      lastReasoningId = id
+      return
+    }
+
+    if (event.type === 'reasoning_end') {
+      const started = reasoningStarts.get(event.reasoning_id ?? '')
+      if (started !== undefined && event.timestamp !== undefined)
+        currentReasoning().seconds += Math.max(0, event.timestamp - started)
       return
     }
 
@@ -152,7 +191,7 @@ export function useAssistantStream(chatId: string, messages: Ref<Message[]>, onF
     }
 
     // Eventos de proveedor: `file_search_call`, `web_search_call` y demás
-    // `*_call`. Los de razonamiento y los de inicio/fin se ignoran.
+    // `*_call`. Los de inicio/fin de stream se ignoran.
     if (event.type.endsWith('_call'))
       readProviderTool(event)
   }

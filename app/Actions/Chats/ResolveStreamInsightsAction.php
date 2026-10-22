@@ -11,6 +11,9 @@ use Laravel\Ai\Streaming\Events\Citation;
 use Laravel\Ai\Streaming\Events\ToolCall;
 use Laravel\Ai\Responses\Data\UrlCitation;
 use Laravel\Ai\Streaming\Events\ToolResult;
+use Laravel\Ai\Streaming\Events\ReasoningEnd;
+use Laravel\Ai\Streaming\Events\ReasoningDelta;
+use Laravel\Ai\Streaming\Events\ReasoningStart;
 use Laravel\Ai\Streaming\Events\ProviderToolEvent;
 
 /**
@@ -40,6 +43,13 @@ final class ResolveStreamInsightsAction
 
         $usedFileSearch = false;
 
+        /** @var array<string, array{text: string, start: ?int, end: ?int}> $reasoning */
+        $reasoning = [];
+
+        // El SDK marca ReasoningStart al primer delta del resumen, no cuando el
+        // modelo empieza a pensar: cada bloque se mide desde el evento anterior.
+        $previousTimestamp = null;
+
         foreach ($events as $event) {
             match (true) {
                 $event instanceof ProviderToolEvent => $this->readProviderTool(
@@ -56,13 +66,21 @@ final class ResolveStreamInsightsAction
                     'status' => $event->successful ? 'completed' : 'failed',
                 ],
                 $event instanceof Citation => $this->readCitation($event, $webSources),
+                $event instanceof ReasoningStart => $this->readReasoning($reasoning, $event->reasoningId, start: $previousTimestamp ?? $event->timestamp),
+                $event instanceof ReasoningDelta => $this->readReasoning($reasoning, $event->reasoningId, delta: $event->delta),
+                $event instanceof ReasoningEnd => $this->readReasoning($reasoning, $event->reasoningId, end: $event->timestamp),
                 default => null,
             };
+
+            if (property_exists($event, 'timestamp')) {
+                $previousTimestamp = $event->timestamp;
+            }
         }
 
         return new AssistantStreamInsights(
             array_values($activity),
             [...$this->documentSources($documentHits, $usedFileSearch), ...array_values($webSources)],
+            $this->reasoningPart($reasoning),
         );
     }
 
@@ -221,5 +239,44 @@ final class ResolveStreamInsightsAction
             'failed', 'incomplete', 'error' => 'failed',
             default => 'in_progress',
         };
+    }
+
+    /**
+     * @param  array<string, array{text: string, start: ?int, end: ?int}>  $blocks
+     */
+    private function readReasoning(array &$blocks, string $id, ?int $start = null, ?string $delta = null, ?int $end = null): void
+    {
+        $block = $blocks[$id] ?? ['text' => '', 'start' => null, 'end' => null];
+
+        $block['start'] ??= $start;
+        $block['text'] .= $delta ?? '';
+        $block['end'] = $end ?? $block['end'];
+
+        $blocks[$id] = $block;
+    }
+
+    /**
+     * Resumen y duración (en segundos, mínimo 1) de los bloques con texto, en orden.
+     *
+     * @param  array<string, array{text: string, start: ?int, end: ?int}>  $blocks
+     * @return array{summary: string, seconds: int}|null
+     */
+    private function reasoningPart(array $blocks): ?array
+    {
+        $blocks = array_values(array_filter($blocks, fn (array $block): bool => $block['text'] !== ''));
+
+        if ($blocks === []) {
+            return null;
+        }
+
+        $seconds = array_sum(array_map(
+            fn (array $block): int => max(0, ($block['end'] ?? $block['start'] ?? 0) - ($block['start'] ?? 0)),
+            $blocks,
+        ));
+
+        return [
+            'summary' => implode("\n\n", array_column($blocks, 'text')),
+            'seconds' => max(1, $seconds),
+        ];
     }
 }

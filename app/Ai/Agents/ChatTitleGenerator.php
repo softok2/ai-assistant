@@ -13,7 +13,7 @@ use Laravel\Ai\Attributes\UseCheapestModel;
 
 #[Provider(Lab::OpenAI)]
 #[UseCheapestModel]
-#[MaxTokens(30)]
+#[MaxTokens(400)]
 final class ChatTitleGenerator implements Agent
 {
     use Promptable;

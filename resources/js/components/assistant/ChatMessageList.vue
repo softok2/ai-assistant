@@ -89,13 +89,14 @@ function isStreamingMessage(index: number): boolean {
           </button>
         </div>
 
-        <div v-if="thinking" class="flex items-center gap-2 text-sm text-muted-foreground">
+        <!-- Petición en vuelo, antes del primer evento. "Pensando…" se reserva al razonamiento real (ReasoningTrail). -->
+        <div v-if="thinking" role="status" class="flex items-center gap-2 text-sm text-muted-foreground">
+          <span class="sr-only">Esperando respuesta</span>
           <span class="inline-flex gap-1">
             <span class="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0ms]" />
             <span class="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:150ms]" />
             <span class="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:300ms]" />
           </span>
-          Pensando…
         </div>
       </div>
     </div>

@@ -22,11 +22,14 @@ use App\Ai\Files\MissingClubVectorStore;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Providers\Tools\WebSearch;
 use Laravel\Ai\Providers\Tools\FileSearch;
+use Laravel\Ai\Contracts\HasProviderOptions;
+use App\Ai\Concerns\ConfiguresOpenAiReasoning;
 use Laravel\Ai\Providers\Tools\FileSearchQuery;
 
 #[Provider(Lab::OpenAI)]
-final class ClubAssistant implements Agent, Conversational, HasTools
+final class ClubAssistant implements Agent, Conversational, HasProviderOptions, HasTools
 {
+    use ConfiguresOpenAiReasoning;
     use Promptable;
 
     /**
@@ -123,6 +126,14 @@ final class ClubAssistant implements Agent, Conversational, HasTools
                 : new FileSearch(stores: [$store], where: fn (FileSearchQuery $query): FileSearchQuery => $query->whereIn('group', $groups)),
             new WebSearch,
         ];
+    }
+
+    /**
+     * El chat muestra el razonamiento en vivo, así que se pide el resumen.
+     */
+    protected function reasoningSummary(): string
+    {
+        return 'auto';
     }
 
     /**

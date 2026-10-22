@@ -28,7 +28,6 @@ export interface SharedData extends PageProps {
   auth: Auth
   ziggy: Config & { location: string }
   sidebarOpen: boolean
-  availableModels: Model[]
 }
 
 export interface User {
@@ -102,11 +101,18 @@ export interface MessageSource {
   synced_at?: string | null
 }
 
+/** Resumen del razonamiento del modelo y cuánto tardó, en segundos. */
+export interface ReasoningPart {
+  summary: string
+  seconds: number
+}
+
 /** Lo que se guarda en `messages.parts`: el texto y el rastro de la respuesta. */
 export interface MessageParts {
   text?: string
   activity?: ActivityEntry[]
   sources?: MessageSource[]
+  reasoning?: ReasoningPart
 }
 
 export interface ChatStarter {
@@ -147,11 +153,4 @@ export interface Chat {
   created_at: string
   updated_at: string
   messages?: Message[]
-}
-
-export interface Model {
-  id: string
-  name: string
-  description: string
-  provider: string
 }

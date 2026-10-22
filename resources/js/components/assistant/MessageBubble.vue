@@ -6,6 +6,7 @@ import { computed, ref } from 'vue'
 import ActivityTrail from './ActivityTrail.vue'
 import MessageActions from './MessageActions.vue'
 import MessageContent from './MessageContent.vue'
+import ReasoningTrail from './ReasoningTrail.vue'
 import SourceChips from './SourceChips.vue'
 
 const props = defineProps<{
@@ -156,6 +157,7 @@ function vote(isUpvoted: boolean): void {
 
   <!-- Assistant: plain text, no bubble (ChatGPT style) -->
   <div v-else class="group/msg w-full">
+    <ReasoningTrail :reasoning="message.parts.reasoning" :thinking="streaming && !message.parts.text" />
     <ActivityTrail :activity="message.parts.activity" />
 
     <div class="text-[15px] leading-relaxed">

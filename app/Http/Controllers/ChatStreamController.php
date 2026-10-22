@@ -43,7 +43,6 @@ final class ChatStreamController extends Controller
                 $userMessage,
                 attachments: $this->toAiFiles($attachments),
                 provider: $providers->nameFor($request->user()->clubName()),
-                model: $validated['model'] ?? null,
             )
             ->then(function (StreamedAgentResponse $response) use ($chat): void {
                 if (mb_trim($response->text) === '') {
