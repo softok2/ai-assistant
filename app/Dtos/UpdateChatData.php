@@ -10,14 +10,14 @@ use App\Http\Requests\UpdateChatRequest;
  * Cambios que la barra lateral y el encabezado del chat pueden pedir sobre un
  * chat: renombrarlo, fijarlo, compartirlo o votar uno de sus mensajes.
  */
-final class UpdateChatData
+final readonly class UpdateChatData
 {
     public function __construct(
-        public readonly ?string $title = null,
-        public readonly ?string $visibility = null,
-        public readonly ?bool $pinned = null,
-        public readonly ?string $messageId = null,
-        public readonly ?bool $isUpvoted = null,
+        public ?string $title = null,
+        public ?string $visibility = null,
+        public ?bool $pinned = null,
+        public ?string $messageId = null,
+        public ?bool $isUpvoted = null,
     ) {}
 
     public static function fromRequest(UpdateChatRequest $request): self

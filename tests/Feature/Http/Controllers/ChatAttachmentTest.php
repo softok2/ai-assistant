@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-use App\Ai\Agents\ClubAssistant;
 use App\Models\Chat;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Ai\Transcription;
+use App\Ai\Agents\ClubAssistant;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Laravel\Ai\Transcription;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
@@ -24,6 +24,7 @@ it('uploads an attachment and returns its metadata', function (): void {
     ]);
 
     $response->assertOk();
+
     $payload = $response->json();
 
     expect($payload['name'])->toBe('cancha.png');
@@ -60,6 +61,7 @@ it('transcribes dictated audio', function (): void {
     ]);
 
     $response->assertOk();
+
     expect($response->json('text'))->toBe('Muéstrame las reservas de golf');
 });
 

@@ -10,12 +10,12 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Storage::fake();
     Bus::fake();
 });
 
-it('stores a manual document and queues its upload', function () {
+it('stores a manual document and queues its upload', function (): void {
     $this->actingAs(adminUser())
         ->post(route('sources.files.store'), [
             'club' => 'ccm',
@@ -37,16 +37,16 @@ it('stores a manual document and queues its upload', function () {
         ->and($file->expired_at)->toBeNull();
 
     Storage::assertExists('docs/'.$file->name);
-    Bus::assertDispatched(UploadAssistantDoc::class, fn (UploadAssistantDoc $job) => $job->fileId === $file->id);
+    Bus::assertDispatched(UploadAssistantDoc::class, fn (UploadAssistantDoc $job): bool => $job->fileId === $file->id);
 });
 
-it('rejects a club the assistant does not serve', function () {
+it('rejects a club the assistant does not serve', function (): void {
     $this->actingAs(adminUser())
         ->post(route('sources.files.store'), ['club' => 'marte', 'group' => 'golf', 'file' => UploadedFile::fake()->create('r.md', 1)])
         ->assertSessionHasErrors('club');
 });
 
-it('rejects a file type the assistant cannot read', function () {
+it('rejects a file type the assistant cannot read', function (): void {
     $this->actingAs(adminUser())
         ->post(route('sources.files.store'), [
             'group' => 'golf',
@@ -58,7 +58,7 @@ it('rejects a file type the assistant cannot read', function () {
     Bus::assertNotDispatched(UploadAssistantDoc::class);
 });
 
-it('rejects a document over ten megabytes', function () {
+it('rejects a document over ten megabytes', function (): void {
     $this->actingAs(adminUser())
         ->post(route('sources.files.store'), [
             'group' => 'golf',
@@ -69,7 +69,7 @@ it('rejects a document over ten megabytes', function () {
     expect(File::query()->count())->toBe(0);
 });
 
-it('rejects a group that is not a lowercase slug', function () {
+it('rejects a group that is not a lowercase slug', function (): void {
     $this->actingAs(adminUser())
         ->post(route('sources.files.store'), [
             'group' => 'Golf Pro',
@@ -80,7 +80,7 @@ it('rejects a group that is not a lowercase slug', function () {
     expect(File::query()->count())->toBe(0);
 });
 
-it('requires both the group and the file', function () {
+it('requires both the group and the file', function (): void {
     $this->actingAs(adminUser())
         ->postJson(route('sources.files.store'), [])
         ->assertStatus(422)
@@ -92,7 +92,7 @@ it('requires both the group and the file', function () {
  * llamado `notas.html` pasa la validación y antes se guardaba en disco con
  * extensión .html. Ahora la extensión sale del tipo detectado.
  */
-it('stores a text file with a safe extension whatever the client called it', function () {
+it('stores a text file with a safe extension whatever the client called it', function (): void {
     $path = tempnam(sys_get_temp_dir(), 'notas').'.html';
     file_put_contents($path, 'Texto plano del reglamento del club.');
 
@@ -109,7 +109,7 @@ it('stores a text file with a safe extension whatever the client called it', fun
 });
 
 /** Una subida con extensión .php se rechaza en la validación. */
-it('rejects an upload that carries a php extension', function () {
+it('rejects an upload that carries a php extension', function (): void {
     $this->actingAs(adminUser())
         ->post(route('sources.files.store'), [
             'group' => 'golf',
@@ -120,7 +120,7 @@ it('rejects an upload that carries a php extension', function () {
     expect(File::query()->count())->toBe(0);
 });
 
-it('keeps the markdown extension for a markdown document', function () {
+it('keeps the markdown extension for a markdown document', function (): void {
     $this->actingAs(adminUser())
         ->post(route('sources.files.store'), [
             'club' => 'ccm',
@@ -132,7 +132,7 @@ it('keeps the markdown extension for a markdown document', function () {
     expect(File::query()->sole()->name)->toEndWith('.md');
 });
 
-it('does not collide when two documents land in the same second', function () {
+it('does not collide when two documents land in the same second', function (): void {
     $this->freezeTime();
     $this->actingAs(adminUser());
 

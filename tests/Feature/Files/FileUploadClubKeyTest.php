@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
  * comprueba sobre HTTP real (sin `Stores::fake()`) que la subida sale firmada
  * con la clave del club y nunca con la de por defecto.
  */
-beforeEach(function () {
+beforeEach(function (): void {
     Storage::fake();
 
     config([
@@ -24,7 +24,7 @@ beforeEach(function () {
     Http::preventStrayRequests();
 });
 
-it('uploads with the key of the club project, never with the default one', function () {
+it('uploads with the key of the club project, never with the default one', function (): void {
     Http::fake([
         '*/vector_stores/vs_va/files' => Http::response(['id' => 'doc-new']),
         '*/vector_stores/vs_va' => Http::response([
@@ -46,5 +46,5 @@ it('uploads with the key of the club project, never with the default one', funct
 
     Http::assertSentCount(3);
 
-    Http::assertNotSent(fn ($request) => ! $request->hasHeader('Authorization', 'Bearer sk-va'));
+    Http::assertNotSent(fn ($request): bool => ! $request->hasHeader('Authorization', 'Bearer sk-va'));
 });

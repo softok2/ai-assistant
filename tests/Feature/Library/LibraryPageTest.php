@@ -42,7 +42,7 @@ it('lists the attachments of the user, the most recent first', function (): void
 
     $this->get(route('library'))
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('Library')
             ->has('attachments', 2)
             ->where('attachments.0.name', 'foto.jpg')
@@ -76,7 +76,7 @@ it('ignores the chats of other users and the messages of the assistant', functio
 
     $this->get(route('library'))
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page->where('attachments', []));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('attachments', []));
 });
 
 it('drops paths outside the folder of the user and keeps one row per file', function (): void {
@@ -96,7 +96,7 @@ it('drops paths outside the folder of the user and keeps one row per file', func
 
     $this->get(route('library'))
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->has('attachments', 1)
             ->where('attachments.0.name', 'reporte.pdf')
             ->where('attachments.0.bytes', null));
@@ -111,7 +111,7 @@ it('falls back to the extension when the attachment has no mime', function (): v
 
     $this->get(route('library'))
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->where('attachments.0.kind', 'spreadsheet')
             ->where('kindLabels.spreadsheet.label', 'Hoja de cálculo')
             ->where('kindLabels.spreadsheet.plural', 'Hojas de cálculo'));
@@ -122,7 +122,7 @@ it('renders an empty library when the user never attached anything', function ()
 
     $this->get(route('library'))
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page) => $page
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
             ->component('Library')
             ->where('attachments', []));
 });

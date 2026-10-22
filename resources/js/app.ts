@@ -9,16 +9,10 @@ import { initializeTheme } from './composables/useAppearance'
 import '../css/app.css'
 import '../css/highlight-theme.css'
 
-// Extend ImportMeta interface for Vite...
-declare module 'vite/client' {
+// Extend Vite's ImportMetaEnv (vite/client already types env and glob)...
+declare global {
   interface ImportMetaEnv {
     readonly VITE_APP_NAME: string
-    [key: string]: string | boolean | undefined
-  }
-
-  interface ImportMeta {
-    readonly env: ImportMetaEnv
-    readonly glob: <T>(pattern: string) => Record<string, () => Promise<T>>
   }
 }
 

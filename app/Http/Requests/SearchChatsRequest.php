@@ -21,7 +21,7 @@ final class SearchChatsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'q' => 'nullable|string|max:120',
+            'q' => ['nullable', 'string', 'max:120'],
         ];
     }
 }

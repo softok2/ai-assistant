@@ -35,9 +35,9 @@ final class ChatStarterSuggester implements Agent, HasStructuredOutput
      * @param  string|null  $cutoff  fecha del corte más reciente de la biblioteca (Y-m-d)
      */
     public function __construct(
-        protected ?ClubName $club = null,
-        protected ?RoleName $role = null,
-        protected ?string $cutoff = null,
+        private ?ClubName $club = null,
+        private ?RoleName $role = null,
+        private ?string $cutoff = null,
     ) {}
 
     public function instructions(): string

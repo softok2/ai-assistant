@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { Check, Copy, Download, Ellipsis, LoaderCircle, RefreshCw, Share, ThumbsDown, ThumbsUp, Volume2, VolumeX } from '@lucide/vue'
 import axios from 'axios'
-import { Check, Copy, Download, Ellipsis, Loader2, RefreshCw, Share, ThumbsDown, ThumbsUp, Volume2, VolumeX } from 'lucide-vue-next'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
 import {
@@ -170,13 +170,13 @@ function filenameFrom(disposition: unknown): string {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem @click="toggleSpeech(messageId!)">
-            <Loader2 v-if="speechLoading" class="size-4 animate-spin" />
+            <LoaderCircle v-if="speechLoading" class="size-4 animate-spin" />
             <VolumeX v-else-if="playing" class="size-4" />
             <Volume2 v-else class="size-4" />
             {{ playing || speechLoading ? 'Detener lectura' : 'Leer en voz alta' }}
           </DropdownMenuItem>
           <DropdownMenuItem :disabled="exporting" @click="exportPdf">
-            <Loader2 v-if="exporting" class="size-4 animate-spin" />
+            <LoaderCircle v-if="exporting" class="size-4 animate-spin" />
             <Download v-else class="size-4" />
             {{ exporting ? 'Generando PDF…' : 'Exportar PDF' }}
           </DropdownMenuItem>

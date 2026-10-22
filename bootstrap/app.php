@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request;
 use Illuminate\Foundation\Application;
 use App\Http\Middleware\FrameAncestors;
 use App\Http\Middleware\HandleAppearance;
@@ -11,7 +12,6 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\AuthenticateExternalUser;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Softok2\TelegramNotification\Facades\TelegramNotification;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -49,10 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('reports:send-due')->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->dontReportDuplicates()
-            ->report(function (Throwable $e) {
-                if (app()->isProduction()) {
-                    TelegramNotification::sendException($e);
-                }
-            });
+        $exceptions->dontReportDuplicates();
+
+        $exceptions->shouldRenderJsonWhen(fn (Request $request): bool => $request->is('api/*') || $request->expectsJson());
     })->create();

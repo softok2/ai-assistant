@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { ChatAttachment } from '@/composables/useChatUploads'
 import type { Model } from '@/types'
+import { ArrowUp, ChevronDown, Cpu, FileText, LoaderCircle, Mic, Paperclip, Plus, Square, X } from '@lucide/vue'
 import { useStorage } from '@vueuse/core'
-import { ArrowUp, ChevronDown, Cpu, FileText, Loader2, Mic, Paperclip, Plus, Square, X } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { Button } from '@/components/ui/button'
 import {
@@ -103,7 +103,7 @@ defineExpose({
         </button>
       </div>
       <div v-if="uploading" class="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-        <Loader2 class="size-3.5 animate-spin" :stroke-width="1.5" />
+        <LoaderCircle class="size-3.5 animate-spin" :stroke-width="1.5" />
         Subiendo…
       </div>
     </div>
@@ -227,7 +227,7 @@ defineExpose({
           :disabled="transcribing"
           @click="recording ? stopDictation() : startDictation()"
         >
-          <Loader2 v-if="transcribing" class="size-4 animate-spin" :stroke-width="1.5" />
+          <LoaderCircle v-if="transcribing" class="size-4 animate-spin" :stroke-width="1.5" />
           <Square v-else-if="recording" class="size-3.5 fill-current" :stroke-width="1.5" />
           <Mic v-else class="size-4" :stroke-width="1.5" />
         </button>

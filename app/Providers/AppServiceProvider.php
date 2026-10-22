@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\ServiceProvider;
+use App\Reports\WeeklyReportPdfRenderer;
 use App\Reports\Contracts\RendersMessageAsPdf;
+use App\Reports\Contracts\RendersWeeklyReportPdf;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +25,7 @@ final class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(RendersMessageAsPdf::class, MessagePdfRenderer::class);
+        $this->app->bind(RendersWeeklyReportPdf::class, WeeklyReportPdfRenderer::class);
     }
 
     /**

@@ -19,25 +19,25 @@ final class AuthenticateExternalUser
      * Maximum age of a signed link, in seconds. The link only authenticates
      * the entry; the session keeps the user signed in afterwards.
      */
-    private const MAX_LINK_AGE = 300;
+    private const int MAX_LINK_AGE = 300;
 
-    private const MAX_CLOCK_SKEW = 60;
+    private const int MAX_CLOCK_SKEW = 60;
 
     public function handle(Request $request, Closure $next)
     {
         try {
             $request->validate([
                 'club' => ['required', new Enum(ClubName::class)],
-                'user_id' => 'required|integer|min:1',
-                'user_name' => 'required|string|max:255',
-                'role' => 'required|string|exists:roles,name',
-                'issued_at' => 'required|integer',
-                'sig' => 'required|string',
+                'user_id' => ['required', 'integer', 'min:1'],
+                'user_name' => ['required', 'string', 'max:255'],
+                'role' => ['required', 'string', 'exists:roles,name'],
+                'issued_at' => ['required', 'integer'],
+                'sig' => ['required', 'string'],
             ]);
-        } catch (ValidationException $e) {
-            Log::warning('External link rejected: '.$e->getMessage());
+        } catch (ValidationException $validationException) {
+            Log::warning('External link rejected: '.$validationException->getMessage());
 
-            abort(400, 'Bad Request: '.$e->getMessage());
+            abort(400, 'Bad Request: '.$validationException->getMessage());
         }
 
         abort_unless($this->isFresh((int) $request->issued_at), 403, 'Forbidden: Link expired');

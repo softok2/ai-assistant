@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
@@ -12,7 +12,7 @@ return new class extends Migration
     {
         Schema::dropIfExists('report_settings');
 
-        Schema::create('report_settings', function (Blueprint $table) {
+        Schema::create('report_settings', function (Blueprint $table): void {
             $table->id();
             $table->string('club_name')->unique();
             $table->boolean('enabled')->default(false);

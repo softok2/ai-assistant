@@ -71,19 +71,16 @@ final class User extends Authenticatable
     public static function fromExternalLink(
         ExternalLinkPayloadDto $payload
     ): ?self {
-        $user = self::updateOrCreate(
-            [
-                'club_name' => $payload->getClub(),
-                'external_id' => $payload->getExternalId(),
-            ],
-            [
-                'name' => $payload->getUserName(),
-                'email' => $payload->getClub().'-'.$payload->getExternalId().'@external.local',
-                'password' => Str::random(40),
-            ]
-        );
+        $user = self::query()->updateOrCreate([
+            'club_name' => $payload->getClub(),
+            'external_id' => $payload->getExternalId(),
+        ], [
+            'name' => $payload->getUserName(),
+            'email' => $payload->getClub().'-'.$payload->getExternalId().'@external.local',
+            'password' => Str::random(40),
+        ]);
 
-        $role = Role::where('name', $payload->getRole())->first();
+        $role = Role::query()->where('name', $payload->getRole())->first();
 
         if ($role !== null) {
             $user->roles()->sync([$role->id]);

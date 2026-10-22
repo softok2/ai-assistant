@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use App\Jobs\ImportKnowledgeDocuments;
 
-it('chains the import and the ingest and holds the lock while they run', function () {
+it('chains the import and the ingest and holds the lock while they run', function (): void {
     Bus::fake();
 
     $this->artisan('assistant-files:sync')->assertSuccessful();
@@ -17,7 +17,7 @@ it('chains the import and the ingest and holds the lock while they run', functio
     expect(Cache::lock('syncing-assistant-files', 60)->get())->toBeFalse();
 });
 
-it('refuses to start a second sync while one is running', function () {
+it('refuses to start a second sync while one is running', function (): void {
     Bus::fake();
     Cache::lock('syncing-assistant-files', 60)->get();
 
@@ -28,7 +28,7 @@ it('refuses to start a second sync while one is running', function () {
     Bus::assertNotDispatched(ImportKnowledgeDocuments::class);
 });
 
-it('holds the lock long enough for a slow ingestion', function () {
+it('holds the lock long enough for a slow ingestion', function (): void {
     Bus::fake();
 
     $this->artisan('assistant-files:sync');
@@ -41,12 +41,12 @@ it('holds the lock long enough for a slow ingestion', function () {
  * El sondeo del panel toma el candado un instante: con el TTL largo, una
  * petición que muriera antes de soltarlo bloqueaba el sync media hora.
  */
-it('does not block the sync when it only probes the lock', function () {
+it('does not block the sync when it only probes the lock', function (): void {
     expect(SyncLock::isHeld())->toBeFalse()
         ->and(SyncLock::acquire())->not->toBeNull();
 });
 
-it('reports the lock as held while a sync owns it', function () {
+it('reports the lock as held while a sync owns it', function (): void {
     SyncLock::acquire();
 
     expect(SyncLock::isHeld())->toBeTrue();

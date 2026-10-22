@@ -2,7 +2,6 @@ import path, { resolve } from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import laravel from 'laravel-vite-plugin'
-import MotionResolver from 'motion-v/resolver'
 import Components from 'unplugin-vue-components/vite'
 import { defineConfig } from 'vite'
 
@@ -24,15 +23,12 @@ export default defineConfig({
     }),
     Components({
       dts: true,
-      resolvers: [
-        MotionResolver(),
-      ],
     }),
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './resources/js'),
-      'ziggy-js': resolve(__dirname, 'vendor/tightenco/ziggy'),
+      '@': path.resolve(import.meta.dirname, './resources/js'),
+      'ziggy-js': resolve(import.meta.dirname, 'vendor/tightenco/ziggy'),
     },
   },
 })

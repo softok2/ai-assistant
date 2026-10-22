@@ -10,7 +10,7 @@ use App\Jobs\UploadAssistantDoc;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Storage::fake();
     Stores::fake();
     Files::fake();
@@ -18,7 +18,7 @@ beforeEach(function () {
     config(['services.openai.vector_stores.ccm' => 'vs_test']);
 });
 
-it('drops the OpenAI copy and queues a fresh upload', function () {
+it('drops the OpenAI copy and queues a fresh upload', function (): void {
     $file = File::factory()->completed()->create();
     Storage::put('docs/'.$file->name, '# reporte');
 
@@ -34,10 +34,10 @@ it('drops the OpenAI copy and queues a fresh upload', function () {
         ->and($file->synced_at)->toBeNull()
         ->and($file->expired_at)->toBeNull();
 
-    Bus::assertDispatched(UploadAssistantDoc::class, fn (UploadAssistantDoc $job) => $job->fileId === $file->id);
+    Bus::assertDispatched(UploadAssistantDoc::class, fn (UploadAssistantDoc $job): bool => $job->fileId === $file->id);
 });
 
-it('brings an expired document back into the queue', function () {
+it('brings an expired document back into the queue', function (): void {
     $file = File::factory()->completed()->expired()->create();
     Storage::put('docs/'.$file->name, '# reporte viejo');
 
@@ -49,7 +49,7 @@ it('brings an expired document back into the queue', function () {
     expect($file->fresh()->expired_at)->toBeNull();
 });
 
-it('refuses to reindex a document that is no longer on disk', function () {
+it('refuses to reindex a document that is no longer on disk', function (): void {
     $file = File::factory()->completed()->create();
 
     $this->actingAs(adminUser())
@@ -65,7 +65,7 @@ it('refuses to reindex a document that is no longer on disk', function () {
     Bus::assertNotDispatched(UploadAssistantDoc::class);
 });
 
-it('keeps the row untouched when OpenAI refuses to drop the old copy', function () {
+it('keeps the row untouched when OpenAI refuses to drop the old copy', function (): void {
     Stores::fake(fn () => throw new RuntimeException('OpenAI is down'));
     $file = File::factory()->completed()->create();
     Storage::put('docs/'.$file->name, '# reporte');
@@ -83,7 +83,7 @@ it('keeps the row untouched when OpenAI refuses to drop the old copy', function 
  * Una fila que se quedó en "Procesando" porque el worker murió tiene que
  * poder reindexarse; si no, no hay forma de sacarla de ese estado.
  */
-it('reindexes a row stuck in progress', function () {
+it('reindexes a row stuck in progress', function (): void {
     $file = File::factory()->create(['status' => MediaStatus::IN_PROGRESS]);
     Storage::put('docs/'.$file->name, '# reporte');
 
@@ -96,7 +96,7 @@ it('reindexes a row stuck in progress', function () {
     Bus::assertDispatched(UploadAssistantDoc::class);
 });
 
-it('refuses to reindex a file that belongs to another club', function () {
+it('refuses to reindex a file that belongs to another club', function (): void {
     $admin = adminUser();
     $admin->forceFill(['club_name' => 'vallealto'])->save();
     $file = File::factory()->completed()->create();

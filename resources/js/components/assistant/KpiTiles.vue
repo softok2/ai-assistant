@@ -47,8 +47,12 @@ const deltaClass: Record<string, string> = {
       :key="`${item.label}-${index}`"
       class="rounded-xl border border-border bg-card px-4 py-3"
     >
-      <p class="text-xs text-muted-foreground">{{ item.label }}</p>
-      <p class="mt-0.5 text-[26px] font-semibold leading-tight tabular-nums text-foreground">{{ item.value }}</p>
+      <p class="text-xs text-muted-foreground">
+        {{ item.label }}
+      </p>
+      <p class="mt-0.5 text-[26px] font-semibold leading-tight tabular-nums text-foreground">
+        {{ item.value }}
+      </p>
       <p v-if="item.delta" class="mt-0.5 text-xs" :class="deltaClass[item.tone ?? 'neutral']">
         {{ item.delta }}
       </p>

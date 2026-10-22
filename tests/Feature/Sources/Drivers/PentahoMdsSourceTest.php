@@ -20,7 +20,7 @@ function pentahoSource(): PentahoMdsSource
     );
 }
 
-it('yields one document per report with its group, a timestamped name and a computed checksum', function () {
+it('yields one document per report with its group, a timestamped name and a computed checksum', function (): void {
     Http::fake([
         'https://mds.test/api/ccm/golf-output.md' => Http::response('# golf'),
         'https://mds.test/api/ccm/tennis-output.md' => Http::response('# tenis'),
@@ -39,7 +39,7 @@ it('yields one document per report with its group, a timestamped name and a comp
     Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Basic '.base64_encode('u:p')));
 });
 
-it('skips a report that fails to download and keeps the others', function () {
+it('skips a report that fails to download and keeps the others', function (): void {
     Http::fake([
         'https://mds.test/api/ccm/golf-output.md' => Http::response('', 500),
         'https://mds.test/api/ccm/tennis-output.md' => Http::response('# tenis'),

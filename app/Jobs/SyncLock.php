@@ -14,16 +14,16 @@ use Illuminate\Support\Facades\Cache;
  */
 final class SyncLock
 {
-    public const KEY = 'syncing-assistant-files';
+    public const string KEY = 'syncing-assistant-files';
 
-    public const SECONDS = 1800;
+    public const int SECONDS = 1800;
 
     /**
      * El sondeo toma el candado un instante para saber si estaba libre; con un
      * TTL corto una petición que muera antes de soltarlo no bloquea el sync
      * media hora.
      */
-    public const PROBE_SECONDS = 1;
+    public const int PROBE_SECONDS = 1;
 
     public static function acquire(): ?Lock
     {

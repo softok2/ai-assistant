@@ -13,15 +13,15 @@ use App\Ai\Sources\KnowledgeSourceFactory;
  * cambia; un admin local sin club elige, y por defecto ve el primero con
  * fuente configurada.
  */
-final class ResolveSourcesClubAction
+final readonly class ResolveSourcesClubAction
 {
-    public function __construct(private readonly KnowledgeSourceFactory $sources) {}
+    public function __construct(private KnowledgeSourceFactory $sources) {}
 
     public function execute(?User $user, ?string $requested): ClubName
     {
         $own = $user?->clubName();
 
-        if ($own !== null) {
+        if ($own instanceof ClubName) {
             return $own;
         }
 
@@ -32,7 +32,7 @@ final class ResolveSourcesClubAction
 
     public function isLocked(?User $user): bool
     {
-        return $user?->clubName() !== null;
+        return $user?->clubName() instanceof ClubName;
     }
 
     /**
@@ -40,6 +40,6 @@ final class ResolveSourcesClubAction
      */
     public function options(): array
     {
-        return array_map(fn (ClubName $club) => ['value' => $club->value, 'label' => $club->label()], $this->sources->clubs());
+        return array_map(fn (ClubName $club): array => ['value' => $club->value, 'label' => $club->label()], $this->sources->clubs());
     }
 }

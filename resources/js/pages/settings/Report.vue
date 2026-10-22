@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ChatHistory } from '@/types'
 import { Head, router, useForm, usePage } from '@inertiajs/vue3'
-import { FileText, Loader2, Plus, Send, X } from 'lucide-vue-next'
+import { FileText, LoaderCircle, Plus, Send, X } from '@lucide/vue'
 import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
@@ -79,7 +79,9 @@ function sendTest(): void {
         <div class="mb-6 flex items-center gap-3">
           <FileText class="size-6 text-muted-foreground" />
           <div>
-            <h1 class="text-xl font-semibold">Reporte ejecutivo automático</h1>
+            <h1 class="text-xl font-semibold">
+              Reporte ejecutivo automático
+            </h1>
             <p class="text-sm text-muted-foreground">
               La IA genera un PDF con el análisis por módulos y lo envía al director según la frecuencia que elijas.
             </p>
@@ -101,7 +103,9 @@ function sendTest(): void {
           <!-- Recipients -->
           <div>
             <Label>Destinatarios</Label>
-            <p class="mb-2 text-sm text-muted-foreground">Correo del director y copias opcionales.</p>
+            <p class="mb-2 text-sm text-muted-foreground">
+              Correo del director y copias opcionales.
+            </p>
             <div class="mb-2 flex flex-wrap gap-2">
               <span
                 v-for="email in form.recipients"
@@ -125,7 +129,9 @@ function sendTest(): void {
                 <Plus class="size-4" />
               </Button>
             </div>
-            <p v-if="form.errors.recipients" class="mt-1 text-xs text-destructive">{{ form.errors.recipients }}</p>
+            <p v-if="form.errors.recipients" class="mt-1 text-xs text-destructive">
+              {{ form.errors.recipients }}
+            </p>
           </div>
 
           <hr class="border-border">
@@ -135,7 +141,9 @@ function sendTest(): void {
             <div>
               <Label>Frecuencia</Label>
               <select v-model="form.frequency" class="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm">
-                <option v-for="f in frequencies" :key="f.value" :value="f.value">{{ f.label }}</option>
+                <option v-for="f in frequencies" :key="f.value" :value="f.value">
+                  {{ f.label }}
+                </option>
               </select>
             </div>
             <div>
@@ -145,14 +153,18 @@ function sendTest(): void {
                 v-model.number="form.day_of_week"
                 class="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm"
               >
-                <option v-for="(day, i) in weekdays" :key="i" :value="i">{{ day }}</option>
+                <option v-for="(day, i) in weekdays" :key="i" :value="i">
+                  {{ day }}
+                </option>
               </select>
               <Input v-else v-model.number="form.day_of_week" type="number" min="1" max="31" class="mt-1" />
             </div>
             <div>
               <Label>Hora</Label>
               <select v-model.number="form.hour" class="mt-1 h-9 w-full rounded-md border border-border bg-background px-3 text-sm">
-                <option v-for="h in 24" :key="h - 1" :value="h - 1">{{ String(h - 1).padStart(2, '0') }}:00</option>
+                <option v-for="h in 24" :key="h - 1" :value="h - 1">
+                  {{ String(h - 1).padStart(2, '0') }}:00
+                </option>
               </select>
             </div>
           </div>
@@ -165,7 +177,7 @@ function sendTest(): void {
 
           <div class="flex items-center justify-between">
             <Button type="button" variant="outline" :disabled="testing || !form.recipients.length" @click="sendTest">
-              <Loader2 v-if="testing" class="size-4 animate-spin" />
+              <LoaderCircle v-if="testing" class="size-4 animate-spin" />
               <Send v-else class="size-4" />
               Enviar prueba ahora
             </Button>

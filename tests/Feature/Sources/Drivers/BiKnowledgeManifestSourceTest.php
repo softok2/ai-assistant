@@ -27,7 +27,7 @@ function fakeManifest(): void
     ]);
 }
 
-it('describes every manifest document without downloading it', function () {
+it('describes every manifest document without downloading it', function (): void {
     fakeManifest();
 
     $documents = collect(manifestSource()->documents());
@@ -39,10 +39,10 @@ it('describes every manifest document without downloading it', function () {
         ->and($documents[1]->origin)->toBe(SourceOrigin::BiKnowledge);
 
     Http::assertSentCount(1);
-    Http::assertSent(fn ($request) => str_ends_with($request->url(), '/manifest.json') && $request->hasHeader('Authorization', 'Basic '.base64_encode('bi:secret')));
+    Http::assertSent(fn ($request): bool => str_ends_with($request->url(), '/manifest.json') && $request->hasHeader('Authorization', 'Basic '.base64_encode('bi:secret')));
 });
 
-it('downloads the body only when asked', function () {
+it('downloads the body only when asked', function (): void {
     fakeManifest();
 
     $live = collect(manifestSource()->documents())[1];
@@ -51,7 +51,7 @@ it('downloads the body only when asked', function () {
     Http::assertSentCount(2);
 });
 
-it('yields nothing and logs when the manifest is down', function () {
+it('yields nothing and logs when the manifest is down', function (): void {
     Http::fake(['https://va.test/bi/knowledge/manifest.json' => Http::response('', 503)]);
 
     expect(collect(manifestSource()->documents()))->toHaveCount(0);
@@ -61,7 +61,7 @@ it('yields nothing and logs when the manifest is down', function () {
  * `name` termina en un `Storage::put('docs/{club}/{name}')`: sin filtrar,
  * `../x.md` o una ruta absoluta apuntarían fuera de la carpeta del club.
  */
-it('skips a manifest entry whose name tries to escape the club folder', function () {
+it('skips a manifest entry whose name tries to escape the club folder', function (): void {
     Http::fake([
         'https://va.test/bi/knowledge/manifest.json' => Http::response([
             'documents' => [

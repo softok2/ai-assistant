@@ -51,10 +51,10 @@ final class AssistantSourcesManagementController extends Controller
             }
 
             $deleted = $reconcile->apply($request->club(), $report);
-        } catch (Throwable $e) {
-            report($e);
+        } catch (Throwable $throwable) {
+            report($throwable);
 
-            return back()->with('error', 'No se pudo reconciliar con OpenAI: '.$e->getMessage());
+            return back()->with('error', 'No se pudo reconciliar con OpenAI: '.$throwable->getMessage());
         }
 
         return back()->with('success', "Se borraron {$deleted} archivos de OpenAI");
@@ -77,10 +77,10 @@ final class AssistantSourcesManagementController extends Controller
             if (! $reindex->execute($file)) {
                 return back()->with('error', "El documento {$file->name} ya no está en el disco; no se puede reindexar.");
             }
-        } catch (Throwable $e) {
-            report($e);
+        } catch (Throwable $throwable) {
+            report($throwable);
 
-            return back()->with('error', "No se pudo reindexar {$file->name}: ".$e->getMessage());
+            return back()->with('error', "No se pudo reindexar {$file->name}: ".$throwable->getMessage());
         }
 
         return back()->with('success', "Documento {$file->name} puesto en cola para reindexar.");

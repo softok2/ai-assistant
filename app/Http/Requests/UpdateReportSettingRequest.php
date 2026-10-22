@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Enums\ReportFrequency;
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Foundation\Http\FormRequest;
 
 final class UpdateReportSettingRequest extends FormRequest
 {

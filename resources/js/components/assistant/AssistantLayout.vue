@@ -37,7 +37,9 @@ watch(isDesktop, (desktop) => {
     <!-- Móvil: la misma barra dentro de un panel. -->
     <Sheet :open="mobileOpen" @update:open="value => { if (!value) closeMobile() }">
       <SheetContent side="left" class="w-80 p-0">
-        <SheetTitle class="sr-only">Historial de chats</SheetTitle>
+        <SheetTitle class="sr-only">
+          Historial de chats
+        </SheetTitle>
         <ChatHistorySidebar
           in-sheet
           :chat-history="chatHistory"

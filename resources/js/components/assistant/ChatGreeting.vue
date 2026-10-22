@@ -49,10 +49,10 @@ const sparks: OrbSpark[] = [
         :key="index"
         class="orb-spark absolute rounded-full"
         :style="{
-          top: spark.top,
-          left: spark.left,
-          width: `${spark.size}px`,
-          height: `${spark.size}px`,
+          'top': spark.top,
+          'left': spark.left,
+          'width': `${spark.size}px`,
+          'height': `${spark.size}px`,
           '--spark-dx': spark.dx,
           '--spark-dy': spark.dy,
           '--spark-duration': spark.duration,
@@ -62,7 +62,7 @@ const sparks: OrbSpark[] = [
     </div>
 
     <h1 class="text-4xl font-semibold tracking-tight text-foreground">
-      {{ greeting }}<template v-if="firstName">, {{ firstName }}</template>
+      {{ greeting }}{{ firstName ? `, ${firstName}` : '' }}
     </h1>
     <p class="mt-2 text-4xl font-semibold tracking-tight">
       <span class="text-foreground">¿Por dónde </span>

@@ -29,7 +29,7 @@ final class StoreChatRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'message' => 'required|string|max:4000',
+            'message' => ['required', 'string', 'max:4000'],
             'model' => ['nullable', 'string', Rule::enum(ModelName::class)],
             'visibility' => ['required', 'string', Rule::enum(Visibility::class)],
             'attachments' => ['nullable', 'array', 'max:5'],

@@ -92,6 +92,7 @@ it('returns follow-up suggestions for the owner', function (): void {
     $response = $this->post(route('chat.suggestions', $this->chat));
 
     $response->assertOk();
+
     expect($response->json('suggestions'))->toHaveCount(3);
 });
 
@@ -169,6 +170,7 @@ Las reservas subieron 12%.
     $response = $this->post(route('chat.speech', $message));
 
     $response->assertOk();
+
     expect($response->json('audio'))->not->toBeEmpty();
     expect($response->json('mime'))->not->toBeEmpty();
 });

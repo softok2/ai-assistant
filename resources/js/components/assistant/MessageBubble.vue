@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Message } from '@/types'
 import { router } from '@inertiajs/vue3'
-import { Check, Copy, FileText, Pencil } from 'lucide-vue-next'
+import { Check, Copy, FileText, Pencil } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import ActivityTrail from './ActivityTrail.vue'
 import MessageActions from './MessageActions.vue'
@@ -147,7 +147,9 @@ function vote(isUpvoted: boolean): void {
         <Copy v-else class="size-3.5" />
       </button>
       <div class="rounded-3xl bg-muted px-4 py-2.5 text-[15px] leading-relaxed text-foreground">
-        <p class="whitespace-pre-wrap break-words">{{ message.parts.text }}</p>
+        <p class="whitespace-pre-wrap break-words">
+          {{ message.parts.text }}
+        </p>
       </div>
     </div>
   </div>

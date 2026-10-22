@@ -11,7 +11,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('files', function (Blueprint $table) {
+        Schema::create('files', function (Blueprint $table): void {
             $table->id();
             $table->string('project', 100)->default('ccm')->comment('Project name');
             $table->string('group', 100)->default('golf')->comment('Module name');

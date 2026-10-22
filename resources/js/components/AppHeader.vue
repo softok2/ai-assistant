@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { BreadcrumbItem, NavItem } from '@/types'
 import { Link, usePage } from '@inertiajs/vue3'
-import { LayoutGrid, Menu, Search } from 'lucide-vue-next'
+import { LayoutGrid, Menu, Search } from '@lucide/vue'
 import { computed } from 'vue'
 import AppLogo from '@/components/AppLogo.vue'
 import AppLogoIcon from '@/components/AppLogoIcon.vue'

@@ -9,27 +9,27 @@ use App\Enums\ClubName;
 use App\Enums\SourceOrigin;
 use Illuminate\Support\Facades\Storage;
 
-beforeEach(function () {
+beforeEach(function (): void {
     Storage::fake();
     Stores::fake();
     config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm', 'vallealto' => 'vs_va']]);
 });
 
-it('knows its club from the project column', function () {
+it('knows its club from the project column', function (): void {
     expect(File::factory()->forClub(ClubName::VALLEALTO)->make()->club())->toBe(ClubName::VALLEALTO);
 });
 
-it('uploads to the store of its own club', function () {
+it('uploads to the store of its own club', function (): void {
     $file = File::factory()->forClub(ClubName::VALLEALTO)->create();
     Storage::put('docs/'.$file->name, '# va');
 
     $file->upload();
 
-    Files::assertStored(fn ($stored) => true);
+    Files::assertStored(fn ($stored): true => true);
     expect($file->fresh()->status->value)->toBe('completed');
 });
 
-it('expires only older siblings of the same club, group and name', function () {
+it('expires only older siblings of the same club, group and name', function (): void {
     $otherClub = File::factory()->forClub(ClubName::CCM)->fromManifest('golf-live.md')->completed()->create();
     $otherName = File::factory()->forClub(ClubName::VALLEALTO)->fromManifest('golf-annual.md')->completed()->create();
     $older = File::factory()->forClub(ClubName::VALLEALTO)->fromManifest('golf-live.md')->completed()->create();
@@ -42,7 +42,7 @@ it('expires only older siblings of the same club, group and name', function () {
         ->and($otherClub->fresh()->expired_at)->toBeNull();
 });
 
-it('expires pentaho siblings by club and group because their name changes every run', function () {
+it('expires pentaho siblings by club and group because their name changes every run', function (): void {
     $older = File::factory()->forClub(ClubName::CCM)->completed()->create(['group' => 'golf', 'name' => 'ccm/golf-output-100.md']);
     $otherClub = File::factory()->forClub(ClubName::VALLEALTO)->completed()->create(['group' => 'golf', 'name' => 'vallealto/golf-output-100.md']);
     $newer = File::factory()->forClub(ClubName::CCM)->completed()->create(['group' => 'golf', 'name' => 'ccm/golf-output-200.md']);

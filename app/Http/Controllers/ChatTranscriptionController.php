@@ -14,7 +14,7 @@ final class ChatTranscriptionController extends Controller
     public function __invoke(Request $request, ClubAiProvider $providers): JsonResponse
     {
         $request->validate([
-            'audio' => 'required|file|max:15360',
+            'audio' => ['required', 'file', 'max:15360'],
         ]);
 
         $transcription = Transcription::fromUpload($request->file('audio'))

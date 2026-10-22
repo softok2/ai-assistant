@@ -23,7 +23,7 @@ final class ModuleReportAnalyst implements Agent, HasTools
 {
     use Promptable;
 
-    public function __construct(protected ClubName $club, protected string $group) {}
+    public function __construct(private ClubName $club, private string $group) {}
 
     public function instructions(): string
     {
@@ -66,7 +66,7 @@ final class ModuleReportAnalyst implements Agent, HasTools
     {
         return [
             new FileSearch(
-                stores: [app(ClubVectorStore::class)->idFor($this->club)],
+                stores: [resolve(ClubVectorStore::class)->idFor($this->club)],
                 where: ['group' => $this->group],
             ),
         ];

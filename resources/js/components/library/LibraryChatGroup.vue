@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { KindLabels, LibraryChatGroup } from './types'
 import { Link } from '@inertiajs/vue3'
-import { ChevronRight } from 'lucide-vue-next'
+import { ChevronRight } from '@lucide/vue'
 import { formatRelativeDay } from '@/lib/dates'
 import LibraryFileTile from './LibraryFileTile.vue'
 
@@ -14,7 +14,9 @@ const props = defineProps<{
 <template>
   <section class="flex flex-col gap-3.5">
     <div class="flex items-baseline gap-3">
-      <h2 class="min-w-0 truncate text-[15px] font-semibold">{{ props.group.chatTitle }}</h2>
+      <h2 class="min-w-0 truncate text-[15px] font-semibold">
+        {{ props.group.chatTitle }}
+      </h2>
       <span class="shrink-0 text-xs text-muted-foreground">{{ formatRelativeDay(props.group.latestAt) }}</span>
       <Link
         :href="route('chats.show', { chat: props.group.chatId })"

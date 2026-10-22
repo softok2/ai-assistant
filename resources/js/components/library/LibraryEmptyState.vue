@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
-import { Paperclip, SquarePen } from 'lucide-vue-next'
+import { Paperclip, SquarePen } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 </script>
 
@@ -13,7 +13,9 @@ import { Button } from '@/components/ui/button'
     </div>
 
     <div class="max-w-95">
-      <h2 class="text-base font-semibold">Aún no has adjuntado archivos</h2>
+      <h2 class="text-base font-semibold">
+        Aún no has adjuntado archivos
+      </h2>
       <p class="mt-1.5 text-sm text-muted-foreground">
         Cuando subas una imagen, un PDF o una hoja de cálculo a un chat, quedará guardado aquí para volver a usarlo.
       </p>

@@ -20,23 +20,24 @@ jobs:
 
     - name: Install Composer dependencies
       run: |
-        scl enable php83 "composer install --no-interaction"
+        scl enable php85 "composer install --no-interaction"
       working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
 
     - name: Setup Node dependencies
       run: |
-        yarn
-        yarn build
+        npm ci
+        npm run build
       working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}    
  
     - name: Setup Laravel mandatory commands
       run: |
-        scl enable php83 "php artisan storage:link"
-        scl enable php83 "php artisan optimize"
+        scl enable php85 "php artisan storage:link"
+        scl enable php85 "php artisan view:clear"
+        scl enable php85 "php artisan optimize"
       working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
     - name: Setup Laravel mandatory DB Migrate and seed commands
       run: |
-        scl enable php83 "php artisan migrate:fresh --seed"
+        scl enable php85 "php artisan migrate:fresh --seed"
       working-directory: ${{ secrets.AI_ASSISTANT_STAGE_DIR }}
     - name: Clearing mds repo
       run: |

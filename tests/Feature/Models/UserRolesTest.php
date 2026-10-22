@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 it('reads the roles once no matter how many times they are asked for', function (): void {
     $user = User::factory()->create();
-    $user->roles()->attach(Role::firstOrCreate(['name' => 'golf_manager']));
+    $user->roles()->attach(Role::query()->firstOrCreate(['name' => 'golf_manager']));
 
     DB::enableQueryLog();
 
@@ -24,7 +24,7 @@ it('reads the roles once no matter how many times they are asked for', function 
 
 it('still recognises an administrator', function (): void {
     $user = User::factory()->create();
-    $user->roles()->attach(Role::firstOrCreate(['name' => 'admin']));
+    $user->roles()->attach(Role::query()->firstOrCreate(['name' => 'admin']));
 
     expect($user->isAdmin())->toBeTrue()
         ->and($user->primaryRole())->toBe(RoleName::ADMIN);
@@ -39,7 +39,7 @@ it('reports no role for a user without one', function (): void {
 
 it('ignores a role name that the application does not know', function (): void {
     $user = User::factory()->create();
-    $user->roles()->attach(Role::firstOrCreate(['name' => 'rol_inventado']));
+    $user->roles()->attach(Role::query()->firstOrCreate(['name' => 'rol_inventado']));
 
     expect($user->primaryRole())->toBeNull()
         ->and($user->isAdmin())->toBeFalse();

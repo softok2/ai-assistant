@@ -14,15 +14,15 @@ use App\Ai\ClubAiProvider;
  * más lee `services.openai.vector_stores`: así ningún camino de código puede
  * tocar un store sin decir de qué club es.
  */
-final class ClubVectorStore
+final readonly class ClubVectorStore
 {
-    public function __construct(private readonly ClubAiProvider $providers) {}
+    public function __construct(private ClubAiProvider $providers) {}
 
     public function idFor(ClubName $club): string
     {
         $id = config("services.openai.vector_stores.{$club->value}");
 
-        if (! is_string($id) || trim($id) === '') {
+        if (! is_string($id) || mb_trim($id) === '') {
             throw MissingClubVectorStore::forClub($club);
         }
 
@@ -42,7 +42,7 @@ final class ClubVectorStore
     public function configured(): array
     {
         return collect((array) config('services.openai.vector_stores'))
-            ->filter(fn ($id) => is_string($id) && trim($id) !== '')
+            ->filter(fn ($id): bool => is_string($id) && mb_trim($id) !== '')
             ->keys()
             ->map(fn (string $club) => ClubName::tryFrom($club))
             ->filter()

@@ -35,6 +35,7 @@ it('exports an assistant message as a pdf named after the chat', function (): vo
     $response = $this->post(route('chat.messages.pdf', assistantMessage($this->chat, 'Hola')));
 
     $response->assertOk();
+
     expect($response->headers->get('content-type'))->toBe('application/pdf');
     expect($response->headers->get('content-disposition'))->toContain('ocupacion-de-restaurantes.pdf');
 });

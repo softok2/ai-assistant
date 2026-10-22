@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Message } from '@/types'
-import { ArrowDown } from 'lucide-vue-next'
+import { ArrowDown } from '@lucide/vue'
 import { nextTick, ref, watch } from 'vue'
 import MessageBubble from './MessageBubble.vue'
 

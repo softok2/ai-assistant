@@ -6,7 +6,7 @@ use App\Enums\ClubName;
 use Illuminate\Support\Facades\Http;
 use App\Ai\Files\OpenAiFileInventory;
 
-beforeEach(function () {
+beforeEach(function (): void {
     config([
         'services.openai.vector_stores.ccm' => 'vs_test',
         'ai.providers.openai.key' => 'sk-test',
@@ -15,7 +15,7 @@ beforeEach(function () {
     Http::preventStrayRequests();
 });
 
-it('follows the pagination of the account files until the last page', function () {
+it('follows the pagination of the account files until the last page', function (): void {
     $userDataPages = [
         [
             'data' => [
@@ -43,16 +43,16 @@ it('follows the pagination of the account files until the last page', function (
         return Http::response(isset($query['after']) ? $userDataPages[1] : $userDataPages[0]);
     });
 
-    $files = app(OpenAiFileInventory::class)->accountFiles(ClubName::CCM);
+    $files = resolve(OpenAiFileInventory::class)->accountFiles(ClubName::CCM);
 
     expect($files->pluck('id')->all())->toBe(['file-a1', 'file-a2', 'file-b1'])
         ->and($files->firstWhere('id', 'file-b1')['bytes'])->toBe(300);
 
     Http::assertSentCount(3);
-    Http::assertSent(fn ($request) => str_contains($request->url(), 'after=file-a2'));
+    Http::assertSent(fn ($request): bool => str_contains($request->url(), 'after=file-a2'));
 });
 
-it('stops after one page when the store says there is no more', function () {
+it('stops after one page when the store says there is no more', function (): void {
     Http::fake([
         'https://api.openai.com/v1/vector_stores/vs_test/files*' => Http::response([
             'data' => [['id' => 'file-s1', 'created_at' => 1_785_000_001, 'status' => 'completed']],
@@ -60,12 +60,12 @@ it('stops after one page when the store says there is no more', function () {
         ]),
     ]);
 
-    expect(app(OpenAiFileInventory::class)->storeFiles(ClubName::CCM)->pluck('id')->all())->toBe(['file-s1']);
+    expect(resolve(OpenAiFileInventory::class)->storeFiles(ClubName::CCM)->pluck('id')->all())->toBe(['file-s1']);
 
     Http::assertSentCount(1);
 });
 
-it('talks to the vector store and account of the club with its own key', function () {
+it('talks to the vector store and account of the club with its own key', function (): void {
     config([
         'ai.providers.openai_vallealto.key' => 'sk-va',
         'services.openai.vector_stores.vallealto' => 'vs_va',
@@ -75,8 +75,8 @@ it('talks to the vector store and account of the club with its own key', functio
         '*/files?*' => Http::response(['data' => [], 'has_more' => false]),
     ]);
 
-    app(OpenAiFileInventory::class)->storeFiles(ClubName::VALLEALTO);
-    app(OpenAiFileInventory::class)->accountFiles(ClubName::VALLEALTO);
+    resolve(OpenAiFileInventory::class)->storeFiles(ClubName::VALLEALTO);
+    resolve(OpenAiFileInventory::class)->accountFiles(ClubName::VALLEALTO);
 
     Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer sk-va'));
     Http::assertNotSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer sk-test'));

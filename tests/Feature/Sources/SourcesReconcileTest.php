@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Models\File;
 use Illuminate\Support\Facades\Http;
 
-beforeEach(function () {
+beforeEach(function (): void {
     config([
         'services.openai.vector_stores.ccm' => 'vs_test',
         'ai.providers.openai.key' => 'sk-test',
@@ -59,12 +59,12 @@ function fakeSourcesInventory(): void
 function deletedOpenAiIds(): array
 {
     return collect(Http::recorded())
-        ->filter(fn ($pair) => $pair[0]->method() === 'DELETE')
-        ->map(fn ($pair) => basename($pair[0]->url()))
+        ->filter(fn ($pair): bool => $pair[0]->method() === 'DELETE')
+        ->map(fn ($pair): string => basename($pair[0]->url()))
         ->unique()->sort()->values()->all();
 }
 
-it('returns the reconciliation report as json without deleting anything', function () {
+it('returns the reconciliation report as json without deleting anything', function (): void {
     fakeSourcesInventory();
 
     $report = $this->actingAs(adminUser())
@@ -83,10 +83,10 @@ it('returns the reconciliation report as json without deleting anything', functi
         ->and(collect($report['orphans'])->firstWhere('id', 'file-orphan')['filename'])
         ->toBe('golf-output-1785808804.md');
 
-    Http::assertNotSent(fn ($request) => $request->method() === 'DELETE');
+    Http::assertNotSent(fn ($request): bool => $request->method() === 'DELETE');
 });
 
-it('leaves the untagged and loose files out of the report unless they are asked for', function () {
+it('leaves the untagged and loose files out of the report unless they are asked for', function (): void {
     fakeSourcesInventory();
 
     $withUntagged = $this->actingAs(adminUser())
@@ -102,7 +102,7 @@ it('leaves the untagged and loose files out of the report unless they are asked 
         ->toBe(['file-loose']);
 });
 
-it('applies the reconciliation and flashes how many files it deleted', function () {
+it('applies the reconciliation and flashes how many files it deleted', function (): void {
     fakeSourcesInventory();
 
     $this->actingAs(adminUser())
@@ -113,7 +113,7 @@ it('applies the reconciliation and flashes how many files it deleted', function 
     expect(deletedOpenAiIds())->toBe(['file-dup-old', 'file-orphan']);
 });
 
-it('never deletes a file that belongs to another environment', function () {
+it('never deletes a file that belongs to another environment', function (): void {
     fakeSourcesInventory();
 
     $this->actingAs(adminUser())
@@ -128,7 +128,7 @@ it('never deletes a file that belongs to another environment', function () {
         ->not->toContain('file-keep');
 });
 
-it('says there is nothing to reconcile when OpenAI matches the database', function () {
+it('says there is nothing to reconcile when OpenAI matches the database', function (): void {
     Http::fake([
         'https://api.openai.com/v1/vector_stores/vs_test/files?*' => Http::response(['data' => [['id' => 'file-keep', 'created_at' => 1_787_767_203, 'attributes' => ['environment' => 'testing']]], 'has_more' => false]),
         'https://api.openai.com/v1/files?*' => Http::response(['data' => [['id' => 'file-keep', 'filename' => 'golf-output-1787767203.md', 'bytes' => 31000, 'created_at' => 1_787_767_203]], 'has_more' => false]),
@@ -140,17 +140,17 @@ it('says there is nothing to reconcile when OpenAI matches the database', functi
         ->assertRedirect()
         ->assertSessionHas('success', 'Nada que reconciliar');
 
-    Http::assertNotSent(fn ($request) => $request->method() === 'DELETE');
+    Http::assertNotSent(fn ($request): bool => $request->method() === 'DELETE');
 });
 
-it('rejects a request that does not carry a boolean flag', function () {
+it('rejects a request that does not carry a boolean flag', function (): void {
     $this->actingAs(adminUser())
         ->postJson(route('sources.reconcile.apply'), ['include_untagged' => 'quizá', 'club' => 'ccm'])
         ->assertStatus(422)
         ->assertJsonValidationErrors('include_untagged');
 });
 
-it('flashes an error when OpenAI does not answer', function () {
+it('flashes an error when OpenAI does not answer', function (): void {
     Http::fake(['https://api.openai.com/v1/*' => Http::response(['error' => ['message' => 'boom']], 500)]);
 
     $this->actingAs(adminUser())

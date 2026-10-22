@@ -30,8 +30,8 @@ function signedLinkParams(array $overrides = []): array
 
 beforeEach(function (): void {
     Config::set('app.club_signature_secrets.ccm', 'test-secret-rotated');
-    Role::firstOrCreate(['name' => 'golf_manager']);
-    Role::firstOrCreate(['name' => 'admin']);
+    Role::query()->firstOrCreate(['name' => 'golf_manager']);
+    Role::query()->firstOrCreate(['name' => 'admin']);
 });
 
 it('authenticates a fully signed link and regenerates the session', function (): void {
@@ -40,7 +40,7 @@ it('authenticates a fully signed link and regenerates the session', function ():
 
     $this->assertAuthenticated();
 
-    $user = User::sole();
+    $user = User::query()->sole();
     expect($user->external_id)->toBe('42');
     expect($user->club_name)->toBe('ccm');
     expect($user->roles()->sole()->name)->toBe('golf_manager');
@@ -51,8 +51,8 @@ it('keeps the same account when the display name changes', function (): void {
     auth()->logout();
     $this->get('/?'.http_build_query(signedLinkParams(['user_name' => 'Juan P. Actualizado'])));
 
-    expect(User::count())->toBe(1);
-    expect(User::sole()->name)->toBe('Juan P. Actualizado');
+    expect(User::query()->count())->toBe(1);
+    expect(User::query()->sole()->name)->toBe('Juan P. Actualizado');
 });
 
 it('rejects an expired link', function (): void {
@@ -87,7 +87,7 @@ it('rejects the legacy token-only format', function (): void {
 });
 
 it('rejects everything when the club secret is missing', function (): void {
-    Config::set('app.club_signature_secrets.ccm', null);
+    Config::set('app.club_signature_secrets.ccm');
 
     $this->get('/?'.http_build_query(signedLinkParams(['sig' => 'cualquiera'])))
         ->assertForbidden();
@@ -108,7 +108,7 @@ it('accepts every role the clubs derive from their BI report keys', function (st
     $this->get('/?'.http_build_query(signedLinkParams(['role' => $role])))
         ->assertRedirect(route('chats.index'));
 
-    expect(User::sole()->roles()->sole()->name)->toBe($role);
+    expect(User::query()->sole()->roles()->sole()->name)->toBe($role);
 })->with(['restaurant_manager', 'futbol_manager', 'incidences_manager', 'guests_manager', 'wellness_manager']);
 
 it('authenticates a vallealto link signed with its own secret', function (): void {
@@ -117,12 +117,12 @@ it('authenticates a vallealto link signed with its own secret', function (): voi
     expect(config('app.club_signature_secrets'))->toHaveKey('vallealto');
 
     Config::set('app.club_signature_secrets.vallealto', 'va-secret');
-    Role::firstOrCreate(['name' => 'restaurant_manager']);
+    Role::query()->firstOrCreate(['name' => 'restaurant_manager']);
 
     $params = ['club' => 'vallealto', 'user_id' => 7, 'user_name' => 'Ana', 'role' => 'restaurant_manager', 'issued_at' => now()->getTimestamp()];
     $params['sig'] = hash_hmac('sha256', implode('|', $params), 'va-secret');
 
     $this->get('/?'.http_build_query($params))->assertRedirect(route('chats.index'));
 
-    expect(User::sole()->club_name)->toBe('vallealto');
+    expect(User::query()->sole()->club_name)->toBe('vallealto');
 });

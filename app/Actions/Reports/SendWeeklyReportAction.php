@@ -4,24 +4,23 @@ declare(strict_types=1);
 
 namespace App\Actions\Reports;
 
+use RuntimeException;
 use App\Enums\ClubName;
-use App\Mail\WeeklyReportMail;
 use App\Models\ReportSetting;
-use App\Reports\WeeklyReportPdfRenderer;
+use App\Mail\WeeklyReportMail;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
-use RuntimeException;
+use App\Reports\Contracts\RendersWeeklyReportPdf;
 
 /**
  * Generates the report for a club and emails it to the configured recipients.
  */
-final class SendWeeklyReportAction
+final readonly class SendWeeklyReportAction
 {
     public function __construct(
-        private readonly GenerateWeeklyReportAction $generate,
-        private readonly WeeklyReportPdfRenderer $renderer,
-    ) {
-    }
+        private GenerateWeeklyReportAction $generate,
+        private RendersWeeklyReportPdf $renderer,
+    ) {}
 
     /**
      * @return int number of recipients the report was sent to

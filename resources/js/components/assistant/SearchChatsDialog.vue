@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Chat, ChatHistory } from '@/types'
 import { router } from '@inertiajs/vue3'
-import { MessageSquare, Search, SquarePen } from 'lucide-vue-next'
+import { MessageSquare, Search, SquarePen } from '@lucide/vue'
 import { computed, ref, watch } from 'vue'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 
@@ -22,7 +22,7 @@ watch(() => props.open, (open) => {
 })
 
 const results = computed<Chat[]>(() => {
-  const chats = props.chatHistory?.data ?? []
+  const chats = (props.chatHistory?.data ?? []) as unknown as Chat[]
   const q = query.value.trim().toLowerCase()
   return q ? chats.filter(chat => chat.title.toLowerCase().includes(q)) : chats
 })
@@ -41,7 +41,9 @@ function newChat(): void {
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="gap-0 overflow-hidden p-0 sm:max-w-lg">
-      <DialogTitle class="sr-only">Buscar chats</DialogTitle>
+      <DialogTitle class="sr-only">
+        Buscar chats
+      </DialogTitle>
 
       <div class="flex items-center gap-2 border-b border-border px-4">
         <Search class="size-4 shrink-0 text-muted-foreground" />
@@ -63,7 +65,9 @@ function newChat(): void {
           Nuevo chat
         </button>
 
-        <p v-if="results.length" class="px-3 pb-1 pt-3 text-xs text-muted-foreground">Chats</p>
+        <p v-if="results.length" class="px-3 pb-1 pt-3 text-xs text-muted-foreground">
+          Chats
+        </p>
         <button
           v-for="chat in results"
           :key="chat.id"

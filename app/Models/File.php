@@ -38,7 +38,7 @@ final class File extends Model
             ->whereNull('expired_at')
             ->update(['status' => MediaStatus::IN_PROGRESS->value]);
 
-        return $claimed === 1 ? self::find($id) : null;
+        return $claimed === 1 ? self::query()->find($id) : null;
     }
 
     public function club(): ClubName
@@ -72,7 +72,7 @@ final class File extends Model
     public function upload(): self
     {
         try {
-            $store = app(ClubVectorStore::class)->storeFor($this->club());
+            $store = resolve(ClubVectorStore::class)->storeFor($this->club());
 
             $document = $store->add(
                 Document::fromStorage('docs/'.$this->name),
@@ -86,8 +86,8 @@ final class File extends Model
             $this->save();
 
             $this->expireSiblings();
-        } catch (Throwable $e) {
-            Log::error("Media upload to OpenAI failed for {$this->name}: ".$e->getMessage());
+        } catch (Throwable $throwable) {
+            Log::error("Media upload to OpenAI failed for {$this->name}: ".$throwable->getMessage());
             $this->status = MediaStatus::FAILED;
             $this->save();
         }
@@ -109,8 +109,8 @@ final class File extends Model
 
             Storage::delete('docs/'.$this->name);
             $this->delete();
-        } catch (Throwable $e) {
-            Log::error("Media removal failed for {$this->name}: ".$e->getMessage());
+        } catch (Throwable $throwable) {
+            Log::error("Media removal failed for {$this->name}: ".$throwable->getMessage());
         }
 
         return $this;
@@ -146,11 +146,11 @@ final class File extends Model
     protected function removeFromProvider(): void
     {
         try {
-            app(ClubVectorStore::class)->storeFor($this->club())
+            resolve(ClubVectorStore::class)->storeFor($this->club())
                 ->remove($this->assistant_media_id, deleteFile: true);
-        } catch (RequestException $e) {
-            if ($e->response->status() !== 404) {
-                throw $e;
+        } catch (RequestException $requestException) {
+            if ($requestException->response->status() !== 404) {
+                throw $requestException;
             }
         }
     }

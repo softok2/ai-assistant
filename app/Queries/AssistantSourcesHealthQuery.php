@@ -17,15 +17,15 @@ use App\Ai\Files\MissingClubVectorStore;
  * Resumen de salud de las fuentes: cuántas quedaron indexadas, cuándo vuelve a
  * correr la sincronización y contra qué cuenta de OpenAI trabaja el entorno.
  */
-final class AssistantSourcesHealthQuery
+final readonly class AssistantSourcesHealthQuery
 {
     /**
      * Cuántas corridas del cron se prueban hasta dar con una dentro de la
      * ventana horaria. Con "cada 2 h" y una ventana de 14 h sobran de sobra.
      */
-    private const MAX_CANDIDATES = 24;
+    private const int MAX_CANDIDATES = 24;
 
-    public function __construct(private readonly ClubVectorStore $stores) {}
+    public function __construct(private ClubVectorStore $stores) {}
 
     public function execute(ClubName $club): AssistantSourcesHealth
     {

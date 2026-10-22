@@ -31,7 +31,7 @@ final class ReportSettingController extends Controller
                 'last_sent_at' => $setting->last_sent_at?->toDateTimeString(),
             ],
             'frequencies' => collect(ReportFrequency::cases())
-                ->map(fn (ReportFrequency $f) => ['value' => $f->value, 'label' => $f->label()])
+                ->map(fn (ReportFrequency $f): array => ['value' => $f->value, 'label' => $f->label()])
                 ->all(),
             'chatHistory' => Inertia::deepMerge($chatHistory->execute(auth()->user())),
         ]);
@@ -55,10 +55,10 @@ final class ReportSettingController extends Controller
 
         try {
             $count = $action->execute($setting);
-        } catch (Throwable $exception) {
-            report($exception);
+        } catch (Throwable $throwable) {
+            report($throwable);
 
-            return back()->with('error', 'No se pudo enviar: '.$exception->getMessage());
+            return back()->with('error', 'No se pudo enviar: '.$throwable->getMessage());
         }
 
         return back()->with('success', "Reporte de prueba enviado a {$count} destinatario(s).");

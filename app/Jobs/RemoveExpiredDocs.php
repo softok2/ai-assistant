@@ -14,7 +14,10 @@ use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
 
 final class RemoveExpiredDocs implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
     public function __construct(public readonly ?string $project = null) {}
 

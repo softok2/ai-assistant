@@ -28,7 +28,7 @@ final class ChatStreamRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'message' => 'required_without:regenerate|nullable|string|max:4000',
+            'message' => ['required_without:regenerate', 'nullable', 'string', 'max:4000'],
             'regenerate' => ['nullable', 'boolean'],
             'edit_message_id' => ['nullable', 'uuid'],
             'model' => ['nullable', new Enum(ModelName::class)],

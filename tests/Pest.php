@@ -62,7 +62,7 @@ function adminUser(): User
 {
     $user = User::factory()->create();
 
-    $user->roles()->attach(Role::firstOrCreate(['name' => 'admin']));
+    $user->roles()->attach(Role::query()->firstOrCreate(['name' => 'admin']));
 
     return $user;
 }

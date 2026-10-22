@@ -30,7 +30,7 @@ final class UserAttachmentsQuery
             ->where('messages.role', 'user')
             ->whereNotNull('messages.attachments')
             ->whereNotIn('messages.attachments', ['[]', ''])
-            ->orderByDesc('messages.created_at')
+            ->latest('messages.created_at')
             ->orderByDesc('messages.id')
             ->limit($limit)
             ->get(['messages.id', 'messages.attachments', 'messages.created_at', 'chats.id as chat_id', 'chats.title as chat_title']);

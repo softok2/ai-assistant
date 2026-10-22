@@ -20,9 +20,9 @@ use Laravel\Ai\Streaming\Events\ProviderToolEvent;
  */
 final class ResolveStreamInsightsAction
 {
-    private const FILE_SEARCH = 'file_search_call';
+    private const string FILE_SEARCH = 'file_search_call';
 
-    private const WEB_SEARCH = 'web_search_call';
+    private const string WEB_SEARCH = 'web_search_call';
 
     /**
      * @param  Collection<int, object>  $events
@@ -114,7 +114,7 @@ final class ResolveStreamInsightsAction
             return [];
         }
 
-        return array_values(array_filter($results, 'is_array'));
+        return array_values(array_filter($results, is_array(...)));
     }
 
     /**

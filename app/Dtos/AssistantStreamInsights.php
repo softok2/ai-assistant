@@ -8,15 +8,15 @@ namespace App\Dtos;
  * Lo que el asistente hizo durante una respuesta (herramientas que usó) y de
  * dónde salió la información (documentos de la biblioteca y páginas web).
  */
-final class AssistantStreamInsights
+final readonly class AssistantStreamInsights
 {
     /**
      * @param  array<int, array{type: string, label: string, status: string}>  $activity
      * @param  array<int, array{kind: string, title: string, url: ?string, document_name: ?string, synced_at: ?string}>  $sources
      */
     public function __construct(
-        public readonly array $activity = [],
-        public readonly array $sources = [],
+        public array $activity = [],
+        public array $sources = [],
     ) {}
 
     /**

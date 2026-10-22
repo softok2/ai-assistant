@@ -6,7 +6,7 @@ use App\Enums\ClubName;
 use App\Ai\Files\ClubVectorStore;
 use App\Ai\Files\MissingClubVectorStore;
 
-beforeEach(function () {
+beforeEach(function (): void {
     config([
         'services.openai.vector_stores' => [
             'ccm' => 'vs_ccm12345678',
@@ -16,14 +16,14 @@ beforeEach(function () {
     ]);
 });
 
-it('resolves the vector store of a club', function () {
-    expect(app(ClubVectorStore::class)->idFor(ClubName::VALLEALTO))->toBe('vs_va123456789');
+it('resolves the vector store of a club', function (): void {
+    expect(resolve(ClubVectorStore::class)->idFor(ClubName::VALLEALTO))->toBe('vs_va123456789');
 });
 
-it('lists only the clubs that have a store configured', function () {
-    expect(app(ClubVectorStore::class)->configured())->toBe([ClubName::CCM, ClubName::VALLEALTO]);
+it('lists only the clubs that have a store configured', function (): void {
+    expect(resolve(ClubVectorStore::class)->configured())->toBe([ClubName::CCM, ClubName::VALLEALTO]);
 });
 
-it('fails loudly when a club has no store', function () {
-    app(ClubVectorStore::class)->idFor(ClubName::TERRALTA);
+it('fails loudly when a club has no store', function (): void {
+    resolve(ClubVectorStore::class)->idFor(ClubName::TERRALTA);
 })->throws(MissingClubVectorStore::class, 'terralta');
