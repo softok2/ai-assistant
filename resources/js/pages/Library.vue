@@ -2,7 +2,7 @@
 import type { AttachmentKind, KindLabels, LibraryAttachment, LibraryChatGroup as LibraryChatGroupData } from '@/components/library/types'
 import type { ChatHistory } from '@/types'
 import { Head } from '@inertiajs/vue3'
-import { Search } from 'lucide-vue-next'
+import { Search } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
 import LibraryChatGroup from '@/components/library/LibraryChatGroup.vue'
@@ -75,7 +75,9 @@ function clearFilters(): void {
       <div class="mx-auto flex w-full max-w-5xl flex-col gap-7 px-4 py-8 md:px-10">
         <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 class="text-[22px] font-semibold tracking-tight">Biblioteca</h1>
+            <h1 class="text-[22px] font-semibold tracking-tight">
+              Biblioteca
+            </h1>
             <p class="mt-1 text-sm text-muted-foreground">
               Todo lo que has adjuntado en tus chats, ordenado por conversación.
             </p>
@@ -114,8 +116,12 @@ function clearFilters(): void {
           </div>
 
           <div v-else class="flex flex-col items-center gap-3 py-20 text-center">
-            <p class="text-sm text-muted-foreground">Ningún archivo coincide con la búsqueda.</p>
-            <Button v-if="filtering" variant="ghost" size="sm" @click="clearFilters">Limpiar filtros</Button>
+            <p class="text-sm text-muted-foreground">
+              Ningún archivo coincide con la búsqueda.
+            </p>
+            <Button v-if="filtering" variant="ghost" size="sm" @click="clearFilters">
+              Limpiar filtros
+            </Button>
           </div>
         </template>
 

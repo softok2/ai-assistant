@@ -172,7 +172,7 @@ it('says nothing about a cut-off when the library has no date', function (): voi
 
 it('takes the cut-off from the indexed library of the user club', function (): void {
     $user = User::factory()->create(['club_name' => 'vallealto']);
-    File::create([
+    File::query()->create([
         'project' => 'vallealto',
         'name' => 'vallealto/golf-live.md',
         'group' => 'golf',

@@ -15,17 +15,17 @@ use Illuminate\Http\Client\PendingRequest;
  * (archivos con purpose "assistants") y en el vector store del club. Cada
  * club habla con el proyecto de OpenAI de su clave.
  */
-final class OpenAiFileInventory
+final readonly class OpenAiFileInventory
 {
     /**
      * El SDK sube con purpose "user_data"; los archivos del asistente viejo
      * (Assistants API) quedaron con "assistants". Hay que mirar los dos.
      */
-    private const PURPOSES = ['user_data', 'assistants'];
+    private const array PURPOSES = ['user_data', 'assistants'];
 
     public function __construct(
-        private readonly ClubVectorStore $stores,
-        private readonly ClubAiProvider $providers,
+        private ClubVectorStore $stores,
+        private ClubAiProvider $providers,
     ) {}
 
     /**
@@ -34,10 +34,10 @@ final class OpenAiFileInventory
     public function accountFiles(ClubName $club): Collection
     {
         return collect(self::PURPOSES)
-            ->flatMap(fn (string $purpose) => $this->paginate($club, 'files', ['purpose' => $purpose]))
+            ->flatMap(fn (string $purpose): Collection => $this->paginate($club, 'files', ['purpose' => $purpose]))
             ->unique('id')
             ->values()
-            ->map(fn (array $file) => [
+            ->map(fn (array $file): array => [
                 'id' => $file['id'],
                 'filename' => $file['filename'] ?? '',
                 'bytes' => (int) ($file['bytes'] ?? 0),
@@ -53,7 +53,7 @@ final class OpenAiFileInventory
         $storeId = $this->stores->idFor($club);
 
         return $this->paginate($club, "vector_stores/{$storeId}/files")
-            ->map(fn (array $file) => [
+            ->map(fn (array $file): array => [
                 'id' => $file['id'],
                 'created_at' => (int) ($file['created_at'] ?? 0),
                 'status' => (string) ($file['status'] ?? ''),
@@ -85,7 +85,7 @@ final class OpenAiFileInventory
 
     private function client(ClubName $club): PendingRequest
     {
-        return Http::baseUrl(rtrim($this->providers->urlFor($club), '/'))
+        return Http::baseUrl(mb_rtrim($this->providers->urlFor($club), '/'))
             ->withToken($this->providers->keyFor($club))
             ->acceptJson()
             ->timeout(30);

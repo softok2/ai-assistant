@@ -189,10 +189,10 @@ const donutSlices = computed(() => {
       <!-- Lines -->
       <template v-else-if="type === 'line'">
         <g v-for="line in linePaths" :key="line.seriesIndex">
-          <path :d="line.d" fill="none" stroke-width="2" :class="`viz-s${line.seriesIndex + 1} viz-stroke`" />
+          <path :d="line.d" fill="none" stroke-width="2" class="viz-stroke" :class="`viz-s${line.seriesIndex + 1}`" />
           <circle
             v-for="(p, pi) in line.points" :key="pi"
-            :cx="p.x" :cy="p.y" r="4" :class="`viz-s${line.seriesIndex + 1} viz-dot`"
+            :cx="p.x" :cy="p.y" r="4" class="viz-dot" :class="`viz-s${line.seriesIndex + 1}`"
           >
             <title>{{ p.label }}{{ line.seriesName ? ` · ${line.seriesName}` : '' }}: {{ p.value }}</title>
           </circle>
@@ -203,7 +203,7 @@ const donutSlices = computed(() => {
       <template v-else>
         <path
           v-for="(slice, i) in donutSlices" :key="i"
-          :d="slice.d" :class="`viz-s${slice.seriesIndex + 1} viz-slice`"
+          :d="slice.d" class="viz-slice" :class="`viz-s${slice.seriesIndex + 1}`"
         >
           <title>{{ slice.label }}: {{ slice.value }} ({{ slice.pct }}%)</title>
         </path>
@@ -248,17 +248,56 @@ const donutSlices = computed(() => {
   --viz-4: #008300;
 }
 
-.viz-s1 { fill: var(--viz-1); color: var(--viz-1); }
-.viz-s2 { fill: var(--viz-2); color: var(--viz-2); }
-.viz-s3 { fill: var(--viz-3); color: var(--viz-3); }
-.viz-s4 { fill: var(--viz-4); color: var(--viz-4); }
+.viz-s1 {
+  fill: var(--viz-1);
+  color: var(--viz-1);
+}
+.viz-s2 {
+  fill: var(--viz-2);
+  color: var(--viz-2);
+}
+.viz-s3 {
+  fill: var(--viz-3);
+  color: var(--viz-3);
+}
+.viz-s4 {
+  fill: var(--viz-4);
+  color: var(--viz-4);
+}
 
-.viz-stroke { fill: none; stroke: currentColor; }
-.viz-dot { stroke: var(--card); stroke-width: 2; }
-.viz-slice { stroke: var(--card); stroke-width: 2; }
-.viz-hole { fill: var(--card); }
-.viz-grid { stroke: var(--border); stroke-width: 1; }
-.viz-tick { fill: var(--muted-foreground); font-size: 11px; }
-.viz-value { fill: var(--foreground); font-size: 11px; font-weight: 500; }
-.viz-swatch { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; background: currentColor; }
+.viz-stroke {
+  fill: none;
+  stroke: currentColor;
+}
+.viz-dot {
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.viz-slice {
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.viz-hole {
+  fill: var(--card);
+}
+.viz-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.viz-tick {
+  fill: var(--muted-foreground);
+  font-size: 11px;
+}
+.viz-value {
+  fill: var(--foreground);
+  font-size: 11px;
+  font-weight: 500;
+}
+.viz-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: currentColor;
+}
 </style>

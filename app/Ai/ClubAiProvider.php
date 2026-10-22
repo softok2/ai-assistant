@@ -18,14 +18,14 @@ final class ClubAiProvider
      */
     public function nameFor(?ClubName $club): ?string
     {
-        if ($club === null) {
+        if (! $club instanceof ClubName) {
             return null;
         }
 
         $name = 'openai_'.$club->value;
         $key = config("ai.providers.{$name}.key");
 
-        return is_string($key) && trim($key) !== '' ? $name : null;
+        return is_string($key) && mb_trim($key) !== '' ? $name : null;
     }
 
     /**
@@ -36,7 +36,7 @@ final class ClubAiProvider
     public function keyFor(?ClubName $club): string
     {
         $name = $this->nameFor($club) ?? 'openai';
-        $key = trim((string) config("ai.providers.{$name}.key"));
+        $key = mb_trim((string) config("ai.providers.{$name}.key"));
 
         if ($key === '') {
             throw MissingOpenAiKey::forProvider($name);
@@ -52,7 +52,7 @@ final class ClubAiProvider
     public function urlFor(?ClubName $club): string
     {
         $name = $this->nameFor($club) ?? 'openai';
-        $url = trim((string) config("ai.providers.{$name}.url"));
+        $url = mb_trim((string) config("ai.providers.{$name}.url"));
 
         return $url !== '' ? $url : 'https://api.openai.com/v1';
     }

@@ -6,7 +6,7 @@ use App\Models\File;
 use App\Jobs\RemoveExpiredDocs;
 use Illuminate\Support\Facades\Bus;
 
-it('queues the purge of the expired documents', function () {
+it('queues the purge of the expired documents', function (): void {
     Bus::fake();
     File::factory()->completed()->expired()->create();
 
@@ -18,15 +18,15 @@ it('queues the purge of the expired documents', function () {
     Bus::assertDispatched(RemoveExpiredDocs::class);
 });
 
-it('purges only the expired rows of the requested club', function () {
+it('purges only the expired rows of the requested club', function (): void {
     Bus::fake();
 
     $this->actingAs(adminUser())->delete(route('sources.expired.purge'), ['club' => 'vallealto']);
 
-    Bus::assertDispatched(RemoveExpiredDocs::class, fn (RemoveExpiredDocs $job) => $job->project === 'vallealto');
+    Bus::assertDispatched(RemoveExpiredDocs::class, fn (RemoveExpiredDocs $job): bool => $job->project === 'vallealto');
 });
 
-it('purges the default club when none is given', function () {
+it('purges the default club when none is given', function (): void {
     Bus::fake();
 
     $this->actingAs(adminUser())
@@ -41,7 +41,7 @@ it('purges the default club when none is given', function () {
  * Antes un `club` inválido caía en el club por defecto en silencio; ahora
  * falla la validación, igual que en reconciliar y subir documentos.
  */
-it('rejects an unknown club instead of silently purging the default one', function () {
+it('rejects an unknown club instead of silently purging the default one', function (): void {
     Bus::fake();
 
     $this->actingAs(adminUser())

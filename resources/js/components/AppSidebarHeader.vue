@@ -8,7 +8,6 @@ withDefaults(defineProps<{
 }>(), {
   breadcrumbs: () => [],
 })
-
 </script>
 
 <template>

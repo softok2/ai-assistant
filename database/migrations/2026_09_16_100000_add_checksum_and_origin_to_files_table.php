@@ -11,7 +11,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('files', function (Blueprint $table) {
+        Schema::table('files', function (Blueprint $table): void {
             $table->string('checksum', 64)->nullable()->after('bytes')->comment('sha256 del contenido');
             $table->string('origin', 20)->default('pentaho')->after('group');
             $table->index(['project', 'group', 'expired_at'], 'files_project_group_expired_index');
@@ -26,7 +26,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('files', function (Blueprint $table) {
+        Schema::table('files', function (Blueprint $table): void {
             $table->dropIndex('files_project_group_expired_index');
             $table->dropColumn(['checksum', 'origin']);
         });

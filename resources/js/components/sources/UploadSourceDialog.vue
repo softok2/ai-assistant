@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3'
-import { LoaderCircle } from 'lucide-vue-next'
+import { LoaderCircle } from '@lucide/vue'
 import { ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import {
@@ -74,8 +74,12 @@ function submit(): void {
           <datalist id="source-groups">
             <option v-for="group in props.groups" :key="group" :value="group" />
           </datalist>
-          <p class="text-xs text-muted-foreground">Minúsculas y guiones, p. ej. golf.</p>
-          <p v-if="form.errors.group" class="text-xs text-destructive">{{ form.errors.group }}</p>
+          <p class="text-xs text-muted-foreground">
+            Minúsculas y guiones, p. ej. golf.
+          </p>
+          <p v-if="form.errors.group" class="text-xs text-destructive">
+            {{ form.errors.group }}
+          </p>
         </div>
 
         <div class="grid gap-2">
@@ -89,12 +93,18 @@ function submit(): void {
             class="file:text-foreground border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none file:mr-3 file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive dark:bg-input/30"
             @change="pickFile"
           >
-          <p class="text-xs text-muted-foreground">Formatos .md, .txt o .pdf, hasta 10 MB.</p>
-          <p v-if="form.errors.file" class="text-xs text-destructive">{{ form.errors.file }}</p>
+          <p class="text-xs text-muted-foreground">
+            Formatos .md, .txt o .pdf, hasta 10 MB.
+          </p>
+          <p v-if="form.errors.file" class="text-xs text-destructive">
+            {{ form.errors.file }}
+          </p>
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="ghost" @click="emit('update:open', false)">Cancelar</Button>
+          <Button type="button" variant="ghost" @click="emit('update:open', false)">
+            Cancelar
+          </Button>
           <Button type="submit" :disabled="form.processing">
             <LoaderCircle v-if="form.processing" class="size-4 animate-spin" />
             {{ form.processing ? 'Subiendo…' : 'Subir' }}

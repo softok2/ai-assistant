@@ -30,7 +30,9 @@ const emit = defineEmits<{
       <div>Estado</div>
       <div>{{ props.showExpiry ? 'Caducó' : 'Actualizado' }}</div>
       <div>Tamaño</div>
-      <div class="sr-only">Acciones</div>
+      <div class="sr-only">
+        Acciones
+      </div>
     </div>
 
     <ul v-if="props.files.length">

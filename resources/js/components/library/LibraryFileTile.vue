@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { KindLabels, LibraryAttachment } from './types'
 import { Link } from '@inertiajs/vue3'
-import { Download, FileSpreadsheet, FileText, SquareArrowOutUpRight } from 'lucide-vue-next'
+import { Download, FileSpreadsheet, FileText, SquareArrowOutUpRight } from '@lucide/vue'
 import { computed } from 'vue'
 import { formatShortDate } from '@/lib/dates'
 import { fileExtension, formatBytes } from '@/lib/files'
@@ -74,7 +74,9 @@ const meta = computed(() => [
     </div>
 
     <div class="min-w-0 px-1">
-      <p class="truncate text-sm font-medium" :title="props.attachment.name">{{ props.attachment.name }}</p>
+      <p class="truncate text-sm font-medium" :title="props.attachment.name">
+        {{ props.attachment.name }}
+      </p>
       <p class="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground tabular-nums">
         <span v-for="part in meta" :key="part">{{ part }}</span>
       </p>

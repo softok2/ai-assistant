@@ -6,19 +6,18 @@ namespace App\Reports;
 
 use App\Enums\ClubName;
 
-final class WeeklyReportData
+final readonly class WeeklyReportData
 {
     /**
      * @param  array<int, array{title: string, html: string, charts: array<int, string>}>  $sections
      */
     public function __construct(
-        public readonly ClubName $club,
-        public readonly string $periodLabel,
-        public readonly string $generatedAt,
-        public readonly string $executiveSummaryHtml,
-        public readonly array $sections,
-    ) {
-    }
+        public ClubName $club,
+        public string $periodLabel,
+        public string $generatedAt,
+        public string $executiveSummaryHtml,
+        public array $sections,
+    ) {}
 
     public function hasContent(): bool
     {

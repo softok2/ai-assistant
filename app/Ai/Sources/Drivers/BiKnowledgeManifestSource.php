@@ -18,20 +18,20 @@ use Illuminate\Http\Client\PendingRequest;
  * `GET {base_url}/{name}` sirve el markdown. Solo se baja lo que el import
  * decide que cambió.
  */
-final class BiKnowledgeManifestSource implements KnowledgeSource
+final readonly class BiKnowledgeManifestSource implements KnowledgeSource
 {
     public function __construct(
-        private readonly string $baseUrl,
-        private readonly string $username,
-        private readonly string $password,
+        private string $baseUrl,
+        private string $username,
+        private string $password,
     ) {}
 
     public function documents(): iterable
     {
         try {
             $manifest = $this->client()->get($this->url('manifest.json'))->throw()->json();
-        } catch (Throwable $e) {
-            Log::error("BI knowledge: no se pudo leer el manifiesto de {$this->baseUrl}: ".$e->getMessage());
+        } catch (Throwable $throwable) {
+            Log::error("BI knowledge: no se pudo leer el manifiesto de {$this->baseUrl}: ".$throwable->getMessage());
 
             return;
         }
@@ -63,7 +63,7 @@ final class BiKnowledgeManifestSource implements KnowledgeSource
 
     private function url(string $path): string
     {
-        return rtrim($this->baseUrl, '/').'/'.$path;
+        return mb_rtrim($this->baseUrl, '/').'/'.$path;
     }
 
     /**

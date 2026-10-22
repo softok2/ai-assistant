@@ -24,9 +24,9 @@ final class ChatFollowUpSuggester implements Agent, HasStructuredOutput
     use Promptable;
 
     public function __construct(
-        protected ?ClubName $club = null,
-        protected ?RoleName $role = null,
-        protected ?string $userName = null,
+        private ?ClubName $club = null,
+        private ?RoleName $role = null,
+        private ?string $userName = null,
     ) {}
 
     public static function forUser(?User $user): self

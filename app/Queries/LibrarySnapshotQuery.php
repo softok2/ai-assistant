@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class LibrarySnapshotQuery
 {
-    private const MAX_DOCUMENTS = 40;
+    private const int MAX_DOCUMENTS = 40;
 
     /**
      * El conteo y la fecha salen en una sola consulta agregada porque se piden
@@ -30,8 +30,8 @@ final class LibrarySnapshotQuery
      */
     public function execute(?ClubName $club, ?RoleName $role = null, bool $withDocuments = false): LibrarySnapshot
     {
-        if ($club === null) {
-            return new LibrarySnapshot(syncedAt: null, documentCount: 0, documents: []);
+        if (! $club instanceof ClubName) {
+            return new LibrarySnapshot(documentCount: 0, documents: []);
         }
 
         $totals = $this->indexed($club, $role)
@@ -55,7 +55,7 @@ final class LibrarySnapshotQuery
     private function documents(ClubName $club, ?RoleName $role): array
     {
         return $this->indexed($club, $role)
-            ->orderByDesc('synced_at')
+            ->latest('synced_at')
             ->limit(self::MAX_DOCUMENTS)
             ->get(['name', 'group', 'synced_at'])
             ->map(fn (File $file): array => [

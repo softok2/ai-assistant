@@ -7,6 +7,7 @@ namespace App\Actions\Files;
 use App\Jobs\SyncLock;
 use App\Jobs\IngestAssistantDocs;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Contracts\Cache\Lock;
 use App\Jobs\ImportKnowledgeDocuments;
 
 /**
@@ -22,7 +23,7 @@ final class StartAssistantFilesSyncAction
      */
     public function execute(): bool
     {
-        if (SyncLock::acquire() === null) {
+        if (! SyncLock::acquire() instanceof Lock) {
             return false;
         }
 

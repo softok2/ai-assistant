@@ -39,7 +39,7 @@ final class FileFactory extends Factory
 
     public function forClub(ClubName $club): self
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'project' => $club->value,
             'name' => $club->value.'/'.basename((string) $attributes['name']),
         ]);
@@ -51,7 +51,7 @@ final class FileFactory extends Factory
      */
     public function fromManifest(string $name): self
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'origin' => SourceOrigin::BiKnowledge,
             'group' => Str::before(basename($name), '-'),
             'name' => $attributes['project'].'/'.$name,
@@ -61,7 +61,7 @@ final class FileFactory extends Factory
 
     public function completed(): self
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn (array $attributes): array => [
             'status' => MediaStatus::COMPLETED,
             'assistant_media_id' => 'file-'.fake()->unique()->lexify('??????????'),
             'bytes' => fake()->numberBetween(10_000, 40_000),
@@ -71,11 +71,11 @@ final class FileFactory extends Factory
 
     public function failed(): self
     {
-        return $this->state(fn () => ['status' => MediaStatus::FAILED]);
+        return $this->state(fn (): array => ['status' => MediaStatus::FAILED]);
     }
 
     public function expired(): self
     {
-        return $this->state(fn () => ['expired_at' => now()->subMinute()]);
+        return $this->state(fn (): array => ['expired_at' => now()->subMinute()]);
     }
 }

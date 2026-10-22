@@ -16,17 +16,17 @@ use Illuminate\Support\Facades\Http;
  * publica checksum, así que se baja el cuerpo y se calcula aquí; el nombre
  * lleva timestamp porque el MDS siempre sirve el mismo nombre.
  */
-final class PentahoMdsSource implements KnowledgeSource
+final readonly class PentahoMdsSource implements KnowledgeSource
 {
     /**
      * @param  array<int, string>  $files  nombres sin extensión (`golf-output`)
      */
     public function __construct(
-        private readonly string $baseUrl,
-        private readonly string $username,
-        private readonly string $password,
-        private readonly array $files,
-        private readonly string $project,
+        private string $baseUrl,
+        private string $username,
+        private string $password,
+        private array $files,
+        private string $project,
     ) {}
 
     public function documents(): iterable

@@ -26,8 +26,8 @@ beforeEach(function (): void {
 });
 
 it('shares the freshest sources sync date with the start screen', function (): void {
-    File::create(['name' => 'golf-a.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()->subDays(3)]);
-    File::create(['name' => 'golf-b.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()->subDay()]);
+    File::query()->create(['name' => 'golf-a.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()->subDays(3)]);
+    File::query()->create(['name' => 'golf-b.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()->subDay()]);
 
     $this->get(route('chats.index'))
         ->assertInertia(fn ($page) => $page
@@ -36,7 +36,7 @@ it('shares the freshest sources sync date with the start screen', function (): v
 });
 
 it('defers the starters so the start screen paints without waiting for the model', function (): void {
-    File::create(['name' => 'golf-a.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()]);
+    File::query()->create(['name' => 'golf-a.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()]);
 
     $first = $this->get(route('chats.index'), ['X-Inertia' => 'true', 'X-Inertia-Version' => inertiaVersion()])->json();
 
@@ -55,7 +55,7 @@ it('defers the starters so the start screen paints without waiting for the model
 });
 
 it('does not recompute the starters when the sidebar loads another page of history', function (): void {
-    File::create(['name' => 'golf-a.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()]);
+    File::query()->create(['name' => 'golf-a.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()]);
     Chat::factory()->for($this->user)->count(30)->create();
 
     $page = $this->get(route('chats.index', ['page' => 2]), [
@@ -78,7 +78,7 @@ it('reports no freshness when nothing is indexed', function (): void {
 });
 
 it('shares the freshness with the chat screen too', function (): void {
-    File::create(['name' => 'golf-a.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()->subDay()]);
+    File::query()->create(['name' => 'golf-a.md', 'group' => 'golf', 'status' => 'completed', 'synced_at' => now()->subDay()]);
     $chat = Chat::factory()->for($this->user)->create();
 
     $this->get(route('chats.show', $chat))

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { Chat, ChatHistory } from '@/types'
 import { router } from '@inertiajs/vue3'
+import { LoaderCircle, MessageSquare, Search, SquarePen } from '@lucide/vue'
 import axios from 'axios'
-import { Loader2, MessageSquare, Search, SquarePen } from 'lucide-vue-next'
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 
@@ -91,7 +91,9 @@ function newChat(): void {
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="gap-0 overflow-hidden p-0 sm:max-w-lg">
-      <DialogTitle class="sr-only">Buscar chats</DialogTitle>
+      <DialogTitle class="sr-only">
+        Buscar chats
+      </DialogTitle>
 
       <div class="flex items-center gap-2 border-b border-border px-4">
         <Search class="size-4 shrink-0 text-muted-foreground" :stroke-width="1.5" />
@@ -102,7 +104,7 @@ function newChat(): void {
           class="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           autofocus
         >
-        <Loader2 v-if="searching" class="size-4 shrink-0 animate-spin text-muted-foreground" :stroke-width="1.5" />
+        <LoaderCircle v-if="searching" class="size-4 shrink-0 animate-spin text-muted-foreground" :stroke-width="1.5" />
       </div>
 
       <div class="max-h-80 overflow-y-auto p-2">

@@ -13,10 +13,10 @@ use Laravel\Ai\Prompts\AgentPrompt;
 use App\Reports\ReportContentParser;
 use Illuminate\Support\Facades\Mail;
 use App\Ai\Agents\ModuleReportAnalyst;
-use App\Reports\WeeklyReportPdfRenderer;
 use App\Ai\Agents\ExecutiveSummaryWriter;
 use League\CommonMark\CommonMarkConverter;
 use App\Actions\Reports\SendWeeklyReportAction;
+use App\Reports\Contracts\RendersWeeklyReportPdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Actions\Reports\GenerateWeeklyReportAction;
 
@@ -48,9 +48,9 @@ it('generates report data from indexed modules, skipping empty ones', function (
         'ai.providers.openai_ccm.key' => 'sk-ccm',
     ]);
 
-    File::create(['name' => 'golf-x.md', 'group' => 'golf', 'status' => 'completed']);
-    File::create(['name' => 'restaurant-x.md', 'group' => 'restaurant', 'status' => 'completed']);
-    File::create(['name' => 'vallealto/golf-live.md', 'group' => 'golf', 'status' => 'completed', 'project' => 'vallealto']);
+    File::query()->create(['name' => 'golf-x.md', 'group' => 'golf', 'status' => 'completed']);
+    File::query()->create(['name' => 'restaurant-x.md', 'group' => 'restaurant', 'status' => 'completed']);
+    File::query()->create(['name' => 'vallealto/golf-live.md', 'group' => 'golf', 'status' => 'completed', 'project' => 'vallealto']);
 
     // indexedGroups() is alphabetical: golf then restaurant.
     ModuleReportAnalyst::fake([
@@ -59,7 +59,7 @@ it('generates report data from indexed modules, skipping empty ones', function (
     ]);
     ExecutiveSummaryWriter::fake(['La semana fue positiva.']);
 
-    $report = app(GenerateWeeklyReportAction::class)->execute(ClubName::CCM, ReportFrequency::Weekly);
+    $report = resolve(GenerateWeeklyReportAction::class)->execute(ClubName::CCM, ReportFrequency::Weekly);
 
     expect($report->sections)->toHaveCount(1);
     expect($report->sections[0]['title'])->toBe('Golf');
@@ -73,13 +73,13 @@ it('generates report data from indexed modules, skipping empty ones', function (
 it('sends the report with a pdf attachment to configured recipients', function (): void {
     config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm']]);
     Mail::fake();
-    $this->mock(WeeklyReportPdfRenderer::class)->shouldReceive('render')->andReturn('%PDF-fake');
+    $this->mock(RendersWeeklyReportPdf::class)->shouldReceive('render')->andReturn('%PDF-fake');
 
-    File::create(['name' => 'golf-x.md', 'group' => 'golf', 'status' => 'completed']);
+    File::query()->create(['name' => 'golf-x.md', 'group' => 'golf', 'status' => 'completed']);
     ModuleReportAnalyst::fake(["#### Resumen\nBuena semana."]);
     ExecutiveSummaryWriter::fake(['Resumen global.']);
 
-    $setting = ReportSetting::create([
+    $setting = ReportSetting::query()->create([
         'club_name' => 'ccm',
         'enabled' => true,
         'recipients' => ['director@ccm.test', 'invalido'],
@@ -88,7 +88,7 @@ it('sends the report with a pdf attachment to configured recipients', function (
         'hour' => 8,
     ]);
 
-    $count = app(SendWeeklyReportAction::class)->execute($setting);
+    $count = resolve(SendWeeklyReportAction::class)->execute($setting);
 
     expect($count)->toBe(1);
     expect($setting->fresh()->last_sent_at)->not->toBeNull();
@@ -98,7 +98,7 @@ it('sends the report with a pdf attachment to configured recipients', function (
 it('grounds each module on the store of the report club', function (): void {
     config(['services.openai.vector_stores' => ['vallealto' => 'vs_va']]);
 
-    $search = collect((new ModuleReportAnalyst(ClubName::VALLEALTO, 'golf'))->tools())->first();
+    $search = collect(new ModuleReportAnalyst(ClubName::VALLEALTO, 'golf')->tools())->first();
 
     expect($search->ids())->toBe(['vs_va'])
         ->and($search->filters)->toBe([['type' => 'eq', 'key' => 'group', 'value' => 'golf']]);
@@ -106,12 +106,12 @@ it('grounds each module on the store of the report club', function (): void {
 
 it('throws when there is no indexed content', function (): void {
     Mail::fake();
-    $setting = ReportSetting::create([
+    $setting = ReportSetting::query()->create([
         'club_name' => 'ccm', 'enabled' => true, 'recipients' => ['d@ccm.test'],
         'frequency' => 'weekly', 'day_of_week' => 1, 'hour' => 8,
     ]);
 
-    expect(fn () => app(SendWeeklyReportAction::class)->execute($setting))
+    expect(fn () => resolve(SendWeeklyReportAction::class)->execute($setting))
         ->toThrow(RuntimeException::class);
 });
 

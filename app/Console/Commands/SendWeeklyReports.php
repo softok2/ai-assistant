@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Actions\Reports\SendWeeklyReportAction;
-use App\Models\ReportSetting;
-use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 use Throwable;
+use App\Models\ReportSetting;
+use Illuminate\Support\Carbon;
+use Illuminate\Console\Command;
+use App\Actions\Reports\SendWeeklyReportAction;
 
 final class SendWeeklyReports extends Command
 {
@@ -22,7 +22,7 @@ final class SendWeeklyReports extends Command
 
         $settings = ReportSetting::query()
             ->when($forcedClub, fn ($q) => $q->where('club_name', $forcedClub))
-            ->when(! $forcedClub, fn ($q) => $q->where('enabled', true))
+            ->unless($forcedClub, fn ($q) => $q->where('enabled', true))
             ->get();
 
         $now = Carbon::now();

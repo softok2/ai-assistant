@@ -51,7 +51,7 @@ enum ReportFrequency: string
             return false;
         }
 
-        if ($lastSentAt === null) {
+        if (! $lastSentAt instanceof CarbonInterface) {
             return true;
         }
 

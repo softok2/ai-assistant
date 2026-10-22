@@ -34,11 +34,11 @@ final class ClubAssistant implements Agent, Conversational, HasTools
      * @param  Carbon|null  $dataCutoff  última actualización de la biblioteca del club
      */
     public function __construct(
-        protected ?Collection $history = null,
-        protected ?ClubName $club = null,
-        protected ?RoleName $role = null,
-        protected ?string $userName = null,
-        protected ?Carbon $dataCutoff = null,
+        private ?Collection $history = null,
+        private ?ClubName $club = null,
+        private ?RoleName $role = null,
+        private ?string $userName = null,
+        private ?Carbon $dataCutoff = null,
     ) {}
 
     /**
@@ -56,7 +56,7 @@ final class ClubAssistant implements Agent, Conversational, HasTools
             club: $club,
             role: $role,
             userName: $user?->name,
-            dataCutoff: app(LibrarySnapshotQuery::class)->execute($club, $role)->syncedAt,
+            dataCutoff: resolve(LibrarySnapshotQuery::class)->execute($club, $role)->syncedAt,
         );
     }
 
@@ -105,12 +105,12 @@ final class ClubAssistant implements Agent, Conversational, HasTools
      */
     public function tools(): iterable
     {
-        if ($this->club === null) {
+        if (! $this->club instanceof ClubName) {
             return [new WebSearch];
         }
 
         try {
-            $store = app(ClubVectorStore::class)->idFor($this->club);
+            $store = resolve(ClubVectorStore::class)->idFor($this->club);
         } catch (MissingClubVectorStore) {
             return [new WebSearch];
         }
@@ -120,7 +120,7 @@ final class ClubAssistant implements Agent, Conversational, HasTools
         return [
             $groups === []
                 ? new FileSearch(stores: [$store])
-                : new FileSearch(stores: [$store], where: fn (FileSearchQuery $query) => $query->whereIn('group', $groups)),
+                : new FileSearch(stores: [$store], where: fn (FileSearchQuery $query): FileSearchQuery => $query->whereIn('group', $groups)),
             new WebSearch,
         ];
     }
@@ -139,11 +139,11 @@ final class ClubAssistant implements Agent, Conversational, HasTools
             'Áreas que atiende ese rol: '.$this->areasLabel().'.',
         ];
 
-        if ($this->userName !== null && trim($this->userName) !== '') {
-            $lines[] = 'Nombre de quien pregunta: '.trim($this->userName).'.';
+        if ($this->userName !== null && mb_trim($this->userName) !== '') {
+            $lines[] = 'Nombre de quien pregunta: '.mb_trim($this->userName).'.';
         }
 
-        if ($this->dataCutoff !== null) {
+        if ($this->dataCutoff instanceof Carbon) {
             $lines[] = 'Última actualización de los reportes: '.$this->dataCutoff->format('Y-m-d H:i').'.';
         }
 
@@ -173,8 +173,8 @@ final class ClubAssistant implements Agent, Conversational, HasTools
 
     private function addressee(): string
     {
-        return $this->userName !== null && trim($this->userName) !== ''
-            ? trim($this->userName)
+        return $this->userName !== null && mb_trim($this->userName) !== ''
+            ? mb_trim($this->userName)
             : 'quien pregunta';
     }
 }

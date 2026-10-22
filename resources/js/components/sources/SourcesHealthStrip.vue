@@ -61,9 +61,15 @@ const columns = computed(() => [
         class="px-6"
         :class="index > 0 ? 'sm:border-l sm:border-border' : ''"
       >
-        <dt class="text-xs text-muted-foreground">{{ column.label }}</dt>
-        <dd class="mt-1 text-xl font-semibold tracking-tight tabular-nums">{{ column.value }}</dd>
-        <dd class="mt-0.5 text-[13px] text-muted-foreground tabular-nums">{{ column.detail }}</dd>
+        <dt class="text-xs text-muted-foreground">
+          {{ column.label }}
+        </dt>
+        <dd class="mt-1 text-xl font-semibold tracking-tight tabular-nums">
+          {{ column.value }}
+        </dd>
+        <dd class="mt-0.5 text-[13px] text-muted-foreground tabular-nums">
+          {{ column.detail }}
+        </dd>
       </div>
     </dl>
   </div>

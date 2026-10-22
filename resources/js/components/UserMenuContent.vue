@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { User } from '@/types'
 import { Link, router } from '@inertiajs/vue3'
-import { LogIn, LogOut, Settings } from 'lucide-vue-next'
+import { LogIn, LogOut, Settings } from '@lucide/vue'
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import UserInfo from '@/components/UserInfo.vue'
 import { useAuth } from '@/composables/useAuth'

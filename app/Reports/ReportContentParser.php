@@ -11,11 +11,11 @@ use League\CommonMark\CommonMarkConverter;
  * tiles, pulling ```chart and ```kpi blocks (and bare chart JSON lines) out of
  * the prose.
  */
-final class ReportContentParser
+final readonly class ReportContentParser
 {
     public function __construct(
-        private readonly ChartSvgRenderer $charts,
-        private readonly CommonMarkConverter $markdown = new CommonMarkConverter(['html_input' => 'strip']),
+        private ChartSvgRenderer $charts,
+        private CommonMarkConverter $markdown = new CommonMarkConverter(['html_input' => 'strip']),
     ) {}
 
     /**
@@ -58,7 +58,7 @@ final class ReportContentParser
         }, $content) ?? $content;
 
         return [
-            'html' => $this->markdown->convert(trim($content))->getContent(),
+            'html' => $this->markdown->convert(mb_trim($content))->getContent(),
             'charts' => $charts,
             'kpis' => $kpis,
         ];
@@ -69,7 +69,7 @@ final class ReportContentParser
      */
     private function toKpis(string $json): array
     {
-        $block = json_decode(trim($json), true);
+        $block = json_decode(mb_trim($json), true);
 
         if (! is_array($block) || ! is_array($block['items'] ?? null)) {
             return [];
@@ -92,7 +92,7 @@ final class ReportContentParser
 
     private function toSvg(string $json): string
     {
-        $spec = json_decode(trim($json), true);
+        $spec = json_decode(mb_trim($json), true);
 
         if (! is_array($spec) || ! isset($spec['labels'])) {
             return '';

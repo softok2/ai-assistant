@@ -10,15 +10,20 @@ namespace App\Reports;
  */
 final class ChartSvgRenderer
 {
-    private const W = 640;
-    private const H = 260;
-    private const PAD_TOP = 16;
-    private const PAD_RIGHT = 16;
-    private const PAD_BOTTOM = 34;
-    private const PAD_LEFT = 44;
+    private const int W = 640;
+
+    private const int H = 260;
+
+    private const int PAD_TOP = 16;
+
+    private const int PAD_RIGHT = 16;
+
+    private const int PAD_BOTTOM = 34;
+
+    private const int PAD_LEFT = 44;
 
     /** Categorical palette (dataviz reference, light mode). */
-    private const COLORS = ['#2a78d6', '#1baf7a', '#eda100', '#008300'];
+    private const array COLORS = ['#2a78d6', '#1baf7a', '#eda100', '#008300'];
 
     /**
      * @param  array{type?: string, title?: string, labels?: array, series?: mixed}  $spec
@@ -47,7 +52,7 @@ final class ChartSvgRenderer
 
     private function normalizeType(string $type): string
     {
-        $type = strtolower($type);
+        $type = mb_strtolower($type);
         if (in_array($type, ['donut', 'doughnut', 'pie'], true)) {
             return 'donut';
         }
@@ -64,16 +69,16 @@ final class ChartSvgRenderer
             return [];
         }
 
-        if ($raw !== [] && array_reduce($raw, fn ($c, $v) => $c && is_numeric($v), true)) {
-            return [['name' => null, 'data' => array_map('floatval', $raw)]];
+        if ($raw !== [] && array_reduce($raw, fn ($c, $v): bool => $c && is_numeric($v), true)) {
+            return [['name' => null, 'data' => array_map(floatval(...), $raw)]];
         }
 
         $out = [];
         foreach ($raw as $item) {
-            if (is_array($item) && array_reduce($item, fn ($c, $v) => $c && is_numeric($v), true)) {
-                $out[] = ['name' => null, 'data' => array_map('floatval', $item)];
+            if (is_array($item) && array_reduce($item, fn ($c, $v): bool => $c && is_numeric($v), true)) {
+                $out[] = ['name' => null, 'data' => array_map(floatval(...), $item)];
             } elseif (is_array($item) && isset($item['data']) && is_array($item['data'])) {
-                $out[] = ['name' => $item['name'] ?? null, 'data' => array_map('floatval', $item['data'])];
+                $out[] = ['name' => $item['name'] ?? null, 'data' => array_map(floatval(...), $item['data'])];
             }
         }
 
@@ -104,8 +109,8 @@ final class ChartSvgRenderer
         for ($i = 0; $i <= 4; $i++) {
             $value = ($max / 4) * $i;
             $y = round($this->yPos($value, $max), 1);
-            $svg .= "<line x1=\"".self::PAD_LEFT."\" x2=\"".(self::W - self::PAD_RIGHT)."\" y1=\"{$y}\" y2=\"{$y}\" stroke=\"#e5e5e5\" stroke-width=\"1\" />";
-            $svg .= "<text x=\"".(self::PAD_LEFT - 8)."\" y=\"".($y + 4)."\" text-anchor=\"end\" fill=\"#8a8a8a\" font-size=\"11\" font-family=\"sans-serif\">".round($value)."</text>";
+            $svg .= '<line x1="'.self::PAD_LEFT.'" x2="'.(self::W - self::PAD_RIGHT)."\" y1=\"{$y}\" y2=\"{$y}\" stroke=\"#e5e5e5\" stroke-width=\"1\" />";
+            $svg .= '<text x="'.(self::PAD_LEFT - 8).'" y="'.($y + 4).'" text-anchor="end" fill="#8a8a8a" font-size="11" font-family="sans-serif">'.round($value).'</text>';
         }
 
         $count = max(count($labels), 1);
@@ -114,7 +119,7 @@ final class ChartSvgRenderer
         foreach ($labels as $i => $label) {
             $x = round(self::PAD_LEFT + $step * $i + $step / 2, 1);
             $y = self::H - self::PAD_BOTTOM + 18;
-            $svg .= "<text x=\"{$x}\" y=\"{$y}\" text-anchor=\"middle\" fill=\"#8a8a8a\" font-size=\"11\" font-family=\"sans-serif\">".htmlspecialchars((string) $label)."</text>";
+            $svg .= "<text x=\"{$x}\" y=\"{$y}\" text-anchor=\"middle\" fill=\"#8a8a8a\" font-size=\"11\" font-family=\"sans-serif\">".htmlspecialchars((string) $label).'</text>';
         }
 
         return $svg;
@@ -143,7 +148,7 @@ final class ChartSvgRenderer
                 $color = self::COLORS[$si % count(self::COLORS)];
                 $svg .= "<rect x=\"{$x}\" y=\"{$y}\" width=\"{$width}\" height=\"{$height}\" rx=\"4\" fill=\"{$color}\" />";
                 if ($showLabels) {
-                    $svg .= "<text x=\"".round($x + $width / 2, 1)."\" y=\"".($y - 6)."\" text-anchor=\"middle\" fill=\"#3a3a3a\" font-size=\"11\" font-weight=\"500\" font-family=\"sans-serif\">".round($value)."</text>";
+                    $svg .= '<text x="'.round($x + $width / 2, 1).'" y="'.($y - 6).'" text-anchor="middle" fill="#3a3a3a" font-size="11" font-weight="500" font-family="sans-serif">'.round($value).'</text>';
                 }
             }
         }
@@ -167,11 +172,13 @@ final class ChartSvgRenderer
                 $y = round($this->yPos($s['data'][$i] ?? 0, $max), 1);
                 $points[] = [$x, $y];
             }
+
             $d = '';
             foreach ($points as $i => [$x, $y]) {
                 $d .= ($i === 0 ? 'M' : 'L')."{$x},{$y} ";
             }
-            $svg .= "<path d=\"".trim($d)."\" fill=\"none\" stroke=\"{$color}\" stroke-width=\"2\" />";
+
+            $svg .= '<path d="'.mb_trim($d)."\" fill=\"none\" stroke=\"{$color}\" stroke-width=\"2\" />";
             foreach ($points as [$x, $y]) {
                 $svg .= "<circle cx=\"{$x}\" cy=\"{$y}\" r=\"4\" fill=\"{$color}\" stroke=\"#ffffff\" stroke-width=\"2\" />";
             }
@@ -204,6 +211,7 @@ final class ChartSvgRenderer
             $pct = round(($value / $total) * 100);
             $legend[] = [$color, ($labels[$i] ?? '').' · '.$pct.'%'];
         }
+
         $svg .= "<circle cx=\"{$cx}\" cy=\"{$cy}\" r=\"52\" fill=\"#ffffff\" />";
 
         return $svg.$this->legendItems($legend, self::H - 6);
@@ -227,7 +235,7 @@ final class ChartSvgRenderer
         $x = self::PAD_LEFT;
         foreach ($items as [$color, $label]) {
             $svg .= "<circle cx=\"{$x}\" cy=\"".($y - 4)."\" r=\"4\" fill=\"{$color}\" />";
-            $svg .= "<text x=\"".($x + 10)."\" y=\"{$y}\" fill=\"#8a8a8a\" font-size=\"11\" font-family=\"sans-serif\">".htmlspecialchars((string) $label)."</text>";
+            $svg .= '<text x="'.($x + 10)."\" y=\"{$y}\" fill=\"#8a8a8a\" font-size=\"11\" font-family=\"sans-serif\">".htmlspecialchars((string) $label).'</text>';
             $x += 12 + mb_strlen((string) $label) * 6.2 + 16;
         }
 

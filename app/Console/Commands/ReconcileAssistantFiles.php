@@ -38,7 +38,7 @@ final class ReconcileAssistantFiles extends Command
             $files = $report->{$key};
             $this->line('');
             $this->line("{$label}: {$files->count()}");
-            $this->table(['id', 'nombre', 'bytes', 'creado'], $files->map(fn (array $f) => [
+            $this->table(['id', 'nombre', 'bytes', 'creado'], $files->map(fn (array $f): array => [
                 $f['id'], $f['filename'], $f['bytes'], $f['created_at'] ? date('Y-m-d H:i', $f['created_at']) : '',
             ])->all());
         }

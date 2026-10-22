@@ -109,18 +109,28 @@ function apply(): void {
       </div>
 
       <div v-else-if="failed" class="grid gap-3 text-sm">
-        <p class="text-destructive">No se pudo consultar OpenAI.</p>
+        <p class="text-destructive">
+          No se pudo consultar OpenAI.
+        </p>
         <div>
-          <Button variant="outline" size="sm" @click="load">Reintentar</Button>
+          <Button variant="outline" size="sm" @click="load">
+            Reintentar
+          </Button>
         </div>
       </div>
 
       <template v-else-if="report">
         <dl class="grid grid-cols-2 gap-3 rounded-xl bg-muted px-4 py-3.5 sm:grid-cols-4">
           <div v-for="item in totals" :key="item.key">
-            <dt class="sr-only">{{ item.label }}</dt>
-            <dd class="text-lg font-semibold tabular-nums">{{ item.value }}</dd>
-            <dd class="text-xs text-muted-foreground">{{ item.label }}</dd>
+            <dt class="sr-only">
+              {{ item.label }}
+            </dt>
+            <dd class="text-lg font-semibold tabular-nums">
+              {{ item.value }}
+            </dd>
+            <dd class="text-xs text-muted-foreground">
+              {{ item.label }}
+            </dd>
           </div>
         </dl>
 
@@ -130,7 +140,9 @@ function apply(): void {
               <p class="text-sm font-semibold">
                 {{ section.title }} <span class="font-medium text-muted-foreground tabular-nums">{{ section.items.length }}</span>
               </p>
-              <p class="text-xs text-muted-foreground">{{ section.hint }}</p>
+              <p class="text-xs text-muted-foreground">
+                {{ section.hint }}
+              </p>
             </div>
 
             <ul v-if="section.items.length" class="divide-y divide-border rounded-[10px] border border-border">
@@ -147,7 +159,9 @@ function apply(): void {
               </li>
             </ul>
 
-            <p v-else class="py-1 text-[13px] text-muted-foreground">Nada que limpiar.</p>
+            <p v-else class="py-1 text-[13px] text-muted-foreground">
+              Nada que limpiar.
+            </p>
           </section>
         </div>
       </template>
@@ -165,7 +179,9 @@ function apply(): void {
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="emit('update:open', false)">Cancelar</Button>
+        <Button variant="outline" @click="emit('update:open', false)">
+          Cancelar
+        </Button>
         <Button
           v-if="report && total > 0"
           variant="destructive"

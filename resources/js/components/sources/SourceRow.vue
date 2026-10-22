@@ -8,7 +8,7 @@ import {
   RefreshCw,
   Trash2,
   TriangleAlert,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { computed, ref } from 'vue'
 import {
   AlertDialog,
@@ -81,8 +81,12 @@ function askToRemove(event: Event): void {
         <FileText class="size-4" :stroke-width="1.5" />
       </span>
       <div class="min-w-0">
-        <p class="text-sm font-medium">{{ props.file.group_label }}</p>
-        <p class="truncate text-xs text-muted-foreground" :title="props.file.name">{{ props.file.name }}</p>
+        <p class="text-sm font-medium">
+          {{ props.file.group_label }}
+        </p>
+        <p class="truncate text-xs text-muted-foreground" :title="props.file.name">
+          {{ props.file.name }}
+        </p>
       </div>
     </div>
 

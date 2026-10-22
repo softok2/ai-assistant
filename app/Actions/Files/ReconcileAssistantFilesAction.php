@@ -30,12 +30,12 @@ use Illuminate\Http\Client\RequestException;
  * (subidos antes de esta versión) y los sueltos de la cuenta, que no se pueden
  * atribuir, solo entran cuando se pide explícitamente `$includeUntagged`.
  */
-final class ReconcileAssistantFilesAction
+final readonly class ReconcileAssistantFilesAction
 {
     public function __construct(
-        private readonly OpenAiFileInventory $inventory,
-        private readonly ClubVectorStore $stores,
-        private readonly ClubAiProvider $providers,
+        private OpenAiFileInventory $inventory,
+        private ClubVectorStore $stores,
+        private ClubAiProvider $providers,
     ) {}
 
     public function report(ClubName $club, bool $includeUntagged = false): ReconciliationReport
@@ -46,11 +46,11 @@ final class ReconcileAssistantFilesAction
         $allStoreFiles = $this->inventory->storeFiles($club)->keyBy('id');
         $environment = app()->environment();
 
-        $foreign = $allStoreFiles->filter(fn (array $file) => $file['environment'] !== null && $file['environment'] !== $environment);
-        $untagged = $allStoreFiles->filter(fn (array $file) => $file['environment'] === null);
+        $foreign = $allStoreFiles->filter(fn (array $file): bool => $file['environment'] !== null && $file['environment'] !== $environment);
+        $untagged = $allStoreFiles->filter(fn (array $file): bool => $file['environment'] === null);
 
         $store = $allStoreFiles
-            ->reject(fn (array $file, string $id) => $foreign->has($id) || $referenced->has($id) === false && ! $includeUntagged && $untagged->has($id));
+            ->reject(fn (array $file, string $id): bool => $foreign->has($id) || $referenced->has($id) === false && ! $includeUntagged && $untagged->has($id));
 
         $describe = fn (string $id, string $reason): array => [
             'id' => $id,
@@ -62,25 +62,25 @@ final class ReconcileAssistantFilesAction
 
         $orphans = $store->keys()
             ->reject(fn (string $id) => $referenced->has($id))
-            ->map(fn (string $id) => $describe($id, 'orphan'));
+            ->map(fn (string $id): array => $describe($id, 'orphan'));
 
         $duplicates = $store->keys()
-            ->filter(fn (string $id) => $referenced->has($id) || $account->has($id))
+            ->filter(fn (string $id): bool => $referenced->has($id) || $account->has($id))
             ->groupBy(fn (string $id) => $account[$id]['filename'] ?? $id)
-            ->filter(fn (Collection $ids) => $ids->count() > 1)
+            ->filter(fn (Collection $ids): bool => $ids->count() > 1)
             ->flatMap(function (Collection $ids) use ($referenced, $account) {
                 $keep = $ids->first(fn (string $id) => $referenced->has($id))
                     ?? $ids->sortByDesc(fn (string $id) => $account[$id]['created_at'] ?? 0)->first();
 
-                return $ids->reject(fn (string $id) => $id === $keep);
+                return $ids->reject(fn (string $id): bool => $id === $keep);
             })
             ->reject(fn (string $id) => $orphans->contains('id', $id))
-            ->map(fn (string $id) => $describe($id, 'duplicate'));
+            ->map(fn (string $id): array => $describe($id, 'duplicate'));
 
         $loose = $includeUntagged
             ? $account->keys()
-                ->reject(fn (string $id) => $allStoreFiles->has($id) || $referencedAnywhere->has($id))
-                ->map(fn (string $id) => $describe($id, 'loose'))
+                ->reject(fn (string $id): bool => $allStoreFiles->has($id) || $referencedAnywhere->has($id))
+                ->map(fn (string $id): array => $describe($id, 'loose'))
             : collect();
 
         return new ReconciliationReport(
@@ -101,7 +101,7 @@ final class ReconcileAssistantFilesAction
         $deleted = collect();
 
         foreach ($report->orphans->concat($report->duplicates) as $file) {
-            $this->ignoringMissing(fn () => $store->remove($file['id'], deleteFile: true));
+            $this->ignoringMissing(fn (): bool => $store->remove($file['id'], deleteFile: true));
             $deleted->push($file['id']);
         }
 
@@ -141,9 +141,9 @@ final class ReconcileAssistantFilesAction
     {
         try {
             $callback();
-        } catch (RequestException $e) {
-            if ($e->response->status() !== 404) {
-                throw $e;
+        } catch (RequestException $requestException) {
+            if ($requestException->response->status() !== 404) {
+                throw $requestException;
             }
         }
     }

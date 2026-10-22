@@ -18,15 +18,14 @@ final class ChatSuggestionsController extends Controller
     {
         Gate::authorize('update', $chat);
 
-        $exchange = $chat->messages()
-            ->orderByDesc('created_at')
+        $exchange = $chat->messages()->latest()
             ->limit(2)
             ->get()
             ->reverse()
-            ->map(fn ($message) => ($message->role === 'user' ? 'Usuario: ' : 'Asistente: ').($message->parts['text'] ?? ''))
+            ->map(fn ($message): string => ($message->role === 'user' ? 'Usuario: ' : 'Asistente: ').($message->parts['text'] ?? ''))
             ->join("\n\n");
 
-        if (trim($exchange) === '') {
+        if (mb_trim($exchange) === '') {
             return response()->json(['suggestions' => []]);
         }
 
@@ -34,12 +33,12 @@ final class ChatSuggestionsController extends Controller
             $response = ChatFollowUpSuggester::forUser($request->user())
                 ->prompt($exchange, provider: $providers->nameFor($request->user()?->clubName()));
             $suggestions = collect($response->structured['suggestions'] ?? [])
-                ->filter(fn ($s) => is_string($s) && trim($s) !== '')
+                ->filter(fn ($s): bool => is_string($s) && mb_trim($s) !== '')
                 ->take(3)
                 ->values()
                 ->all();
-        } catch (Throwable $exception) {
-            report($exception);
+        } catch (Throwable $throwable) {
+            report($throwable);
             $suggestions = [];
         }
 

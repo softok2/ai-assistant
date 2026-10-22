@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use App\Jobs\ImportKnowledgeDocuments;
 
-it('starts the sync chain and keeps the lock while it runs', function () {
+it('starts the sync chain and keeps the lock while it runs', function (): void {
     Bus::fake();
 
     $this->actingAs(adminUser())
@@ -20,7 +20,7 @@ it('starts the sync chain and keeps the lock while it runs', function () {
     expect(Cache::lock(SyncLock::KEY, 60)->get())->toBeFalse();
 });
 
-it('warns instead of starting a second sync', function () {
+it('warns instead of starting a second sync', function (): void {
     Bus::fake();
     Cache::lock(SyncLock::KEY, 60)->get();
 

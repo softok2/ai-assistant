@@ -20,9 +20,12 @@ use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
  */
 final class IngestAssistantDocs implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
-    public const BATCH_NAME = 'assistant-docs-upload';
+    public const string BATCH_NAME = 'assistant-docs-upload';
 
     public static function finish(): void
     {
@@ -34,7 +37,7 @@ final class IngestAssistantDocs implements ShouldBeUniqueUntilProcessing, Should
     {
         $jobs = File::pending()
             ->pluck('id')
-            ->map(fn (int $id) => new UploadAssistantDoc($id))
+            ->map(fn (int $id): UploadAssistantDoc => new UploadAssistantDoc($id))
             ->all();
 
         if ($jobs === []) {

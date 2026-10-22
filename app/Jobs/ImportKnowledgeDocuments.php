@@ -29,11 +29,14 @@ use Illuminate\Contracts\Queue\ShouldBeUniqueUntilProcessing;
  */
 final class ImportKnowledgeDocuments implements ShouldBeUniqueUntilProcessing, ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
     public function handle(?KnowledgeSourceFactory $sources = null): void
     {
-        $sources ??= app(KnowledgeSourceFactory::class);
+        $sources ??= resolve(KnowledgeSourceFactory::class);
 
         foreach ($sources->clubs() as $club) {
             $source = $sources->for($club);
@@ -69,8 +72,8 @@ final class ImportKnowledgeDocuments implements ShouldBeUniqueUntilProcessing, S
 
         try {
             $saved = Storage::put('docs/'.$name, $document->content());
-        } catch (Throwable $e) {
-            Log::error("No se pudo bajar {$name}: ".$e->getMessage());
+        } catch (Throwable $throwable) {
+            Log::error("No se pudo bajar {$name}: ".$throwable->getMessage());
 
             return;
         }

@@ -21,11 +21,11 @@ use App\Ai\Agents\ExecutiveSummaryWriter;
  * module (grounded on its documents) and rendering the result to data the
  * PDF view consumes. No side effects — pure generation.
  */
-final class GenerateWeeklyReportAction
+final readonly class GenerateWeeklyReportAction
 {
     public function __construct(
-        private readonly ReportContentParser $parser,
-        private readonly ClubAiProvider $providers,
+        private ReportContentParser $parser,
+        private ClubAiProvider $providers,
     ) {}
 
     public function execute(ClubName $club, ReportFrequency $frequency, ?Carbon $on = null): WeeklyReportData
@@ -75,23 +75,23 @@ final class GenerateWeeklyReportAction
     private function analyseModule(ClubName $club, string $group): ?array
     {
         try {
-            $output = (string) (new ModuleReportAnalyst($club, $group))->prompt(
+            $output = (string) new ModuleReportAnalyst($club, $group)->prompt(
                 "Analiza el módulo \"{$group}\" para el reporte ejecutivo del periodo más reciente.",
                 provider: $this->providers->nameFor($club),
             );
-        } catch (Throwable $exception) {
-            report($exception);
+        } catch (Throwable $throwable) {
+            report($throwable);
 
             return null;
         }
 
-        if (Str::contains($output, 'SIN_DATOS') && mb_strlen(trim($output)) < 40) {
+        if (Str::contains($output, 'SIN_DATOS') && mb_strlen(mb_trim($output)) < 40) {
             return null;
         }
 
         $parsed = $this->parser->parse($output);
 
-        if (trim(strip_tags($parsed['html'])) === '' && $parsed['charts'] === []) {
+        if (mb_trim(strip_tags($parsed['html'])) === '' && $parsed['charts'] === []) {
             return null;
         }
 
@@ -116,8 +116,8 @@ final class GenerateWeeklyReportAction
                 implode("\n\n", $moduleSummaries),
                 provider: $this->providers->nameFor($club),
             );
-        } catch (Throwable $exception) {
-            report($exception);
+        } catch (Throwable $throwable) {
+            report($throwable);
 
             return '';
         }

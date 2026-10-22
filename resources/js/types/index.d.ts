@@ -1,5 +1,5 @@
 import type { PageProps } from '@inertiajs/core'
-import type { LucideIcon } from 'lucide-vue-next'
+import type { LucideIcon } from '@lucide/vue'
 import type { Config } from 'ziggy-js'
 import type { ContentType, Role, Visibility } from './enum'
 

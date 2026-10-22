@@ -18,15 +18,15 @@ use App\Ai\Agents\ChatStarterSuggester;
  * resultado bueno: si el modelo falla, el respaldo estático se sirve sin
  * guardarse, para volver a intentarlo en la siguiente visita.
  */
-final class ResolveChatStartersAction
+final readonly class ResolveChatStartersAction
 {
-    private const VERSION = 'v2';
+    private const string VERSION = 'v2';
 
-    private const TTL_HOURS = 6;
+    private const int TTL_HOURS = 6;
 
-    private const MAX_DOCUMENTS = 25;
+    private const int MAX_DOCUMENTS = 25;
 
-    public function __construct(private readonly ClubAiProvider $providers) {}
+    public function __construct(private ClubAiProvider $providers) {}
 
     /**
      * @return array<int, array{area: string, question: string}>
@@ -63,10 +63,10 @@ final class ResolveChatStartersAction
     private function suggest(?ClubName $club, ?RoleName $role, LibrarySnapshot $library): ?array
     {
         try {
-            $response = (new ChatStarterSuggester($club, $role, $library->syncedAt?->toDateString()))
+            $response = new ChatStarterSuggester($club, $role, $library->syncedAt?->toDateString())
                 ->prompt($this->documentList($library), provider: $this->providers->nameFor($club));
-        } catch (Throwable $exception) {
-            report($exception);
+        } catch (Throwable $throwable) {
+            report($throwable);
 
             return null;
         }
@@ -75,10 +75,10 @@ final class ResolveChatStartersAction
             ->filter(fn ($starter): bool => is_array($starter)
                 && is_string($starter['area'] ?? null)
                 && is_string($starter['question'] ?? null)
-                && trim($starter['question']) !== '')
+                && mb_trim($starter['question']) !== '')
             ->map(fn (array $starter): array => [
-                'area' => trim($starter['area']),
-                'question' => trim($starter['question']),
+                'area' => mb_trim($starter['area']),
+                'question' => mb_trim($starter['question']),
             ])
             ->take(4)
             ->values()

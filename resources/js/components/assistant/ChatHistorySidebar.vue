@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import type { RequestPayload } from '@inertiajs/core'
 import type { Chat, ChatHistory, SharedData } from '@/types'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import {
   BookMarked,
   Database,
+  Ellipsis,
   FileText,
   Link2,
-  Loader2,
+  LoaderCircle,
   Lock,
-  MoreHorizontal,
   PanelLeft,
   Pencil,
   Pin,
@@ -16,7 +17,7 @@ import {
   Search,
   SquarePen,
   Trash2,
-} from 'lucide-vue-next'
+} from '@lucide/vue'
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import {
   AlertDialog,
@@ -137,7 +138,7 @@ const groups = computed<ChatGroup[]>(() => {
  * historial. Al renombrar se pide también `chat` porque el encabezado muestra
  * el título del chat abierto.
  */
-function patch(chat: Chat, data: Record<string, unknown>, only: string[] = ['chatHistory']): void {
+function patch(chat: Chat, data: RequestPayload, only: string[] = ['chatHistory']): void {
   router.patch(route('chats.update', { chat: chat.id }), data, {
     preserveState: true,
     preserveScroll: true,
@@ -228,7 +229,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
               <PanelLeft class="size-4.5" :stroke-width="1.5" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right">{{ collapsed ? 'Expandir' : 'Colapsar' }}</TooltipContent>
+          <TooltipContent side="right">
+            {{ collapsed ? 'Expandir' : 'Colapsar' }}
+          </TooltipContent>
         </Tooltip>
       </div>
 
@@ -245,7 +248,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
               <span v-if="!collapsed">Nuevo chat</span>
             </Link>
           </TooltipTrigger>
-          <TooltipContent side="right">Nuevo chat</TooltipContent>
+          <TooltipContent side="right">
+            Nuevo chat
+          </TooltipContent>
         </Tooltip>
 
         <Tooltip :disabled="!collapsed">
@@ -261,7 +266,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
               <kbd v-if="!collapsed" class="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">⌘K</kbd>
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right">Buscar chats</TooltipContent>
+          <TooltipContent side="right">
+            Buscar chats
+          </TooltipContent>
         </Tooltip>
 
         <Tooltip :disabled="!collapsed">
@@ -276,7 +283,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
               <span v-if="!collapsed">Biblioteca</span>
             </Link>
           </TooltipTrigger>
-          <TooltipContent side="right">Biblioteca</TooltipContent>
+          <TooltipContent side="right">
+            Biblioteca
+          </TooltipContent>
         </Tooltip>
 
         <template v-if="isAdmin">
@@ -294,7 +303,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
                 <span v-if="!collapsed">Reportes</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Reportes</TooltipContent>
+            <TooltipContent side="right">
+              Reportes
+            </TooltipContent>
           </Tooltip>
 
           <Tooltip :disabled="!collapsed">
@@ -309,7 +320,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
                 <span v-if="!collapsed">Fuentes del asistente</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Fuentes del asistente</TooltipContent>
+            <TooltipContent side="right">
+              Fuentes del asistente
+            </TooltipContent>
           </Tooltip>
         </template>
       </nav>
@@ -317,7 +330,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
     <div v-if="!collapsed" class="mt-4 min-h-0 flex-1 space-y-5 overflow-y-auto px-2 pb-3">
       <div v-for="group in groups" :key="group.label">
-        <p class="px-3 pb-1.5 text-xs text-muted-foreground">{{ group.label }}</p>
+        <p class="px-3 pb-1.5 text-xs text-muted-foreground">
+          {{ group.label }}
+        </p>
         <ul>
           <li v-for="chat in group.chats" :key="chat.id" class="group/item relative">
             <input
@@ -346,7 +361,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
                     class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover/item:opacity-100 data-[state=open]:opacity-100"
                     :aria-label="`Opciones de ${chat.title}`"
                   >
-                    <MoreHorizontal class="size-4" :stroke-width="1.5" />
+                    <Ellipsis class="size-4" :stroke-width="1.5" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
@@ -385,7 +400,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
         :disabled="loadingMore"
         @click="loadMore"
       >
-        <Loader2 v-if="loadingMore" class="size-4 animate-spin" :stroke-width="1.5" />
+        <LoaderCircle v-if="loadingMore" class="size-4 animate-spin" :stroke-width="1.5" />
         {{ loadingMore ? 'Cargando…' : 'Cargar más' }}
       </button>
 
@@ -404,8 +419,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           {{ initials }}
         </span>
         <div class="min-w-0">
-          <p class="truncate text-sm font-medium text-foreground">{{ userName }}</p>
-          <p v-if="userCaption" class="truncate text-xs text-muted-foreground">{{ userCaption }}</p>
+          <p class="truncate text-sm font-medium text-foreground">
+            {{ userName }}
+          </p>
+          <p v-if="userCaption" class="truncate text-xs text-muted-foreground">
+            {{ userCaption }}
+          </p>
         </div>
       </div>
     </div>
@@ -421,8 +440,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel @click="chatToDelete = null">Cancelar</AlertDialogCancel>
-          <AlertDialogAction @click="confirmDelete">Eliminar</AlertDialogAction>
+          <AlertDialogCancel @click="chatToDelete = null">
+            Cancelar
+          </AlertDialogCancel>
+          <AlertDialogAction @click="confirmDelete">
+            Eliminar
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

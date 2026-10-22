@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SourceFile } from './types'
-import { ChevronRight, Trash2 } from 'lucide-vue-next'
+import { ChevronRight, Trash2 } from '@lucide/vue'
 import {
   AlertDialog,
   AlertDialogAction,

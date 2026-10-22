@@ -24,7 +24,11 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
  */
 final class UploadAssistantDoc implements ShouldBeUnique, ShouldQueue
 {
-    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable;
+    use Dispatchable;
+    use InteractsWithQueue;
+    use Queueable;
+    use SerializesModels;
 
     public int $timeout = 600;
 
@@ -43,7 +47,7 @@ final class UploadAssistantDoc implements ShouldBeUnique, ShouldQueue
     {
         $file = File::claimForUpload($this->fileId);
 
-        if ($file === null) {
+        if (! $file instanceof File) {
             return;
         }
 

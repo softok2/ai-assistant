@@ -15,7 +15,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  */
 final class ChatHistoryQuery
 {
-    private const PER_PAGE = 25;
+    private const int PER_PAGE = 25;
 
     /**
      * @return LengthAwarePaginator<int, Chat>|null
@@ -27,8 +27,8 @@ final class ChatHistoryQuery
         }
 
         return $user->chats()
-            ->orderByDesc('pinned_at')
-            ->orderByDesc('updated_at')
+            ->latest('pinned_at')
+            ->latest('updated_at')
             ->paginate(self::PER_PAGE);
     }
 }

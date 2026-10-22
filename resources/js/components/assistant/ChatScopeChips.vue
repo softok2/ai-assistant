@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { SourcesScope } from '@/types'
-import { FileText, Globe } from 'lucide-vue-next'
+import { FileText, Globe } from '@lucide/vue'
 import { computed } from 'vue'
 import { formatShortDate } from '@/lib/dates'
 

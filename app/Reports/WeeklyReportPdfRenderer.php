@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Reports;
 
+use Spatie\LaravelPdf\Facades\Pdf;
 use Spatie\Browsershot\Browsershot;
 use Spatie\LaravelPdf\Enums\Format;
-use Spatie\LaravelPdf\Facades\Pdf;
+use App\Reports\Contracts\RendersWeeklyReportPdf;
 
 /**
  * Renders the weekly report to a PDF binary (Chromium via Browsershot).
  */
-class WeeklyReportPdfRenderer
+final class WeeklyReportPdfRenderer implements RendersWeeklyReportPdf
 {
     public function render(WeeklyReportData $report): string
     {
@@ -22,7 +23,7 @@ class WeeklyReportPdfRenderer
         $chromePath = config('services.browsershot.chrome_path');
 
         if (filled($chromePath)) {
-            $builder->withBrowsershot(fn (Browsershot $browsershot) => $browsershot->setChromePath($chromePath));
+            $builder->withBrowsershot(fn (Browsershot $browsershot): Browsershot => $browsershot->setChromePath($chromePath));
         }
 
         return base64_decode($builder->base64());

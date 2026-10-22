@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Chat } from '@/types'
 import { router } from '@inertiajs/vue3'
-import { Menu, Pencil } from 'lucide-vue-next'
+import { Menu, Pencil } from '@lucide/vue'
 import { nextTick, ref } from 'vue'
 import { useAssistantSidebar } from '@/composables/useAssistantSidebar'
 import DataFreshnessChip from './DataFreshnessChip.vue'
@@ -65,7 +65,9 @@ function save(): void {
           @blur="editing = false"
         >
         <template v-else>
-          <h1 class="truncate text-sm font-medium text-foreground">{{ chat.title }}</h1>
+          <h1 class="truncate text-sm font-medium text-foreground">
+            {{ chat.title }}
+          </h1>
           <button
             v-if="canWrite"
             type="button"

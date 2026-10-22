@@ -39,6 +39,6 @@ final class ChatSpeechController extends Controller
         $text = preg_replace('/[#*_`>-]+/', ' ', $text);
         $text = preg_replace('/\s+/', ' ', $text);
 
-        return trim(mb_substr($text, 0, 4000));
+        return mb_trim(mb_substr($text, 0, 4000));
     }
 }

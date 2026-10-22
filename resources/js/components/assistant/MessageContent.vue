@@ -75,9 +75,9 @@ const segments = computed<Segment[]>(() => {
   const result: Segment[] = []
   const pattern = /```(chart|kpi)[^\S\n]*\n([\s\S]*?)```/g
   let cursor = 0
-  let match: RegExpExecArray | null
+  let match: RegExpExecArray | null = pattern.exec(content)
 
-  while ((match = pattern.exec(content)) !== null) {
+  while (match !== null) {
     if (match.index > cursor)
       result.push(...splitBareJsonCharts(content.slice(cursor, match.index)))
 
@@ -96,6 +96,7 @@ const segments = computed<Segment[]>(() => {
     }
 
     cursor = match.index + match[0].length
+    match = pattern.exec(content)
   }
 
   let tail = content.slice(cursor)

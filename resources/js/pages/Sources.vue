@@ -2,7 +2,7 @@
 import type { ClubOption, SourceFile, SourcesHealth } from '@/components/sources/types'
 import type { ChatHistory } from '@/types'
 import { Head, router, usePage } from '@inertiajs/vue3'
-import { LoaderCircle, RefreshCw, ScanSearch, Upload } from 'lucide-vue-next'
+import { LoaderCircle, RefreshCw, ScanSearch, Upload } from '@lucide/vue'
 import { ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import AssistantLayout from '@/components/assistant/AssistantLayout.vue'
@@ -84,7 +84,9 @@ function switchClub(club: string): void {
       <div class="mx-auto flex w-full max-w-5xl flex-col gap-7 px-4 py-8 md:px-10">
         <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 class="text-[22px] font-semibold tracking-tight">Fuentes del asistente</h1>
+            <h1 class="text-[22px] font-semibold tracking-tight">
+              Fuentes del asistente
+            </h1>
             <p class="mt-1 text-sm text-muted-foreground">
               Documentos del BI de cada club, reportes de Pentaho y archivos subidos a mano que el asistente consulta al responder.
             </p>

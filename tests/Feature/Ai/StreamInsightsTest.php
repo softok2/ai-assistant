@@ -17,14 +17,14 @@ use Laravel\Ai\Responses\Data\ToolResult as ToolResultData;
 
 function resolveInsights(array $events): array
 {
-    return app(ResolveStreamInsightsAction::class)->execute(new Collection($events))->toParts();
+    return resolve(ResolveStreamInsightsAction::class)->execute(new Collection($events))->toParts();
 }
 
 it('turns a finished file search into activity and a library source', function (): void {
     $parts = resolveInsights([
         new StreamStart('e0', 'openai', 'gpt-4o-mini', time()),
-        new ProviderToolEvent('e1', 'fs_1', 'file_search_call', ['queries' => ['golf']], 'in_progress', time()),
-        new ProviderToolEvent('e2', 'fs_1', 'file_search_call', ['queries' => ['golf']], 'completed', time()),
+        new ProviderToolEvent('e1', 'fs_1', 'file_search_call', ['queries' => ['golf']], 'in_progress', time(), 'openai'),
+        new ProviderToolEvent('e2', 'fs_1', 'file_search_call', ['queries' => ['golf']], 'completed', time(), 'openai'),
         new TextDelta('e3', 'm1', 'Hola', time()),
     ]);
 
@@ -38,7 +38,7 @@ it('turns a finished file search into activity and a library source', function (
 });
 
 it('resolves file search results against the library by media id', function (): void {
-    File::create([
+    File::query()->create([
         'name' => 'golf-semana.md',
         'group' => 'golf',
         'status' => 'completed',
@@ -51,7 +51,7 @@ it('resolves file search results against the library by media id', function (): 
             'results' => [
                 ['file_id' => 'file-abc', 'filename' => 'golf-semana.md'],
             ],
-        ], 'completed', time()),
+        ], 'completed', time(), 'openai'),
     ]);
 
     expect($parts['sources'])->toHaveCount(1)
@@ -63,7 +63,7 @@ it('resolves file search results against the library by media id', function (): 
 
 it('collects web search activity and url citations without duplicates', function (): void {
     $parts = resolveInsights([
-        new ProviderToolEvent('e1', 'ws_1', 'web_search_call', [], 'completed', time()),
+        new ProviderToolEvent('e1', 'ws_1', 'web_search_call', [], 'completed', time(), 'openai'),
         new Citation('c1', 'm1', new UrlCitation('https://ejemplo.mx/nota', 'Nota de ejemplo'), time()),
         new Citation('c2', 'm1', new UrlCitation('https://ejemplo.mx/nota', 'Nota de ejemplo'), time()),
     ]);

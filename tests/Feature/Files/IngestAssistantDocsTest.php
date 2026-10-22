@@ -8,7 +8,7 @@ use App\Jobs\UploadAssistantDoc;
 use App\Jobs\IngestAssistantDocs;
 use Illuminate\Support\Facades\Bus;
 
-it('dispatches one upload job per pending file as a batch', function () {
+it('dispatches one upload job per pending file as a batch', function (): void {
     Bus::fake();
     $pending = File::factory()->count(2)->create();
     File::factory()->completed()->create();
@@ -16,8 +16,8 @@ it('dispatches one upload job per pending file as a batch', function () {
 
     (new IngestAssistantDocs)->handle();
 
-    Bus::assertBatched(function ($batch) use ($pending) {
-        $ids = collect($batch->jobs)->map(fn (UploadAssistantDoc $job) => $job->fileId)->sort()->values()->all();
+    Bus::assertBatched(function ($batch) use ($pending): bool {
+        $ids = collect($batch->jobs)->map(fn (UploadAssistantDoc $job): int => $job->fileId)->sort()->values()->all();
 
         return $batch->jobs->count() === 2
             && $ids === $pending->pluck('id')->sort()->values()->all()
@@ -26,7 +26,7 @@ it('dispatches one upload job per pending file as a batch', function () {
     Bus::assertNotDispatched(RemoveExpiredDocs::class);
 });
 
-it('removes expired docs and releases the sync lock right away when nothing is pending', function () {
+it('removes expired docs and releases the sync lock right away when nothing is pending', function (): void {
     Bus::fake();
     File::factory()->completed()->create();
     $lock = Cache::lock('syncing-assistant-files', 60);

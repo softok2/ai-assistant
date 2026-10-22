@@ -15,9 +15,9 @@ use App\Reports\Contracts\RendersMessageAsPdf;
  * Exporta una respuesta del asistente a PDF. Reusa el mismo parser del reporte
  * semanal para las gráficas y los KPIs, con una hoja mucho más simple.
  */
-final class MessagePdfRenderer implements RendersMessageAsPdf
+final readonly class MessagePdfRenderer implements RendersMessageAsPdf
 {
-    public function __construct(private readonly ReportContentParser $parser) {}
+    public function __construct(private ReportContentParser $parser) {}
 
     public function render(Message $message): string
     {
@@ -36,7 +36,7 @@ final class MessagePdfRenderer implements RendersMessageAsPdf
         $chromePath = config('services.browsershot.chrome_path');
 
         if (filled($chromePath)) {
-            $builder->withBrowsershot(fn (Browsershot $browsershot) => $browsershot->setChromePath($chromePath));
+            $builder->withBrowsershot(fn (Browsershot $browsershot): Browsershot => $browsershot->setChromePath($chromePath));
         }
 
         return base64_decode($builder->base64());

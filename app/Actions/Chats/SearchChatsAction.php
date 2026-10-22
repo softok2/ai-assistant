@@ -14,19 +14,19 @@ use Illuminate\Support\Collection;
  */
 final class SearchChatsAction
 {
-    private const LIMIT = 20;
+    private const int LIMIT = 20;
 
     /**
      * @return Collection<int, array{id: string, title: string, updated_at: ?string}>
      */
     public function execute(User $user, ?string $term): Collection
     {
-        $term = trim((string) $term);
+        $term = mb_trim((string) $term);
 
         return $user->chats()
             ->when($term !== '', fn ($query) => $query->where('title', 'like', '%'.$term.'%'))
-            ->orderByDesc('pinned_at')
-            ->orderByDesc('updated_at')
+            ->latest('pinned_at')
+            ->latest('updated_at')
             ->limit(self::LIMIT)
             ->get(['id', 'title', 'updated_at'])
             ->map(fn (Chat $chat): array => [

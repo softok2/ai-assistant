@@ -53,7 +53,7 @@ final class AssistantSourcesQuery
     {
         return File::expired()
             ->where('project', $club->value)
-            ->orderByDesc('expired_at')
+            ->latest('expired_at')
             ->get(['id', 'name', 'group', 'status', 'origin', 'bytes', 'synced_at', 'expired_at', 'assistant_media_id'])
             ->map(fn (File $file): array => $this->present($file) + [
                 'expired_at' => $file->expired_at?->toISOString(),
