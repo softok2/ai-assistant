@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\File;
 use Laravel\Ai\Files;
 use Laravel\Ai\Stores;
+use App\Enums\ClubName;
 use App\Enums\MediaStatus;
 use App\Jobs\UploadAssistantDoc;
 use Illuminate\Support\Facades\Bus;
@@ -15,7 +16,7 @@ beforeEach(function (): void {
     Stores::fake();
     Files::fake();
     Bus::fake();
-    config(['services.openai.vector_stores.ccm' => 'vs_test']);
+    clubVectorStore(ClubName::CCM, 'vs_test');
 });
 
 it('drops the OpenAI copy and queues a fresh upload', function (): void {

@@ -174,7 +174,7 @@ function apply(): void {
           class="mt-0.5"
         />
         <Label for="reconcile-include-untagged" class="text-[13px] leading-snug font-normal text-muted-foreground">
-          Incluir archivos sin etiqueta de entorno. Úsalo solo desde producción; en local o stage borraría archivos de otros entornos.
+          Incluir archivos sin etiqueta de entorno y archivos sueltos de la cuenta. Solo borra los que no están en ningún store del proyecto, así que es seguro desde cualquier entorno.
         </Label>
       </div>
 

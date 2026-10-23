@@ -13,7 +13,7 @@ final class ReconcileAssistantFiles extends Command
     protected $signature = 'assistant-files:reconcile
         {--club=ccm : Club cuyo store se reconcilia}
         {--dry-run : Solo mostrar lo que se borraría}
-        {--include-untagged : Incluir archivos sin etiqueta de entorno (subidos antes de esta versión) y sueltos en la cuenta}';
+        {--include-untagged : Incluir archivos sin etiqueta de entorno (subidos antes de esta versión) y archivos de la cuenta que no están en ningún store del proyecto}';
 
     protected $description = 'Borra de OpenAI los archivos huérfanos, duplicados y sueltos que no tienen fila en files.';
 

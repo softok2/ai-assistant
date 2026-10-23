@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Throwable;
+use Laravel\Ai\Files;
+use Laravel\Ai\Store;
 use App\Enums\ClubName;
+use App\Ai\ClubAiProvider;
 use App\Enums\MediaStatus;
 use App\Enums\SourceOrigin;
 use Laravel\Ai\Files\Document;
@@ -87,7 +90,13 @@ final class File extends Model
 
             $this->expireSiblings();
         } catch (Throwable $throwable) {
-            Log::error("Media upload to OpenAI failed for {$this->name}: ".$throwable->getMessage());
+            // Con club, entorno y store: un store borrado en el panel se reconoce
+            // aquí y se recupera borrando su fila de `vector_stores` y resincronizando.
+            Log::error("Media upload to OpenAI failed for {$this->name}: ".$throwable->getMessage(), [
+                'club' => $this->project,
+                'environment' => app()->environment(),
+                'store_id' => rescue(fn (): ?string => resolve(ClubVectorStore::class)->existingIdFor($this->club()), null, false),
+            ]);
             $this->status = MediaStatus::FAILED;
             $this->save();
         }
@@ -145,9 +154,14 @@ final class File extends Model
 
     protected function removeFromProvider(): void
     {
+        $store = resolve(ClubVectorStore::class)->existingStoreFor($this->club());
+
         try {
-            resolve(ClubVectorStore::class)->storeFor($this->club())
-                ->remove($this->assistant_media_id, deleteFile: true);
+            if ($store instanceof Store) {
+                $store->remove($this->assistant_media_id, deleteFile: true);
+            } else {
+                Files::delete($this->assistant_media_id, resolve(ClubAiProvider::class)->nameFor($this->club()));
+            }
         } catch (RequestException $requestException) {
             if ($requestException->response->status() !== 404) {
                 throw $requestException;

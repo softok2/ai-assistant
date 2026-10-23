@@ -40,12 +40,6 @@ return [
         'model' => env('OPENAI_MODEL', 'gpt-6-luna'),
         // Esfuerzo de razonamiento de los agentes que usan `model` (vacío = sin razonamiento).
         'reasoning_effort' => env('OPENAI_REASONING_EFFORT', 'low'),
-        // Un vector store por club: la separación entre clubes es una frontera
-        // dura, no un filtro. Lo lee solo App\Ai\Files\ClubVectorStore.
-        'vector_stores' => [
-            'ccm' => env('OPENAI_VECTOR_STORE_CCM'),
-            'vallealto' => env('OPENAI_VECTOR_STORE_VALLEALTO'),
-        ],
     ],
 
     'browsershot' => [

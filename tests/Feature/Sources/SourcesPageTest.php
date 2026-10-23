@@ -96,7 +96,7 @@ it('labels the origin from the column instead of the file name', function (): vo
 });
 
 it('summarises the health of the sources', function (): void {
-    config(['services.openai.vector_stores.ccm' => 'vs_abcdefgh12345678']);
+    clubVectorStore(ClubName::CCM, 'vs_abcdefgh12345678');
 
     File::factory()->completed()->create(['group' => 'golf']);
     File::factory()->create(['group' => 'tennis']);
@@ -117,13 +117,15 @@ it('summarises the health of the sources', function (): void {
             ->has('health.schedule.next_run_at'));
 });
 
-it('reports no store when the club has none configured', function (): void {
-    config(['services.openai.vector_stores' => ['ccm' => null]]);
+it('reports no store yet when the club has none', function (): void {
+    File::factory()->create();
 
     $this->actingAs(adminUser())
         ->get(route('sources'))
         ->assertOk()
-        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page->where('health.vector_store_suffix', null));
+        ->assertInertia(fn (AssertableInertia $page): AssertableInertia => $page
+            ->where('health.vector_store_suffix', null)
+            ->where('health.indexed', 0));
 });
 
 it('computes the next sync from the configured cadence, skipping the night', function (string $now, string $expected): void {

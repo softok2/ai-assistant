@@ -3,14 +3,15 @@
 declare(strict_types=1);
 
 use App\Models\File;
+use App\Enums\ClubName;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function (): void {
     config([
-        'services.openai.vector_stores.ccm' => 'vs_test',
         'ai.providers.openai.key' => 'sk-test',
         'ai.providers.openai.url' => 'https://api.openai.com/v1',
     ]);
+    clubVectorStore(ClubName::CCM, 'vs_test');
     Http::preventStrayRequests();
 });
 
@@ -21,6 +22,7 @@ beforeEach(function (): void {
 function fakeSourcesInventory(): void
 {
     Http::fake([
+        'https://api.openai.com/v1/vector_stores?*' => Http::response(['data' => [['id' => 'vs_test', 'name' => 'ccm-assistant-testing']], 'has_more' => false]),
         'https://api.openai.com/v1/vector_stores/vs_test' => Http::response(['id' => 'vs_test', 'name' => 'ccm', 'status' => 'completed', 'file_counts' => ['completed' => 6, 'in_progress' => 0, 'failed' => 0, 'cancelled' => 0, 'total' => 6]]),
         'https://api.openai.com/v1/vector_stores/vs_test/files?*' => Http::response([
             'data' => [

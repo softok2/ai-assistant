@@ -5,15 +5,17 @@ declare(strict_types=1);
 use App\Models\File;
 use Laravel\Ai\Files;
 use Laravel\Ai\Stores;
+use App\Enums\ClubName;
 use App\Enums\MediaStatus;
 use App\Jobs\UploadAssistantDoc;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 
 beforeEach(function (): void {
     Storage::fake();
     Stores::fake();
-    config(['services.openai.vector_stores.ccm' => 'vs_test']);
+    clubVectorStore(ClubName::CCM, 'vs_test');
 });
 
 function pendingDoc(array $attributes = []): File
@@ -99,6 +101,22 @@ it('marks the file as failed when the provider throws and keeps the older doc al
 
     expect($new->fresh()->status)->toBe(MediaStatus::FAILED)
         ->and($older->fresh()->expired_at)->toBeNull();
+});
+
+/**
+ * Un store borrado en el panel de OpenAI hace fallar cada subida; el log tiene
+ * que decir de qué club, entorno y store se trata para poder recuperarlo.
+ */
+it('logs the club, environment and store of a failed upload', function (): void {
+    Stores::fake(fn () => throw new RuntimeException('No vector store found'));
+    Log::spy();
+    $file = pendingDoc();
+
+    new UploadAssistantDoc($file->id)->handle();
+
+    Log::shouldHaveReceived('error')->once()->withArgs(fn (string $message, array $context = []): bool => str_contains($message, $file->name)
+        && str_contains($message, 'No vector store found')
+        && $context === ['club' => 'ccm', 'environment' => 'testing', 'store_id' => 'vs_test']);
 });
 
 it('is unique per file and has a generous timeout', function (): void {

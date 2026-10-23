@@ -6,6 +6,7 @@ use Laravel\Ai\Ai;
 use App\Models\Chat;
 use App\Models\Role;
 use App\Models\User;
+use App\Enums\ClubName;
 use App\Ai\Agents\ClubAssistant;
 use Laravel\Ai\Gateway\StepContext;
 use Laravel\Ai\Prompts\AgentPrompt;
@@ -220,7 +221,7 @@ describe('proveedor de IA por club', function (): void {
 
 describe('contexto y partes del mensaje', function (): void {
     beforeEach(function (): void {
-        config(['services.openai.vector_stores' => ['vallealto' => 'vs_test']]);
+        clubVectorStore(ClubName::VALLEALTO, 'vs_test');
         $this->user = User::factory()->create(['name' => 'Ana Gómez', 'club_name' => 'vallealto']);
         $this->user->roles()->attach(Role::query()->firstOrCreate(['name' => 'golf_manager']));
         $this->actingAs($this->user);
@@ -306,6 +307,7 @@ describe('contexto y partes del mensaje', function (): void {
 
     it('prompts the club provider for a user whose club has its own key', function (): void {
         config(['ai.providers.openai_vallealto.key' => 'sk-va']);
+        clubVectorStore(ClubName::VALLEALTO, 'vs_test');
 
         ClubAssistant::fake(['Respuesta']);
 

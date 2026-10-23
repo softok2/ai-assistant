@@ -67,9 +67,15 @@ final class ModuleReportAnalyst implements Agent, HasProviderOptions, HasTools
 
     public function tools(): iterable
     {
+        $store = resolve(ClubVectorStore::class)->existingIdFor($this->club);
+
+        if ($store === null) {
+            return [];
+        }
+
         return [
             new FileSearch(
-                stores: [resolve(ClubVectorStore::class)->idFor($this->club)],
+                stores: [$store],
                 where: ['group' => $this->group],
             ),
         ];

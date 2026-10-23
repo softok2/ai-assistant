@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\File;
 use App\Models\User;
+use Laravel\Ai\Stores;
 use App\Enums\ClubName;
 use App\Enums\RoleName;
 use App\Enums\SourceGroup;
@@ -114,7 +115,8 @@ it('labels the wellness and BI groups in Spanish', function (): void {
 });
 
 it('searches the store of the user club and narrows a single-area role to its groups', function (): void {
-    config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm', 'vallealto' => 'vs_va']]);
+    clubVectorStore(ClubName::CCM, 'vs_ccm');
+    clubVectorStore(ClubName::VALLEALTO, 'vs_va');
 
     $search = fileSearchOf(ClubAssistant::make(club: ClubName::VALLEALTO, role: RoleName::MASSAGE_MANAGER)->tools());
 
@@ -123,7 +125,7 @@ it('searches the store of the user club and narrows a single-area role to its gr
 });
 
 it('does not filter by group for the admin', function (): void {
-    config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm']]);
+    clubVectorStore(ClubName::CCM, 'vs_ccm');
 
     $search = fileSearchOf(ClubAssistant::make(club: ClubName::CCM, role: RoleName::ADMIN)->tools());
 
@@ -131,14 +133,15 @@ it('does not filter by group for the admin', function (): void {
         ->and($search->filters)->toBe([]);
 });
 
-it('degrades to web search only when the club has no vector store configured', function (): void {
-    config(['services.openai.vector_stores' => []]);
+it('degrades to web search only when the club has no store yet, and never creates one', function (): void {
+    Stores::fake();
 
     $tools = iterator_to_array(ClubAssistant::make(club: ClubName::VALLEALTO, role: RoleName::ADMIN)->tools());
 
     expect(fileSearchOf($tools))->toBeNull()
         ->and($tools)->toHaveCount(1)
         ->and($tools[0])->toBeInstanceOf(WebSearch::class);
+    Stores::assertNothingCreated();
 });
 
 it('offers no file search when the user has no club', function (): void {
