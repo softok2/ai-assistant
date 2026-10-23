@@ -12,7 +12,7 @@ beforeEach(function (): void {
     Storage::fake();
     Stores::fake();
     Files::fake();
-    config(['services.openai.vector_stores.ccm' => 'vs_test']);
+    clubVectorStore(ClubName::CCM, 'vs_test');
 });
 
 it('deletes an active document from OpenAI, the disk and the database', function (): void {

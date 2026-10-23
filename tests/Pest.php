@@ -5,6 +5,10 @@ declare(strict_types=1);
 use Tests\TestCase;
 use App\Models\Role;
 use App\Models\User;
+use App\Enums\ClubName;
+use App\Ai\ClubAiProvider;
+use App\Models\VectorStore;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /*
@@ -20,6 +24,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(fn () => Http::preventStrayRequests())
     ->in('Feature');
 
 pest()->extend(TestCase::class)
@@ -65,4 +70,20 @@ function adminUser(): User
     $user->roles()->attach(Role::query()->firstOrCreate(['name' => 'admin']));
 
     return $user;
+}
+
+/**
+ * Fila de vector store para el club en el entorno de la prueba. Llamarla después
+ * de cualquier config de `ai.providers.openai_*.key`: el proveedor forma parte de
+ * la clave de la fila.
+ */
+function clubVectorStore(ClubName $club = ClubName::CCM, string $storeId = 'vs_test'): VectorStore
+{
+    return VectorStore::query()->create([
+        'club' => $club->value,
+        'environment' => app()->environment(),
+        'provider' => resolve(ClubAiProvider::class)->nameFor($club) ?? 'openai',
+        'store_id' => $storeId,
+        'name' => "{$club->value}-assistant-".app()->environment(),
+    ]);
 }

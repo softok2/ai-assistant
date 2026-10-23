@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\File;
+use Laravel\Ai\Stores;
 use App\Enums\ClubName;
 use App\Models\ReportSetting;
 use App\Enums\ReportFrequency;
@@ -43,10 +44,8 @@ it('extracts chart blocks and bare chart json from analyst output', function ():
 });
 
 it('generates report data from indexed modules, skipping empty ones', function (): void {
-    config([
-        'services.openai.vector_stores' => ['ccm' => 'vs_ccm'],
-        'ai.providers.openai_ccm.key' => 'sk-ccm',
-    ]);
+    config(['ai.providers.openai_ccm.key' => 'sk-ccm']);
+    clubVectorStore(ClubName::CCM, 'vs_ccm');
 
     File::query()->create(['name' => 'golf-x.md', 'group' => 'golf', 'status' => 'completed']);
     File::query()->create(['name' => 'restaurant-x.md', 'group' => 'restaurant', 'status' => 'completed']);
@@ -71,7 +70,7 @@ it('generates report data from indexed modules, skipping empty ones', function (
 });
 
 it('sends the report with a pdf attachment to configured recipients', function (): void {
-    config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm']]);
+    clubVectorStore(ClubName::CCM, 'vs_ccm');
     Mail::fake();
     $this->mock(RendersWeeklyReportPdf::class)->shouldReceive('render')->andReturn('%PDF-fake');
 
@@ -96,7 +95,7 @@ it('sends the report with a pdf attachment to configured recipients', function (
 });
 
 it('grounds each module on the store of the report club', function (): void {
-    config(['services.openai.vector_stores' => ['vallealto' => 'vs_va']]);
+    clubVectorStore(ClubName::VALLEALTO, 'vs_va');
 
     $search = collect(new ModuleReportAnalyst(ClubName::VALLEALTO, 'golf')->tools())->first();
 
@@ -123,4 +122,11 @@ it('computes due state from frequency, day, hour and last send', function (): vo
     expect(ReportFrequency::Weekly->isDue($monday8am, 1, 9, null))->toBeFalse();
     expect(ReportFrequency::Weekly->isDue($monday8am, 1, 8, $monday8am->copy()->subDays(2)))->toBeFalse();
     expect(ReportFrequency::Weekly->isDue($monday8am, 1, 8, $monday8am->copy()->subDays(7)))->toBeTrue();
+});
+
+it('runs the module analyst without file search when the club has no store yet', function (): void {
+    Stores::fake();
+
+    expect(iterator_to_array(new ModuleReportAnalyst(ClubName::VALLEALTO, 'golf')->tools()))->toBe([]);
+    Stores::assertNothingCreated();
 });

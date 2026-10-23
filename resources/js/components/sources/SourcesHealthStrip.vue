@@ -34,7 +34,7 @@ const openAiDetail = computed(() => {
 
   parts.push(props.health.vector_store_suffix
     ? `Store …${props.health.vector_store_suffix}`
-    : 'Sin store configurado')
+    : 'Sin store todavía')
 
   if (props.health.expired_count > 0) {
     parts.push(props.health.expired_count === 1

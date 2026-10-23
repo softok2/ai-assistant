@@ -18,7 +18,6 @@ use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Attributes\Provider;
 use App\Queries\LibrarySnapshotQuery;
 use App\Models\Message as ChatMessage;
-use App\Ai\Files\MissingClubVectorStore;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Providers\Tools\WebSearch;
 use Laravel\Ai\Providers\Tools\FileSearch;
@@ -112,9 +111,9 @@ final class ClubAssistant implements Agent, Conversational, HasProviderOptions, 
             return [new WebSearch];
         }
 
-        try {
-            $store = resolve(ClubVectorStore::class)->idFor($this->club);
-        } catch (MissingClubVectorStore) {
+        $store = resolve(ClubVectorStore::class)->existingIdFor($this->club);
+
+        if ($store === null) {
             return [new WebSearch];
         }
 

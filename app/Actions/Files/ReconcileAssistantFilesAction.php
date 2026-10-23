@@ -6,6 +6,7 @@ namespace App\Actions\Files;
 
 use App\Models\File;
 use Laravel\Ai\Files;
+use Laravel\Ai\Store;
 use App\Enums\ClubName;
 use App\Ai\ClubAiProvider;
 use App\Enums\MediaStatus;
@@ -18,17 +19,19 @@ use Illuminate\Http\Client\RequestException;
  * Compara lo que hay en OpenAI con las filas de `files` y borra lo sobrante:
  * archivos del store sin fila (huérfanos), nombres repetidos en el store
  * (se conserva el referenciado o, si ninguno lo está, el más nuevo) y
- * archivos de la cuenta que no están en el store ni referenciados.
+ * archivos sueltos de la cuenta: los que no están en NINGÚN vector store del
+ * proyecto ni los referencia ninguna fila.
  *
- * Cada club tiene su store; el reporte y el borrado se acotan al club
- * recibido.
+ * Cada club y entorno tiene su store; el reporte y el borrado se acotan al
+ * club recibido y al store de este entorno.
  *
- * Varios entornos (local, stage, prod) pueden compartir la misma cuenta y el
- * mismo vector store, cada uno con su propia tabla `files`. Por eso cada
- * subida etiqueta el archivo con su entorno y aquí SOLO se tocan los del
- * entorno actual: los de otro entorno se ignoran siempre, y los sin etiqueta
- * (subidos antes de esta versión) y los sueltos de la cuenta, que no se pueden
- * atribuir, solo entran cuando se pide explícitamente `$includeUntagged`.
+ * Los entornos (local, stage, prod) comparten el proyecto de OpenAI del club,
+ * así que la cuenta lista los archivos de todos. Huérfanos y duplicados salen
+ * solo del store de este entorno, y dentro de él lo etiquetado con otro
+ * entorno se ignora siempre. Un archivo adjunto al store de otro entorno nunca
+ * es suelto, así que la limpieza de sueltos es segura desde cualquier entorno.
+ * Los sin etiqueta (subidos antes de esta versión) y los sueltos solo entran
+ * cuando se pide explícitamente `$includeUntagged`.
  */
 final readonly class ReconcileAssistantFilesAction
 {
@@ -77,11 +80,15 @@ final readonly class ReconcileAssistantFilesAction
             ->reject(fn (string $id) => $orphans->contains('id', $id))
             ->map(fn (string $id): array => $describe($id, 'duplicate'));
 
-        $loose = $includeUntagged
-            ? $account->keys()
-                ->reject(fn (string $id): bool => $allStoreFiles->has($id) || $referencedAnywhere->has($id))
-                ->map(fn (string $id): array => $describe($id, 'loose'))
-            : collect();
+        $loose = collect();
+
+        if ($includeUntagged) {
+            $attached = $this->inventory->attachedFileIds($club);
+
+            $loose = $account->keys()
+                ->reject(fn (string $id): bool => $allStoreFiles->has($id) || $attached->has($id) || $referencedAnywhere->has($id))
+                ->map(fn (string $id): array => $describe($id, 'loose'));
+        }
 
         return new ReconciliationReport(
             storeFiles: $allStoreFiles->count(),
@@ -97,12 +104,15 @@ final readonly class ReconcileAssistantFilesAction
 
     public function apply(ClubName $club, ReconciliationReport $report): int
     {
-        $store = $this->stores->storeFor($club);
+        $store = $this->stores->existingStoreFor($club);
         $deleted = collect();
 
-        foreach ($report->orphans->concat($report->duplicates) as $file) {
-            $this->ignoringMissing(fn (): bool => $store->remove($file['id'], deleteFile: true));
-            $deleted->push($file['id']);
+        // Sin store el reporte no puede traer huérfanos ni duplicados.
+        if ($store instanceof Store) {
+            foreach ($report->orphans->concat($report->duplicates) as $file) {
+                $this->ignoringMissing(fn (): bool => $store->remove($file['id'], deleteFile: true));
+                $deleted->push($file['id']);
+            }
         }
 
         foreach ($report->loose as $file) {

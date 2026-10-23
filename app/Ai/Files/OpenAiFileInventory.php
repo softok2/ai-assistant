@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace App\Ai\Files;
 
 use App\Enums\ClubName;
-use App\Ai\ClubAiProvider;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Http\Client\PendingRequest;
 
 /**
  * Lo que el SDK no expone: listar lo que hay de verdad en la cuenta de OpenAI
- * (archivos con purpose "assistants") y en el vector store del club. Cada
- * club habla con el proyecto de OpenAI de su clave.
+ * (archivos con purpose "assistants"), en el vector store del club en este
+ * entorno y en todos los stores del proyecto. Cada club habla con el proyecto
+ * de OpenAI de su clave.
  */
 final readonly class OpenAiFileInventory
 {
@@ -25,7 +23,7 @@ final readonly class OpenAiFileInventory
 
     public function __construct(
         private ClubVectorStore $stores,
-        private ClubAiProvider $providers,
+        private OpenAiStoreDirectory $directory,
     ) {}
 
     /**
@@ -34,7 +32,7 @@ final readonly class OpenAiFileInventory
     public function accountFiles(ClubName $club): Collection
     {
         return collect(self::PURPOSES)
-            ->flatMap(fn (string $purpose): Collection => $this->paginate($club, 'files', ['purpose' => $purpose]))
+            ->flatMap(fn (string $purpose): Collection => $this->directory->paginate($club, 'files', ['purpose' => $purpose]))
             ->unique('id')
             ->values()
             ->map(fn (array $file): array => [
@@ -50,9 +48,13 @@ final readonly class OpenAiFileInventory
      */
     public function storeFiles(ClubName $club): Collection
     {
-        $storeId = $this->stores->idFor($club);
+        $storeId = $this->stores->existingIdFor($club);
 
-        return $this->paginate($club, "vector_stores/{$storeId}/files")
+        if ($storeId === null) {
+            return collect();
+        }
+
+        return $this->directory->paginate($club, "vector_stores/{$storeId}/files")
             ->map(fn (array $file): array => [
                 'id' => $file['id'],
                 'created_at' => (int) ($file['created_at'] ?? 0),
@@ -62,32 +64,16 @@ final readonly class OpenAiFileInventory
     }
 
     /**
-     * @return Collection<int, array<string, mixed>>
+     * Ids de todos los archivos adjuntos a algún vector store del proyecto, de
+     * cualquier entorno: los entornos comparten proyecto, así que un archivo de
+     * la cuenta que está aquí tiene dueño aunque no sea de este entorno.
+     *
+     * @return Collection<string, true>
      */
-    private function paginate(ClubName $club, string $path, array $query = []): Collection
+    public function attachedFileIds(ClubName $club): Collection
     {
-        $items = collect();
-        $after = null;
-
-        do {
-            $page = $this->client($club)
-                ->get($path, array_filter($query + ['limit' => 100, 'after' => $after]))
-                ->throw()
-                ->json();
-
-            $data = collect($page['data'] ?? []);
-            $items = $items->concat($data);
-            $after = ($page['has_more'] ?? false) ? ($page['last_id'] ?? $data->last()['id'] ?? null) : null;
-        } while ($after !== null);
-
-        return $items->values();
-    }
-
-    private function client(ClubName $club): PendingRequest
-    {
-        return Http::baseUrl(mb_rtrim($this->providers->urlFor($club), '/'))
-            ->withToken($this->providers->keyFor($club))
-            ->acceptJson()
-            ->timeout(30);
+        return $this->directory->stores($club)
+            ->flatMap(fn (array $store): Collection => $this->directory->paginate($club, "vector_stores/{$store['id']}/files")->pluck('id'))
+            ->mapWithKeys(fn (string $id): array => [$id => true]);
     }
 }

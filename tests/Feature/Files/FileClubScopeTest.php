@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\Storage;
 beforeEach(function (): void {
     Storage::fake();
     Stores::fake();
-    config(['services.openai.vector_stores' => ['ccm' => 'vs_ccm', 'vallealto' => 'vs_va']]);
+    clubVectorStore(ClubName::CCM, 'vs_ccm');
+    clubVectorStore(ClubName::VALLEALTO, 'vs_va');
 });
 
 it('knows its club from the project column', function (): void {

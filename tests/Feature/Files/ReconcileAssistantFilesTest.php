@@ -3,19 +3,22 @@
 declare(strict_types=1);
 
 use App\Models\File;
+use Laravel\Ai\Stores;
 use App\Enums\ClubName;
 use App\Enums\MediaStatus;
 use Illuminate\Support\Facades\Http;
 use App\Actions\Files\ReconcileAssistantFilesAction;
 
 beforeEach(function (): void {
-    config(['services.openai.vector_stores.ccm' => 'vs_test', 'ai.providers.openai.key' => 'sk-test', 'ai.providers.openai.url' => 'https://api.openai.com/v1']);
+    config(['ai.providers.openai.key' => 'sk-test', 'ai.providers.openai.url' => 'https://api.openai.com/v1']);
 });
 
 function fakeOpenAiInventory(): void
 {
+    clubVectorStore(ClubName::CCM, 'vs_test');
     Http::preventStrayRequests();
     Http::fake([
+        'https://api.openai.com/v1/vector_stores?*' => Http::response(['data' => [['id' => 'vs_test', 'name' => 'ccm-assistant-testing']], 'has_more' => false]),
         'https://api.openai.com/v1/vector_stores/vs_test' => Http::response(['id' => 'vs_test', 'name' => 'ccm', 'status' => 'completed', 'file_counts' => ['completed' => 4, 'in_progress' => 0, 'failed' => 0, 'cancelled' => 0, 'total' => 4]]),
         'https://api.openai.com/v1/vector_stores/vs_test/files?*' => Http::response([
             'data' => [
@@ -86,7 +89,7 @@ it('deletes orphans, duplicates and loose account files but keeps referenced one
 });
 
 /**
- * Varios entornos comparten cuenta y vector store: lo de otro entorno nunca se
+ * Lo etiquetado con otro entorno dentro del store nunca se
  * toca, y lo que no se puede atribuir (sin etiqueta o suelto en la cuenta)
  * queda fuera salvo que se pida explícitamente.
  */
@@ -183,4 +186,46 @@ it('talks to OpenAI with the key of the club being reconciled', function (): voi
     resolve(ReconcileAssistantFilesAction::class)->apply(ClubName::CCM, $report);
 
     Http::assertSent(fn ($request): bool => $request->method() === 'DELETE' && $request->hasHeader('Authorization', 'Bearer sk-ccm'));
+});
+
+it('reconciles a club without a store: no store is created and loose account files are still removed', function (): void {
+    Stores::fake();
+    Http::fake([
+        'https://api.openai.com/v1/vector_stores?*' => Http::response(['data' => [], 'has_more' => false]),
+        'https://api.openai.com/v1/files?*' => Http::response(['data' => [['id' => 'file-loose', 'filename' => 'x.md', 'bytes' => 10, 'created_at' => 1_780_000_000]], 'has_more' => false]),
+        'https://api.openai.com/v1/files/file-loose' => Http::response(['deleted' => true]),
+    ]);
+
+    $action = resolve(ReconcileAssistantFilesAction::class);
+    $report = $action->report(ClubName::CCM, true);
+
+    expect($report->orphans)->toBeEmpty()->and($report->loose->pluck('id')->all())->toBe(['file-loose']);
+    expect($action->apply(ClubName::CCM, $report))->toBe(1);
+    Stores::assertNothingCreated();
+});
+
+/**
+ * Cada entorno tiene su store, pero todos comparten el proyecto de OpenAI: los
+ * archivos que stage subió a su store aparecen en la cuenta. Un archivo solo es
+ * "suelto" si no está en NINGÚN store del proyecto; así la limpieza es segura
+ * desde cualquier entorno.
+ */
+it('never treats a file attached to another store of the project as loose', function (): void {
+    clubVectorStore(ClubName::CCM, 'vs_test');
+    Http::fake([
+        'https://api.openai.com/v1/vector_stores?*' => Http::response(['data' => [
+            ['id' => 'vs_test', 'name' => 'ccm-assistant-testing'],
+            ['id' => 'vs_stage', 'name' => 'ccm-assistant-stage'],
+        ], 'has_more' => false]),
+        'https://api.openai.com/v1/vector_stores/vs_test/files?*' => Http::response(['data' => [], 'has_more' => false]),
+        'https://api.openai.com/v1/vector_stores/vs_stage/files?*' => Http::response(['data' => [['id' => 'file-stage-live', 'created_at' => 1_788_000_000, 'attributes' => ['environment' => 'stage']]], 'has_more' => false]),
+        'https://api.openai.com/v1/files?*' => Http::response(['data' => [
+            ['id' => 'file-stage-live', 'filename' => 'golf-output-1788000000.md', 'bytes' => 100, 'created_at' => 1_788_000_000],
+            ['id' => 'file-loose', 'filename' => 'tennis-output-1785348003.md', 'bytes' => 100, 'created_at' => 1_785_348_003],
+        ], 'has_more' => false]),
+    ]);
+
+    $report = resolve(ReconcileAssistantFilesAction::class)->report(ClubName::CCM, includeUntagged: true);
+
+    expect($report->loose->pluck('id')->all())->toBe(['file-loose']);
 });

@@ -46,7 +46,12 @@ php artisan key:generate
 |----------|:---------:|---------|-------------|
 | `OPENAI_API_KEY` | ✅ | — | API key de OpenAI. Necesita crédito activo. |
 | `OPENAI_MODEL` | — | `gpt-4.1-mini` | Modelo por defecto para chat y reportes. |
-| `OPENAI_VECTOR_STORE_ID` | ✅ | — | Vector store con los documentos del club (RAG). El chat y el reporte hacen File Search aquí. |
+
+> El vector store de cada club (RAG, donde el chat y el reporte hacen File Search) no se
+> configura: la app lo crea en OpenAI en la primera subida, uno por club y entorno
+> (`{club}-assistant-{entorno}`), y guarda su id en la tabla `vector_stores`. Si ya existe
+> en el proyecto un store con ese nombre y la descripción que pone la app, lo adopta en vez
+> de crear otro.
 
 > `OPENAI_ASSISTANT_ID` / `OPENAI_BASE_URL` / `OPENAI_ORGANIZATION` son del antiguo
 > Assistants API (deprecado) y **ya no se usan** — pueden eliminarse.

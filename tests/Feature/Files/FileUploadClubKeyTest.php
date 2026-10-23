@@ -16,10 +16,11 @@ beforeEach(function (): void {
     Storage::fake();
 
     config([
-        'services.openai.vector_stores' => ['ccm' => 'vs_ccm', 'vallealto' => 'vs_va'],
         'ai.providers.openai.key' => 'sk-default',
         'ai.providers.openai_vallealto.key' => 'sk-va',
     ]);
+    clubVectorStore(ClubName::CCM, 'vs_ccm');
+    clubVectorStore(ClubName::VALLEALTO, 'vs_va');
 
     Http::preventStrayRequests();
 });

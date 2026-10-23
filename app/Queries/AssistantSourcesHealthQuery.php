@@ -11,7 +11,6 @@ use App\Enums\MediaStatus;
 use Illuminate\Support\Carbon;
 use App\Ai\Files\ClubVectorStore;
 use App\Dtos\AssistantSourcesHealth;
-use App\Ai\Files\MissingClubVectorStore;
 
 /**
  * Resumen de salud de las fuentes: cuántas quedaron indexadas, cuándo vuelve a
@@ -84,10 +83,8 @@ final readonly class AssistantSourcesHealthQuery
 
     private function vectorStoreSuffix(ClubName $club): ?string
     {
-        try {
-            return mb_substr($this->stores->idFor($club), -8);
-        } catch (MissingClubVectorStore) {
-            return null;
-        }
+        $id = $this->stores->existingIdFor($club);
+
+        return $id === null ? null : mb_substr($id, -8);
     }
 }

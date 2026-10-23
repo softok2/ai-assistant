@@ -10,9 +10,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Varios entornos comparten cuenta y vector store de OpenAI. Por defecto la
- * reconciliación solo toca lo del entorno actual; `include_untagged` suma lo
- * que no se puede atribuir a ninguno. Cada club tiene su propio store.
+ * Cada club tiene un vector store por entorno, todos en el mismo proyecto de
+ * OpenAI. Por defecto la reconciliación solo toca el store del entorno actual;
+ * `include_untagged` suma lo sin etiqueta y los archivos de la cuenta que no
+ * están en ningún store del proyecto.
  */
 final class ReconcileSourceFilesRequest extends FormRequest
 {
