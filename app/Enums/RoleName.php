@@ -119,13 +119,22 @@ enum RoleName: string
      * Grupos de fuentes a los que se recorta la búsqueda del asistente. Vacío
      * significa "todo el store del club": la dirección general y el rol
      * multi-área que manda vallealto (`general_service_manager`) no se
-     * recortan. Estética, masaje y podología viven hoy dentro del documento de
-     * bienestar; llevan además su grupo viejo mientras ccm siga en Pentaho.
+     * recortan. Un club puede sustituir el mapa de un rol desde
+     * `knowledge.role_groups.<club>.<rol>` (ccm separa las categorías de
+     * bienestar en grupos propios).
      *
      * @return array<int, string>
      */
-    public function sourceGroups(): array
+    public function sourceGroups(?ClubName $club = null): array
     {
+        if ($club instanceof ClubName) {
+            $override = config("knowledge.role_groups.{$club->value}.{$this->value}");
+
+            if (is_array($override) && $override !== []) {
+                return array_values($override);
+            }
+        }
+
         return match ($this) {
             self::ADMIN, self::GENERAL_SERVICE_MANAGER => [],
             self::GOLF_MANAGER => ['golf'],
@@ -135,9 +144,7 @@ enum RoleName: string
             self::FUTBOL_MANAGER => ['futbol'],
             self::INCIDENCES_MANAGER => ['incidences'],
             self::GUESTS_MANAGER => ['guests'],
-            self::WELLNESS_MANAGER, self::PODIATRY_MANAGER => ['wellness'],
-            self::AESTHETICS_MANAGER => ['wellness', 'aesthetic'],
-            self::MASSAGE_MANAGER => ['wellness', 'massage'],
+            self::WELLNESS_MANAGER, self::PODIATRY_MANAGER, self::AESTHETICS_MANAGER, self::MASSAGE_MANAGER => ['wellness'],
         };
     }
 }

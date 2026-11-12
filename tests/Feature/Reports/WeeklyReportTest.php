@@ -69,6 +69,24 @@ it('generates report data from indexed modules, skipping empty ones', function (
     ExecutiveSummaryWriter::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->provider->name() === 'openai_ccm');
 });
 
+it('skips per-category wellness groups because the general wellness doc covers them', function (): void {
+    config(['ai.providers.openai_ccm.key' => 'sk-ccm']);
+    clubVectorStore(ClubName::CCM, 'vs_ccm');
+
+    File::query()->create(['name' => 'ccm/golf-x.md', 'group' => 'golf', 'status' => 'completed']);
+    File::query()->create(['name' => 'ccm/wellness-x.md', 'group' => 'wellness', 'status' => 'completed']);
+    File::query()->create(['name' => 'ccm/wellness-estetica-x.md', 'group' => 'wellness-estetica', 'status' => 'completed']);
+
+    ModuleReportAnalyst::fake(['#### Golf', '#### Bienestar']);
+    ExecutiveSummaryWriter::fake(['Resumen.']);
+
+    resolve(GenerateWeeklyReportAction::class)->execute(ClubName::CCM, ReportFrequency::Weekly);
+
+    ModuleReportAnalyst::assertPrompted(fn (AgentPrompt $prompt): bool => str_contains($prompt->prompt, '"golf"'));
+    ModuleReportAnalyst::assertPrompted(fn (AgentPrompt $prompt): bool => str_contains($prompt->prompt, '"wellness"'));
+    ModuleReportAnalyst::assertNotPrompted(fn (AgentPrompt $prompt): bool => str_contains($prompt->prompt, 'wellness-estetica'));
+});
+
 it('sends the report with a pdf attachment to configured recipients', function (): void {
     clubVectorStore(ClubName::CCM, 'vs_ccm');
     Mail::fake();

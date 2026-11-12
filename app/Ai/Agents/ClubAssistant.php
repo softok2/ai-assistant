@@ -117,7 +117,7 @@ final class ClubAssistant implements Agent, Conversational, HasProviderOptions, 
             return [new WebSearch];
         }
 
-        $groups = $this->role?->sourceGroups() ?? [];
+        $groups = $this->role?->sourceGroups($this->club) ?? [];
 
         return [
             $groups === []

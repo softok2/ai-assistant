@@ -102,9 +102,24 @@ it('narrows single-area roles to their source groups and leaves the rest open', 
         ->and(RoleName::INCIDENCES_MANAGER->sourceGroups())->toBe(['incidences'])
         ->and(RoleName::GUESTS_MANAGER->sourceGroups())->toBe(['guests'])
         ->and(RoleName::WELLNESS_MANAGER->sourceGroups())->toBe(['wellness'])
-        ->and(RoleName::AESTHETICS_MANAGER->sourceGroups())->toBe(['wellness', 'aesthetic'])
-        ->and(RoleName::MASSAGE_MANAGER->sourceGroups())->toBe(['wellness', 'massage'])
+        ->and(RoleName::AESTHETICS_MANAGER->sourceGroups())->toBe(['wellness'])
+        ->and(RoleName::MASSAGE_MANAGER->sourceGroups())->toBe(['wellness'])
         ->and(RoleName::PODIATRY_MANAGER->sourceGroups())->toBe(['wellness']);
+});
+
+it('maps roles per club through knowledge.role_groups', function (): void {
+    expect(RoleName::MASSAGE_MANAGER->sourceGroups(ClubName::CCM))->toBe(['wellness-masaje-de-caballeros'])
+        ->and(RoleName::AESTHETICS_MANAGER->sourceGroups(ClubName::CCM))->toBe(['wellness-estetica'])
+        ->and(RoleName::PODIATRY_MANAGER->sourceGroups(ClubName::CCM))->toBe(['wellness-podologia'])
+        ->and(RoleName::MASSAGE_MANAGER->sourceGroups(ClubName::VALLEALTO))->toBe(['wellness'])
+        ->and(RoleName::GOLF_MANAGER->sourceGroups(ClubName::CCM))->toBe(['golf'])
+        ->and(RoleName::ADMIN->sourceGroups(ClubName::CCM))->toBe([]);
+});
+
+it('labels per-category wellness groups and practice tee', function (): void {
+    expect(SourceGroup::labelFor('wellness-estetica'))->toBe('Bienestar · Estetica')
+        ->and(SourceGroup::labelFor('wellness-masaje-de-caballeros'))->toBe('Bienestar · Masaje De Caballeros')
+        ->and(SourceGroup::labelFor('practice_tee'))->toBe('Tee de práctica');
 });
 
 it('labels the wellness and BI groups in Spanish', function (): void {
@@ -121,7 +136,7 @@ it('searches the store of the user club and narrows a single-area role to its gr
     $search = fileSearchOf(ClubAssistant::make(club: ClubName::VALLEALTO, role: RoleName::MASSAGE_MANAGER)->tools());
 
     expect($search->ids())->toBe(['vs_va'])
-        ->and($search->filters)->toBe([['type' => 'in', 'key' => 'group', 'value' => ['wellness', 'massage']]]);
+        ->and($search->filters)->toBe([['type' => 'in', 'key' => 'group', 'value' => ['wellness']]]);
 });
 
 it('does not filter by group for the admin', function (): void {

@@ -65,7 +65,8 @@ final readonly class GenerateWeeklyReportAction
             ->distinct()
             ->orderBy('group')
             ->pluck('group')
-            ->filter()
+            ->filter(fn (?string $group): bool => $group !== null && $group !== '' && ! str_starts_with($group, 'wellness-'))
+            ->values()
             ->all();
     }
 

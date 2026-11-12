@@ -71,7 +71,7 @@ final class LibrarySnapshotQuery
      */
     private function indexed(ClubName $club, ?RoleName $role): Builder
     {
-        $groups = $role?->sourceGroups() ?? [];
+        $groups = $role?->sourceGroups($club) ?? [];
 
         return File::query()
             ->active()

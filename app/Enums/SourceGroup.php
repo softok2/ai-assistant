@@ -23,25 +23,7 @@ enum SourceGroup: string
     case Incidences = 'incidences';
     case Guests = 'guests';
 
-    /**
-     * Solo etiquetan filas viejas de Pentaho; hoy son categorías de bienestar.
-     */
-    case Services = 'services';
-
-    /**
-     * Solo etiqueta filas viejas de Pentaho; hoy es categoría de bienestar.
-     */
-    case Massage = 'massage';
-
-    /**
-     * Solo etiqueta filas viejas de Pentaho; hoy es categoría de bienestar.
-     */
-    case Aesthetic = 'aesthetic';
-
-    /**
-     * Solo etiqueta filas viejas de Pentaho; hoy es categoría de bienestar.
-     */
-    case Experience = 'experience';
+    case PracticeTee = 'practice_tee';
 
     /**
      * Nombre legible de un grupo cualquiera: los conocidos llevan su etiqueta
@@ -50,6 +32,10 @@ enum SourceGroup: string
     public static function labelFor(?string $group): string
     {
         $group = (string) $group;
+
+        if (str_starts_with($group, 'wellness-')) {
+            return 'Bienestar · '.Str::headline(Str::after($group, 'wellness-'));
+        }
 
         return self::tryFrom($group)?->label() ?? Str::headline($group);
     }
@@ -65,10 +51,7 @@ enum SourceGroup: string
             self::Futbol => 'Fútbol',
             self::Incidences => 'Incidencias',
             self::Guests => 'Invitados',
-            self::Services => 'Servicios',
-            self::Massage => 'Masaje',
-            self::Aesthetic => 'Estética',
-            self::Experience => 'Experiencia',
+            self::PracticeTee => 'Tee de práctica',
         };
     }
 }

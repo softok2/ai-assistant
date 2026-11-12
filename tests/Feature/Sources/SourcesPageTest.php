@@ -71,7 +71,7 @@ it('scopes the page to the club of an external admin and locks the selector', fu
 });
 
 it('lets a local admin without club pick one and defaults to the first configured', function (): void {
-    config(['knowledge.sources' => ['ccm' => ['driver' => 'pentaho'], 'vallealto' => ['driver' => 'bi_knowledge']]]);
+    config(['knowledge.sources' => ['ccm' => ['driver' => 'bi_knowledge'], 'vallealto' => ['driver' => 'bi_knowledge']]]);
     File::factory()->forClub(ClubName::VALLEALTO)->completed()->create(['group' => 'golf']);
 
     $this->actingAs(adminUser())
